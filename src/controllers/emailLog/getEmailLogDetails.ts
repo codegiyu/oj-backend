@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { EmailLog } from '../../models/emailLog';
 import { getAuthUser } from '../../utils/getAuthUser';
 
@@ -22,5 +23,5 @@ export async function getEmailLogDetails(
   const emailLog = await EmailLog.findById(emailLogId).lean();
   if (!emailLog) throw new AppError('Email log not found', 404);
 
-  await reply.status(200).send({ emailLog });
+  sendResponse(reply, 200, { emailLog }, 'Email log details loaded.');
 }

@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { EmailLog } from '../../models/emailLog';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { addJobToQueue } from '../../queues/main.queue';
@@ -48,7 +49,7 @@ export async function resendEmail(
 
     const updatedEmailLog = await EmailLog.findById(emailLogId);
 
-    await reply.status(200).send({
+    sendResponse(reply, 200, {
       emailLog: {
         _id: emailLog._id,
         status: 'pending',
@@ -57,7 +58,7 @@ export async function resendEmail(
         type: emailLog.type,
         retryCount: updatedEmailLog?.retryCount ?? (emailLog.retryCount || 0) + 1,
       },
-    });
+    }, 'Email queued for resend.');
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     if (error instanceof AppError) throw error;

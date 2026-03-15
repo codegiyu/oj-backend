@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { Document } from '../../models/document';
 import { headObjectInR2 } from '../../services/r2.service';
 import { getAuthUser } from '../../utils/getAuthUser';
@@ -71,7 +72,7 @@ export async function listDocuments(
     Document.countDocuments(filter),
   ]);
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     documents,
     pagination: {
       page,
@@ -79,7 +80,7 @@ export async function listDocuments(
       total,
       totalPages: Math.ceil(total / limit) || 1,
     },
-  });
+  }, 'Documents loaded.');
 }
 
 export async function getDocumentDetails(
@@ -105,7 +106,7 @@ export async function getDocumentDetails(
 
   if (!document) throw new AppError('Document not found', 404);
 
-  await reply.status(200).send({ document });
+  sendResponse(reply, 200, { document }, 'Document details loaded.');
 }
 
 export async function verifyDocument(
@@ -125,7 +126,7 @@ export async function verifyDocument(
   if (!doc) throw new AppError('Document not found', 404);
 
   if (doc.status === 'verified') {
-    await reply.status(200).send({
+    sendResponse(reply, 200, {
       document: {
         _id: doc._id,
         key: doc.key,
@@ -133,13 +134,12 @@ export async function verifyDocument(
         publicUrl: doc.publicUrl,
         filename: doc.filename,
       },
-    });
+    }, 'Document verified.');
     return;
   }
   if (doc.status === 'expired' || (doc.expiresAt && new Date() > doc.expiresAt)) {
     if (doc.status !== 'expired') await Document.updateOne({ _id: doc._id }, { status: 'expired' });
-    await reply.status(410).send({ error: 'Document expired' });
-    return;
+    throw new AppError('Document expired', 410);
   }
 
   const { exists, size } = await headObjectInR2(doc.key);
@@ -155,7 +155,7 @@ export async function verifyDocument(
       }
     );
     const updated = await Document.findById(doc._id).lean();
-    await reply.status(200).send({ document: updated });
+    sendResponse(reply, 200, { document: updated }, 'Document verified.');
     return;
   }
   await Document.updateOne(
@@ -163,7 +163,7 @@ export async function verifyDocument(
     { status: 'failed', errorMessage: 'Object not found in R2' }
   );
   const failed = await Document.findById(doc._id).lean();
-  await reply.status(200).send({ document: failed });
+  sendResponse(reply, 200, { document: failed }, 'Document verification failed.');
 }
 
 export async function verifyDocumentAdmin(
@@ -179,7 +179,7 @@ export async function verifyDocumentAdmin(
   if (!doc) throw new AppError('Document not found', 404);
 
   if (doc.status === 'verified') {
-    await reply.status(200).send({
+    sendResponse(reply, 200, {
       document: {
         _id: doc._id,
         key: doc.key,
@@ -187,13 +187,12 @@ export async function verifyDocumentAdmin(
         publicUrl: doc.publicUrl,
         filename: doc.filename,
       },
-    });
+    }, 'Document verified.');
     return;
   }
   if (doc.status === 'expired' || (doc.expiresAt && new Date() > doc.expiresAt)) {
     if (doc.status !== 'expired') await Document.updateOne({ _id: doc._id }, { status: 'expired' });
-    await reply.status(410).send({ error: 'Document expired' });
-    return;
+    throw new AppError('Document expired', 410);
   }
 
   const { exists, size } = await headObjectInR2(doc.key);
@@ -209,7 +208,7 @@ export async function verifyDocumentAdmin(
       }
     );
     const updated = await Document.findById(doc._id).lean();
-    await reply.status(200).send({ document: updated });
+    sendResponse(reply, 200, { document: updated }, 'Document verified.');
     return;
   }
   await Document.updateOne(
@@ -217,5 +216,5 @@ export async function verifyDocumentAdmin(
     { status: 'failed', errorMessage: 'Object not found in R2' }
   );
   const failed = await Document.findById(doc._id).lean();
-  await reply.status(200).send({ document: failed });
+  sendResponse(reply, 200, { document: failed }, 'Document verification failed.');
 }

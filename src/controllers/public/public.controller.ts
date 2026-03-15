@@ -1,5 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
+import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { Music } from '../../models/music';
 import { Video } from '../../models/video';
 import { NewsArticle } from '../../models/newsArticle';
@@ -180,7 +182,7 @@ export async function listPublicMusic(
     shapeMusicListItem(doc, i, type ?? '')
   );
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     music,
     pagination: {
       page,
@@ -188,7 +190,7 @@ export async function listPublicMusic(
       total,
       totalPages: Math.ceil(total / limit),
     },
-  });
+  }, 'Music list loaded.');
 }
 
 export async function getPublicMusicByIdOrSlug(
@@ -196,17 +198,13 @@ export async function getPublicMusicByIdOrSlug(
   reply: FastifyReply
 ): Promise<void> {
   const doc = await findByIdOrSlug(Music, request.params.idOrSlug, { status: 'published' });
-  if (!doc) {
-    return reply.status(404).send({ error: 'Not Found', message: 'Music not found' });
-  }
+  if (!doc) throw new AppError('Music not found', 404);
   const populated = await Music.findById((doc as Record<string, unknown>)._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
     .lean();
-  if (!populated) {
-    return reply.status(404).send({ error: 'Not Found', message: 'Music not found' });
-  }
+  if (!populated) throw new AppError('Music not found', 404);
   const music = shapeMusicDetail(populated as unknown as Record<string, unknown>);
-  await reply.status(200).send({ music });
+  sendResponse(reply, 200, { music }, 'Music loaded.');
 }
 
 // ----- Videos -----
@@ -253,7 +251,7 @@ export async function listPublicVideos(
 
   const videos = (items as Record<string, unknown>[]).map(shapeVideoListItem);
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     videos,
     pagination: {
       page,
@@ -261,7 +259,7 @@ export async function listPublicVideos(
       total,
       totalPages: Math.ceil(total / limit),
     },
-  });
+  }, 'Videos list loaded.');
 }
 
 export async function getPublicVideoByIdOrSlug(
@@ -269,17 +267,13 @@ export async function getPublicVideoByIdOrSlug(
   reply: FastifyReply
 ): Promise<void> {
   const doc = await findByIdOrSlug(Video, request.params.idOrSlug, { status: 'published' });
-  if (!doc) {
-    return reply.status(404).send({ error: 'Not Found', message: 'Video not found' });
-  }
+  if (!doc) throw new AppError('Video not found', 404);
   const populated = await Video.findById((doc as Record<string, unknown>)._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
     .lean();
-  if (!populated) {
-    return reply.status(404).send({ error: 'Not Found', message: 'Video not found' });
-  }
+  if (!populated) throw new AppError('Video not found', 404);
   const video = shapeVideoDetail(populated as unknown as Record<string, unknown>);
-  await reply.status(200).send({ video });
+  sendResponse(reply, 200, { video }, 'Video loaded.');
 }
 
 // ----- News -----
@@ -324,7 +318,7 @@ export async function listPublicNews(
 
   const articles = (items as Record<string, unknown>[]).map(shapeArticleListItem);
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     articles,
     pagination: {
       page,
@@ -332,7 +326,7 @@ export async function listPublicNews(
       total,
       totalPages: Math.ceil(total / limit),
     },
-  });
+  }, 'News list loaded.');
 }
 
 export async function getPublicNewsByIdOrSlug(
@@ -340,9 +334,7 @@ export async function getPublicNewsByIdOrSlug(
   reply: FastifyReply
 ): Promise<void> {
   const doc = await findByIdOrSlug(NewsArticle, request.params.idOrSlug, { status: 'published' });
-  if (!doc) {
-    return reply.status(404).send({ error: 'Not Found', message: 'Article not found' });
-  }
+  if (!doc) throw new AppError('Article not found', 404);
   const article = shapeArticleDetail(doc as unknown as Record<string, unknown>);
-  await reply.status(200).send({ article });
+  sendResponse(reply, 200, { article }, 'Article loaded.');
 }

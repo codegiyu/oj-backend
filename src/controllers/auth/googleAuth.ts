@@ -6,6 +6,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuth2Client } from 'google-auth-library';
 import { ENVIRONMENT } from '../../config/env';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
 import { unselectedFields as userUnselected } from '../../models/user';
 import { getRoleWithSlug } from '../../services/role.service';
@@ -102,7 +103,7 @@ export async function googleAuth(
     setAuthCookies(reply, accessToken, refreshToken);
     const populatedUser = await buildClientUserPayload(user);
 
-    await reply.status(200).send({ user: populatedUser });
+    sendResponse(reply, 200, { user: populatedUser }, 'Google sign-in successful.');
     return;
   }
 
@@ -137,5 +138,5 @@ export async function googleAuth(
   const effectiveUser = (updated ?? user) as ModelUser;
   const populatedUser = await buildClientUserPayload(effectiveUser);
 
-  await reply.status(200).send({ user: populatedUser });
+  sendResponse(reply, 200, { user: populatedUser }, 'Google sign-in successful.');
 }

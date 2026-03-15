@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
 import { sendVerification } from './sendVerification';
 import type { TokenScope } from '../../utils/token';
@@ -36,5 +37,5 @@ export async function requestOTP(
     60 * 15
   );
 
-  await reply.status(200).send({ message: 'Verification code sent successfully' });
+  sendResponse(reply, 200, { message: 'Verification code sent successfully' }, 'Verification code sent successfully.');
 }

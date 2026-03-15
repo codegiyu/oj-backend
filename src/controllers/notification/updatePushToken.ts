@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { Admin } from '../../models/admin';
 import { getAuthUser } from '../../utils/getAuthUser';
 
@@ -31,7 +32,5 @@ export async function updatePushToken(
 
   await Admin.findByIdAndUpdate(user.userId, { 'auth.pushToken': value });
 
-  await reply.status(200).send({
-    registered: value.length > 0,
-  });
+  sendResponse(reply, 200, { registered: value.length > 0 }, 'Push token updated.');
 }

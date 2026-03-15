@@ -2,6 +2,7 @@ import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
 import { logger } from '../utils/logger';
 import { AppError } from '../utils/AppError';
+import { sendErrorResponse } from '../utils/response';
 
 type ValidationErrorItem = {
   message?: string;
@@ -41,10 +42,9 @@ export function errorHandler(
       method: request.method,
       details,
     });
-    reply.status(400).send({
-      error: message,
-      ...(details && details.length > 0 && { details }),
-    });
+    const data =
+      details && details.length > 0 ? ({ details } as Record<string, unknown>) : undefined;
+    sendErrorResponse(reply, 400, message, data);
     return;
   }
 
@@ -54,8 +54,11 @@ export function errorHandler(
     url: request.url,
     method: request.method,
   });
-  reply.status(statusCode).send({
-    error: message,
-    ...(ENVIRONMENT.nodeEnv === 'development' && error instanceof Error && { stack: error.stack }),
-  });
+  const errorData: unknown =
+    error instanceof AppError && error.data !== undefined
+      ? error.data
+      : ENVIRONMENT.nodeEnv === 'development' && error instanceof Error && error.stack
+        ? { stack: error.stack }
+        : undefined;
+  sendErrorResponse(reply, statusCode, message, errorData);
 }

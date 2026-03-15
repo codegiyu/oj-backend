@@ -1,6 +1,7 @@
 import { FastifyReply } from 'fastify';
 import { ENVIRONMENT } from '../../config/env';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { authService } from '../../services/auth.service';
 import { signAccess, signRefresh } from '../../utils/token';
 import { generateRandomString } from '../../utils/helpers';
@@ -178,8 +179,5 @@ export async function processPasswordChange(options: {
           updated as unknown as Record<string, unknown>,
           adminUnselected
         );
-  await reply.status(200).send({
-    message: 'Password changed successfully',
-    user: userPayload,
-  });
+  sendResponse(reply, 200, { user: userPayload }, 'Password changed successfully.');
 }

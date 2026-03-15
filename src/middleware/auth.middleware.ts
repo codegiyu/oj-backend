@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
 import { verifyAccess } from '../utils/token';
+import { AppError } from '../utils/AppError';
 
 const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 
@@ -14,17 +15,13 @@ function getAccessToken(request: FastifyRequest): string | undefined {
 
 export const authenticate = async (
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply
 ): Promise<void> => {
   const token = getAccessToken(request);
-  if (!token) {
-    reply.status(401).send({ error: 'Unauthorized' });
-    return;
-  }
+  if (!token) throw new AppError('Unauthorized', 401);
   const payload = verifyAccess(token);
   if (!payload || !payload.userId || !payload.email || !payload.scope || !payload.jti) {
-    reply.status(401).send({ error: 'Unauthorized' });
-    return;
+    throw new AppError('Unauthorized', 401);
   }
   request.authUser = {
     userId: String(payload.userId),

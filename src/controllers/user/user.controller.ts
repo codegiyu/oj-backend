@@ -4,6 +4,7 @@ import { User, unselectedFields as userUnselected } from '../../models/user';
 import { Product } from '../../models/product';
 import { Wishlist } from '../../models/wishlist';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { parseSearch, normalizeSort, parsePositiveInteger } from '../../utils/helpers';
 import { buildClientUserPayload } from '../auth/auth.helpers';
@@ -25,7 +26,7 @@ export async function getMe(
 
   const payload = await buildClientUserPayload(user);
   const serialized = serializePopulatedUser(payload as Record<string, unknown>);
-  await reply.status(200).send({ user: serialized });
+  sendResponse(reply, 200, { user: serialized }, 'User loaded.');
 }
 
 export async function updateMe(
@@ -57,7 +58,7 @@ export async function updateMe(
 
   const payload = await buildClientUserPayload(user);
   const serialized = serializePopulatedUser(payload as Record<string, unknown>);
-  await reply.status(200).send({ user: serialized });
+  sendResponse(reply, 200, { user: serialized }, 'User updated.');
 }
 
 const WISHLIST_SORT_FIELDS = ['createdAt'];
@@ -90,10 +91,10 @@ export async function listWishlist(
       .lean();
     productFilter = matchingProducts.map((p: { _id: mongoose.Types.ObjectId }) => p._id);
     if (productFilter.length === 0) {
-      await reply.status(200).send({
+      sendResponse(reply, 200, {
         items: [],
         pagination: { page, limit, total: 0, totalPages: 1 },
-      });
+      }, 'Wishlist loaded.');
       return;
     }
   }
@@ -119,7 +120,7 @@ export async function listWishlist(
     shapeWishlistItem(item as { _id: unknown; createdAt?: unknown; product?: unknown })
   );
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     items: mapped,
     pagination: {
       page,
@@ -127,7 +128,7 @@ export async function listWishlist(
       total,
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
-  });
+  }, 'Wishlist loaded.');
 }
 
 export async function addToWishlist(
@@ -166,7 +167,7 @@ export async function addToWishlist(
   if (!wishlistItem) throw new AppError('Failed to add to wishlist', 500);
 
   const item = shapeWishlistItem(wishlistItem as { _id: unknown; createdAt?: unknown; product?: unknown });
-  await reply.status(200).send({ item });
+  sendResponse(reply, 200, { item }, 'Item added to wishlist.');
 }
 
 export async function removeFromWishlist(
@@ -185,6 +186,6 @@ export async function removeFromWishlist(
     product: new mongoose.Types.ObjectId(productId),
   });
 
-  await reply.status(200).send({ success: true });
+  sendResponse(reply, 200, { success: true }, 'Item removed from wishlist.');
 }
 

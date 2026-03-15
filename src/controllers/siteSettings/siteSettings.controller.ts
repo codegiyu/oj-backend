@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { SiteSettings } from '../../models/siteSettings';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import type { SiteSettingsSlice } from './siteSettings.validation';
 
 const SLICES: SiteSettingsSlice[] = [
@@ -34,7 +35,7 @@ export async function getSiteSettings(
   const plain = settings.toObject() as Record<string, unknown>;
 
   if (slice === 'all') {
-    await reply.status(200).send(plain);
+    sendResponse(reply, 200, plain, 'Site settings loaded.');
     return;
   }
 
@@ -46,7 +47,7 @@ export async function getSiteSettings(
   if (value === undefined) {
     throw new AppError(`Slice not found: ${slice}`, 404);
   }
-  await reply.status(200).send(value);
+  sendResponse(reply, 200, (typeof value === 'object' && value !== null ? value : { value }) as Record<string, unknown>, 'Site settings loaded.');
 }
 
 interface UpdateSiteSettingsBody {
@@ -76,5 +77,5 @@ export async function updateSiteSettings(
 
   await settings.save();
   const plain = settings.toObject() as Record<string, unknown>;
-  await reply.status(200).send(plain);
+  sendResponse(reply, 200, plain, 'Site settings updated.');
 }

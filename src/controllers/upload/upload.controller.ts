@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { generatePresignedUrl, getContentTypeFromExtension } from '../../services/r2.service';
 import { Document } from '../../models/document';
 import { ENTITY_TYPES, UPLOAD_INTENTS } from '../../lib/types/constants';
@@ -132,7 +133,7 @@ export async function presignedUrlClient(
         };
       })
     );
-    await reply.status(200).send({ uploads, count: uploads.length });
+    sendResponse(reply, 200, { uploads, count: uploads.length }, 'Presigned URLs generated.');
     return;
   }
 
@@ -165,7 +166,7 @@ export async function presignedUrlClient(
     uploadedByModel: 'User',
   });
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     uploadUrl: url,
     key,
     filename,
@@ -173,7 +174,7 @@ export async function presignedUrlClient(
     documentId: doc._id.toString(),
     expiresIn: expiresInSeconds,
     expiresAt: expiresAt.toISOString(),
-  });
+  }, 'Presigned URL generated.');
 }
 
 export async function presignedUrlAdmin(
@@ -257,7 +258,7 @@ export async function presignedUrlAdmin(
         };
       })
     );
-    await reply.status(200).send({ uploads, count: uploads.length });
+    sendResponse(reply, 200, { uploads, count: uploads.length }, 'Presigned URLs generated.');
     return;
   }
 
@@ -290,7 +291,7 @@ export async function presignedUrlAdmin(
     uploadedByModel: 'Admin',
   });
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     uploadUrl: url,
     key,
     filename,
@@ -298,5 +299,5 @@ export async function presignedUrlAdmin(
     documentId: doc._id.toString(),
     expiresIn: expiresInSeconds,
     expiresAt: expiresAt.toISOString(),
-  });
+  }, 'Presigned URL generated.');
 }

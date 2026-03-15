@@ -9,11 +9,42 @@ import {
   getPublicNewsByIdOrSlug,
 } from '../controllers/public/public.controller';
 import {
+  getCommunity,
+  listDevotionals,
+  getDevotionalByIdOrSlug,
+  listTestimonies,
+  getTestimonyByIdOrSlug,
+  listPrayerRequests,
+  getPrayerRequestByIdOrSlug,
+  listAskAPastorQuestions,
+  getAskAPastorQuestionByIdOrSlug,
+  listAskAPastorPastors,
+  listPolls,
+  getPollByIdOrSlug,
+  listCommunityArtists,
+  getCommunityArtistByIdOrSlug,
+  listResources,
+  submitPrayerRequest,
+  submitQuestion,
+  submitTestimony,
+  createPoll,
+  votePoll,
+} from '../controllers/public/community.controller';
+import {
   listPublicMusicQuerystringSchema,
   listPublicVideosQuerystringSchema,
   listPublicNewsQuerystringSchema,
   idOrSlugParamSchema,
 } from '../controllers/public/public.validation';
+import {
+  communityListQuerystringSchema,
+  communityIdOrSlugParamSchema,
+  submitPrayerRequestBodySchema,
+  submitQuestionBodySchema,
+  submitTestimonyBodySchema,
+  createPollBodySchema,
+  votePollBodySchema,
+} from '../controllers/public/community.validation';
 
 export async function registerPublicRoutes(app: FastifyInstance): Promise<void> {
   // Music
@@ -66,5 +97,87 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     '/news/:idOrSlug',
     { schema: idOrSlugParamSchema },
     catchAsync(getPublicNewsByIdOrSlug)
+  );
+
+  // Community
+  app.get('/community', catchAsync(getCommunity));
+
+  app.get('/devotionals', { schema: communityListQuerystringSchema }, catchAsync(listDevotionals));
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/devotionals/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getDevotionalByIdOrSlug)
+  );
+
+  app.get('/testimonies', { schema: communityListQuerystringSchema }, catchAsync(listTestimonies));
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/testimonies/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getTestimonyByIdOrSlug)
+  );
+
+  app.get('/prayer-requests', { schema: communityListQuerystringSchema }, catchAsync(listPrayerRequests));
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/prayer-requests/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getPrayerRequestByIdOrSlug)
+  );
+
+  app.get<{ Querystring: { status?: string; category?: string; page?: string; limit?: string } }>(
+    '/ask-a-pastor/questions',
+    { schema: communityListQuerystringSchema },
+    catchAsync(listAskAPastorQuestions)
+  );
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/ask-a-pastor/questions/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getAskAPastorQuestionByIdOrSlug)
+  );
+  app.get('/ask-a-pastor/pastors', catchAsync(listAskAPastorPastors));
+
+  app.get<{ Querystring: { status?: string; page?: string; limit?: string } }>(
+    '/polls',
+    { schema: communityListQuerystringSchema },
+    catchAsync(listPolls)
+  );
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/polls/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getPollByIdOrSlug)
+  );
+  app.post<{ Body: { optionId: string }; Params: { idOrSlug: string } }>(
+    '/polls/:idOrSlug/vote',
+    { schema: votePollBodySchema },
+    catchAsync(votePoll)
+  );
+  app.post<{ Body: { question: string; description?: string; category?: string; options: string[] } }>(
+    '/polls',
+    { schema: createPollBodySchema },
+    catchAsync(createPoll)
+  );
+
+  app.get('/artists', catchAsync(listCommunityArtists));
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/artists/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getCommunityArtistByIdOrSlug)
+  );
+
+  app.get('/resources', { schema: communityListQuerystringSchema }, catchAsync(listResources));
+
+  app.post<{ Body: { name?: string; email?: string; title: string; content: string; category?: string; urgent?: boolean } }>(
+    '/prayer-requests',
+    { schema: submitPrayerRequestBodySchema },
+    catchAsync(submitPrayerRequest)
+  );
+  app.post<{ Body: { name?: string; email?: string; question: string; category?: string } }>(
+    '/ask-a-pastor/questions',
+    { schema: submitQuestionBodySchema },
+    catchAsync(submitQuestion)
+  );
+  app.post<{ Body: { name?: string; category?: string; content: string } }>(
+    '/testimonies',
+    { schema: submitTestimonyBodySchema },
+    catchAsync(submitTestimony)
   );
 }

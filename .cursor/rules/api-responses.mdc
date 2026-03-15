@@ -1,0 +1,37 @@
+---
+description: API response and error conventions — use sendResponse and AppError everywhere
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# API Response and Error Conventions
+
+All HTTP responses from this backend must follow the same pattern.
+
+## Success responses
+
+- **Always** use `sendResponse(reply, statusCode, data, message)` from `src/utils/response.ts`.
+- Do **not** use `reply.status(...).send(...)` or `reply.send(...)` for success responses.
+- Signature: `sendResponse(reply, statusCode, data, message)` where `data` is `Record<string, unknown> | string | null`.
+- The client receives: `{ success: true, data, responseCode, message }`.
+
+## Errors
+
+- **Always** use `throw new AppError(message, statusCode, data?)` from `src/utils/AppError.ts` for operational errors (validation, not found, unauthorized, etc.).
+- Do **not** use `reply.status(...).send(...)` for error responses in controllers or middleware; let the global error handler format the response.
+- The error handler sends: `{ success: false, data?, responseCode, message }`.
+- Use appropriate status codes (400, 401, 403, 404, 410, 500, etc.).
+
+## Where to use what
+
+| Context | Use |
+|--------|-----|
+| Controller success path | `sendResponse(reply, statusCode, data, message)` |
+| Controller error path (validation, auth, not found, etc.) | `throw new AppError(message, statusCode)` |
+| Middleware (e.g. auth) when request is invalid | `throw new AppError('Unauthorized', 401)` |
+| Error handler / not-found handler | `sendErrorResponse(reply, statusCode, message, data?)` (from `src/utils/response.ts`) |
+
+## Route handlers
+
+- Handlers wrapped with `catchAsync` will have thrown `AppError` (and other errors) passed to the global error handler.
+- Never call `reply.send(err)` or send raw error objects; the error handler will format all errors consistently.

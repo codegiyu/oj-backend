@@ -27,6 +27,7 @@ import { registerVendorRoutes } from './routes/vendor.route';
 import { registerArtistRoutes } from './routes/artist.route';
 import { registerPublicRoutes } from './routes/public.route';
 import { errorHandler } from './middleware/errorHandler.middleware';
+import { sendErrorResponse } from './utils/response';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
   const app = Fastify({
@@ -76,10 +77,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
   // Not found handler
   app.setNotFoundHandler((request, reply) => {
-    reply.status(404).send({
-      error: 'Not Found',
-      message: `Route ${request.method} ${request.url} not found`,
-    });
+    sendErrorResponse(reply, 404, `Route ${request.method} ${request.url} not found`);
   });
 
   return app;
