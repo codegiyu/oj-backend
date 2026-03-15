@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { EmailLog } from '../../models/emailLog';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { EMAIL_STATUSES } from '../../lib/types/constants';
@@ -69,7 +70,7 @@ export async function listEmailLogs(
     EmailLog.countDocuments(filter),
   ]);
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     emailLogs,
     pagination: {
       page,
@@ -77,5 +78,5 @@ export async function listEmailLogs(
       total,
       totalPages: Math.ceil(total / limit) || 1,
     },
-  });
+  }, 'Email logs loaded.');
 }

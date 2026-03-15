@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { authService } from '../../services/auth.service';
 import { signAccess, signRefresh } from '../../utils/token';
 import { generateRandomString } from '../../utils/helpers';
@@ -49,7 +50,7 @@ export async function login(
   });
   setAuthCookies(reply, accessToken, refreshToken);
   const sanitized = deleteFields(admin.toObject() as Record<string, unknown>, adminUnselected);
-  await reply.status(200).send({ user: sanitized });
+  sendResponse(reply, 200, { user: sanitized }, 'Login successful.');
 }
 
 export async function session(
@@ -58,7 +59,7 @@ export async function session(
 ): Promise<void> {
   const user = getAuthUser(request);
   if (!user) {
-    await reply.status(200).send({ user: null });
+    sendResponse(reply, 200, { user: null }, 'No session.');
     return;
   }
   const scope = user.scope;
@@ -68,11 +69,11 @@ export async function session(
       .lean<ModelAdmin>();
     if (!admin || admin.accountStatus === 'deleted') {
       clearAuthCookies(reply);
-      await reply.status(200).send({ user: null });
+      sendResponse(reply, 200, { user: null }, 'No session.');
       return;
     }
     const sanitized = deleteFields(admin as unknown as Record<string, unknown>, adminUnselected);
-    await reply.status(200).send({ user: sanitized });
+    sendResponse(reply, 200, { user: sanitized }, 'Session loaded.');
     return;
   }
   const userDoc = await User.findById(user.userId)
@@ -80,12 +81,12 @@ export async function session(
     .lean<ModelUser>();
   if (!userDoc || userDoc.accountStatus === 'deleted') {
     clearAuthCookies(reply);
-    await reply.status(200).send({ user: null });
+    sendResponse(reply, 200, { user: null }, 'No session.');
     return;
   }
 
   const payload = await buildClientUserPayload(userDoc);
-  await reply.status(200).send({ user: payload });
+  sendResponse(reply, 200, { user: payload }, 'Session loaded.');
 }
 
 export async function logout(
@@ -101,5 +102,5 @@ export async function logout(
     }
   }
   clearAuthCookies(reply);
-  await reply.status(200).send({ success: true });
+  sendResponse(reply, 200, { success: true }, 'Logged out.');
 }

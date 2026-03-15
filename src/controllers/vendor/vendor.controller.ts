@@ -7,6 +7,7 @@ import { User } from '../../models/user';
 import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
 import {
   slugify,
@@ -59,16 +60,11 @@ export async function getDashboardStats(
 
   const totalPaidRevenue = revenueResult[0]?.total ?? 0;
 
-  await reply.status(200).send({
-    success: true,
-    message: 'Vendor dashboard stats loaded.',
-    responseCode: 200,
-    data: {
-      productsCount,
-      pendingOrdersCount,
-      totalPaidRevenue,
-    },
-  });
+  sendResponse(reply, 200, {
+    productsCount,
+    pendingOrdersCount,
+    totalPaidRevenue,
+  }, 'Vendor dashboard stats loaded.');
 }
 
 export async function getVendorMe(
@@ -79,7 +75,7 @@ export async function getVendorMe(
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const vendor = await getVendorForUser(user.userId);
   const count = await Product.countDocuments({ vendor: vendor._id });
-  await reply.status(200).send({ ...vendor.toObject(), productCount: count });
+  sendResponse(reply, 200, { ...vendor.toObject(), productCount: count }, 'Vendor profile loaded.');
 }
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
@@ -131,7 +127,7 @@ export async function getVendorProducts(
     Product.countDocuments(filter),
   ]);
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     products,
     pagination: {
       page,
@@ -139,7 +135,7 @@ export async function getVendorProducts(
       total,
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
-  });
+  }, 'Products loaded.');
 }
 
 export async function createProduct(
@@ -233,7 +229,7 @@ export async function createProduct(
     .populate('subCategory', 'name slug category')
     .lean();
 
-  await reply.status(201).send(populated);
+  sendResponse(reply, 201, populated as unknown as Record<string, unknown>, 'Product created.');
 }
 
 export async function updateProduct(
@@ -327,7 +323,7 @@ export async function updateProduct(
     .populate('subCategory', 'name slug category')
     .lean();
 
-  await reply.status(200).send(updated);
+  sendResponse(reply, 200, updated as unknown as Record<string, unknown>, 'Product updated.');
 }
 
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
@@ -430,7 +426,7 @@ export async function getVendorOrders(
     };
   });
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     orders: mapped,
     pagination: {
       page,
@@ -438,7 +434,7 @@ export async function getVendorOrders(
       total,
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
-  });
+  }, 'Orders loaded.');
 }
 
 export async function updateVendorSettings(
@@ -475,5 +471,5 @@ export async function updateVendorSettings(
    if (body.bankAccountNumber !== undefined) vendor.bankAccountNumber = body.bankAccountNumber;
    if (body.bankName !== undefined) vendor.bankName = body.bankName;
   await vendor.save();
-  await reply.status(200).send(vendor.toObject());
+  sendResponse(reply, 200, vendor.toObject() as unknown as Record<string, unknown>, 'Vendor settings updated.');
 }

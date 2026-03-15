@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
 import { getFromCache, removeFromCache } from '../../utils/cache';
 import { verifyOtpToken } from '../../utils/token';
@@ -39,8 +40,7 @@ export async function verifyOTP(
     if (!updatedUser) throw new AppError('User account not found', 401);
   }
 
-  await reply.status(200).send({
-    message: 'Verification successful',
+  sendResponse(reply, 200, {
     ...(updatedUser ? { user: updatedUser } : {}),
-  });
+  }, 'Verification successful.');
 }

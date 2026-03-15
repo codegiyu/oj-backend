@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { Admin } from '../../models/admin';
 import { User } from '../../models/user';
 import { sendPasswordResetLink } from './sendPasswordResetLink';
@@ -43,8 +44,5 @@ export async function requestPasswordReset(
     accessType: resolvedAccessType,
   });
 
-  await reply.status(200).send({
-    success: true,
-    message: 'Password reset link sent successfully',
-  });
+  sendResponse(reply, 200, { success: true }, 'Password reset link sent successfully.');
 }

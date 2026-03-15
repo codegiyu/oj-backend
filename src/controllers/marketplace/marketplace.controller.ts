@@ -8,6 +8,7 @@ import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
 import { ModelProduct } from '../../lib/types/constants';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
 import {
   slugify,
@@ -103,12 +104,7 @@ export async function getCategories(
 ): Promise<void> {
   const includeInactive = request.query.includeInactive === '1';
   const categories = await getActiveCategories(includeInactive);
-  await reply.status(200).send({
-    success: true,
-    data: {
-      categories,
-    },
-  });
+  sendResponse(reply, 200, { categories }, 'Categories loaded.');
 }
 
 export async function getSubCategories(
@@ -128,10 +124,8 @@ export async function getSubCategories(
         .lean<{ _id: mongoose.Types.ObjectId } | null>();
       if (!category) {
         // If a specific category identifier is provided but not found, return empty list
-        return reply.status(200).send({
-          success: true,
-          data: { subcategories: [] },
-        });
+        sendResponse(reply, 200, { subcategories: [] }, 'Subcategories loaded.');
+        return;
       }
       categoryIdFilter = category._id;
     }
@@ -147,12 +141,7 @@ export async function getSubCategories(
     .select('_id category name slug displayOrder isActive')
     .lean();
 
-  await reply.status(200).send({
-    success: true,
-    data: {
-      subcategories,
-    },
-  });
+  sendResponse(reply, 200, { subcategories }, 'Subcategories loaded.');
 }
 
 export async function getVendors(
@@ -173,7 +162,7 @@ export async function getVendors(
       );
       return withCount;
     });
-  await reply.status(200).send({ vendors });
+  sendResponse(reply, 200, { vendors }, 'Vendors loaded.');
 }
 
 export async function getVendorBySlug(
@@ -186,7 +175,7 @@ export async function getVendorBySlug(
     vendor: vendor._id,
     status: 'published',
   });
-  await reply.status(200).send({ ...vendor, productCount });
+  sendResponse(reply, 200, { ...vendor, productCount } as Record<string, unknown>, 'Vendor loaded.');
 }
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder'];
@@ -307,7 +296,7 @@ export async function getProducts(
     };
   });
 
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     products: list,
     pagination: {
       page,
@@ -315,7 +304,7 @@ export async function getProducts(
       total,
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
-  });
+  }, 'Products loaded.');
 }
 
 export async function getProductBySlug(
@@ -338,7 +327,7 @@ export async function getProductBySlug(
     p.subCategory as
       | { _id?: mongoose.Types.ObjectId; name?: string; slug?: string; category?: mongoose.Types.ObjectId }
       | null;
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     ...p,
     vendorName: v?.storeName,
     vendorSlug: v?.slug,
@@ -358,7 +347,7 @@ export async function getProductBySlug(
           category: s.category?.toString(),
         }
       : undefined,
-  });
+  }, 'Product loaded.');
 }
 
 export async function becomeVendor(
@@ -403,7 +392,7 @@ export async function becomeVendor(
     status: 'pending',
     isVerified: false,
   });
-  await reply.status(201).send({ vendor: vendor.toObject(), message: 'Application received' });
+  sendResponse(reply, 201, { vendor: vendor.toObject() }, 'Application received.');
 }
 
 function findVariantBySku(
@@ -572,7 +561,7 @@ export async function placeOrder(
 
   const populated = mapOrderToPopulated(created);
 
-  await reply.status(201).send({ order: populated });
+  sendResponse(reply, 201, { order: populated }, 'Order placed.');
 }
 
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
@@ -624,7 +613,7 @@ export async function getMyOrders(
   ]);
 
   const list = (orders as Record<string, unknown>[]).map(o => mapOrderToPopulated(o));
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     orders: list,
     pagination: {
       page,
@@ -632,5 +621,5 @@ export async function getMyOrders(
       total,
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
-  });
+  }, 'Orders loaded.');
 }

@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
+import { sendResponse } from '../../utils/response';
 import { Notification } from '../../models/notification';
 import { User } from '../../models/user';
 import { Admin } from '../../models/admin';
@@ -29,10 +30,10 @@ export async function list(
     userModel = 'User';
   }
   const result = await listNotificationsForUser(userId, userModel, { page, limit, isRead });
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     notifications: result.notifications,
     meta: result.meta,
-  });
+  }, 'Notifications loaded.');
 }
 
 export async function create(
@@ -75,7 +76,7 @@ export async function create(
     context: body.context,
   });
   if (!notification) throw new AppError('User not found', 404);
-  await reply.status(201).send({ notification });
+  sendResponse(reply, 201, { notification }, 'Notification created.');
 }
 
 export async function readOne(
@@ -101,14 +102,14 @@ export async function readOne(
     { new: true }
   ).lean();
   if (!notification) throw new AppError('Notification not found', 404);
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     notification: {
       _id: notification._id,
       isRead: notification.isRead,
       readAt: notification.readAt,
       status: notification.status,
     },
-  });
+  }, 'Notification updated.');
 }
 
 export async function readAll(
@@ -123,13 +124,13 @@ export async function readAll(
     { user: new mongoose.Types.ObjectId(user.userId), userModel },
     { isRead, readAt: isRead ? new Date() : null }
   );
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     meta: {
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
       isRead,
     },
-  });
+  }, 'Notifications updated.');
 }
 
 export async function getPreferences(
@@ -141,14 +142,14 @@ export async function getPreferences(
   const Model = user.scope === 'console-access' ? Admin : User;
   const doc = await Model.findById(user.userId).select('preferences').lean();
   const prefs = doc?.preferences ?? {};
-  await reply.status(200).send({
+  sendResponse(reply, 200, {
     notificationPreferences: {
       realtime: prefs.realtimeNotifications ?? true,
       email: prefs.emailNotifications ?? true,
       sms: prefs.smsNotifications ?? false,
       marketingEmails: prefs.marketingEmails ?? false,
     },
-  });
+  }, 'Preferences loaded.');
 }
 
 export async function updatePreferences(
@@ -167,9 +168,9 @@ export async function updatePreferences(
   if (body.sms !== undefined) update['preferences.smsNotifications'] = body.sms;
   if (body.marketingEmails !== undefined) update['preferences.marketingEmails'] = body.marketingEmails;
   if (Object.keys(update).length === 0) {
-    await reply.status(200).send({ success: true });
+    sendResponse(reply, 200, { success: true }, 'Preferences unchanged.');
     return;
   }
   await Model.findByIdAndUpdate(user.userId, { $set: update });
-  await reply.status(200).send({ success: true });
+  sendResponse(reply, 200, { success: true }, 'Preferences updated.');
 }
