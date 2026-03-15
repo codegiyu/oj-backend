@@ -1,0 +1,37 @@
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { AppError } from '../../utils/AppError';
+import { Admin } from '../../models/admin';
+import { getAuthUser } from '../../utils/getAuthUser';
+
+export async function updatePushToken(
+  request: FastifyRequest<{
+    Body: { pushTokenUpdate?: { pushToken?: string | null } };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const user = getAuthUser(request);
+  if (!user || user.scope !== 'console-access') {
+    throw new AppError('Unauthorized', 401);
+  }
+
+  const { pushTokenUpdate } = request.body ?? {};
+  if (!pushTokenUpdate || typeof pushTokenUpdate !== 'object') {
+    throw new AppError('pushTokenUpdate object is required', 400);
+  }
+
+  let { pushToken } = pushTokenUpdate;
+  if (pushToken !== undefined && pushToken !== null && typeof pushToken !== 'string') {
+    throw new AppError('pushToken must be a string or null', 400);
+  }
+
+  const value = pushToken === null || pushToken === '' ? '' : String(pushToken).trim();
+  if (value.length > 500) {
+    throw new AppError('pushToken is too long', 400);
+  }
+
+  await Admin.findByIdAndUpdate(user.userId, { 'auth.pushToken': value });
+
+  await reply.status(200).send({
+    registered: value.length > 0,
+  });
+}
