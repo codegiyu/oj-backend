@@ -36,7 +36,7 @@ export const seedMarketplaceCategories = async (): Promise<void> => {
           slug: categorySlug,
         },
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
     if (existingCategory) {
@@ -71,7 +71,7 @@ export const seedMarketplaceCategories = async (): Promise<void> => {
             slug: subSlug,
           },
         },
-        { upsert: true, new: true, runValidators: true }
+        { upsert: true, returnDocument: 'after', runValidators: true }
       );
 
       if (existingSub) {

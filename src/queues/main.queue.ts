@@ -5,10 +5,7 @@ import { getEmailLog, updateEmailStatus } from '../utils/emailTracking';
 import { logger } from '../utils/logger';
 
 const redisConnection = {
-  host: ENVIRONMENT.redis.host,
-  port: ENVIRONMENT.redis.port,
-  password: ENVIRONMENT.redis.password,
-  db: ENVIRONMENT.redis.db,
+  url: ENVIRONMENT.redis.url,
 };
 
 export const mainQueue = new Queue<JobData>('mainQueue', {

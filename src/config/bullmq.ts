@@ -3,10 +3,7 @@ import { ENVIRONMENT } from './env';
 import { logger } from '../utils/logger';
 
 export const bullmqConnection = {
-  host: ENVIRONMENT.redis.host,
-  port: ENVIRONMENT.redis.port,
-  password: ENVIRONMENT.redis.password,
-  db: ENVIRONMENT.redis.db,
+  url: ENVIRONMENT.redis.url,
 };
 
 export const createQueue = <T = unknown>(

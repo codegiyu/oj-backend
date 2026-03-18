@@ -16,11 +16,11 @@ const start = async (): Promise<void> => {
     await connectDb();
     logger.info('MongoDB connected');
 
-    await seedDb();
-    logger.info('Seed completed');
-
     getRedisClient();
     logger.info('Redis client initialized');
+    
+    await seedDb();
+    logger.info('Seed completed');
 
     app = await buildApp();
 

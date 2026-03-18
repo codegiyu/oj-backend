@@ -5,10 +5,7 @@ import { sendEmail } from './handlers/sendEmail';
 import { logger } from '../utils/logger';
 
 const redisConnection = {
-  host: ENVIRONMENT.redis.host,
-  port: ENVIRONMENT.redis.port,
-  password: ENVIRONMENT.redis.password,
-  db: ENVIRONMENT.redis.db,
+  url: ENVIRONMENT.redis.url,
 };
 
 const EMAIL_JOB_TYPES: JOB_TYPE[] = [

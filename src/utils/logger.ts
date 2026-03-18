@@ -21,12 +21,13 @@ const consoleFormat = winston.format.combine(
 );
 
 export const logger = winston.createLogger({
-  level: ENVIRONMENT.nodeEnv === 'production' ? 'info' : 'debug',
+  level: 'silly',
   format: logFormat,
   defaultMeta: { service: 'oj-backend' },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.Console(),
+    // new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    // new winston.transports.File({ filename: 'logs/combined.log' }),
   ],
 });
 
