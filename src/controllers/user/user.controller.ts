@@ -51,7 +51,7 @@ export async function updateMe(
   const user = await User.findOneAndUpdate(
     { _id: new mongoose.Types.ObjectId(auth.userId), accountStatus: { $ne: 'deleted' } },
     { $set: updates },
-    { new: true }
+    { returnDocument: 'after' }
   )
     .select(userUnselected.join(' '))
     .lean();
@@ -156,7 +156,7 @@ export async function addToWishlist(
   const wishlistItem = await Wishlist.findOneAndUpdate(
     { user: userId, product: product._id },
     { $setOnInsert: { user: userId, product: product._id } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   )
     .populate({
       path: 'product',

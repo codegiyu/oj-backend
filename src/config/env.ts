@@ -26,10 +26,6 @@ export type Environment = {
     readonly clientSecret: string;
   };
   readonly redis: {
-    readonly host: string;
-    readonly port: number;
-    readonly password: string | undefined;
-    readonly db: number;
     readonly url: string;
     readonly cacheExpiry: number;
   };
@@ -80,10 +76,7 @@ export type Environment = {
   };
 };
 
-const redisHost = process.env.REDIS_HOST || 'localhost';
-const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
-const redisPassword = process.env.REDIS_PASSWORD || undefined;
-const redisDb = parseInt(process.env.REDIS_DB || '0', 10);
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379/0';
 
 export const ENVIRONMENT: Environment = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -115,15 +108,7 @@ export const ENVIRONMENT: Environment = {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
   redis: {
-    host: redisHost,
-    port: redisPort,
-    password: redisPassword,
-    db: redisDb,
-    url:
-      process.env.REDIS_URL ||
-      (redisPassword
-        ? `redis://:${redisPassword}@${redisHost}:${redisPort}/${redisDb}`
-        : `redis://${redisHost}:${redisPort}/${redisDb}`),
+    url: redisUrl,
     cacheExpiry: parseInt(process.env.CACHE_EXPIRY || '3600', 10),
   },
   aws: {

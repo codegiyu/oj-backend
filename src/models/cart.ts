@@ -12,13 +12,11 @@ const cartItemSchema = new Schema(
 
 const cartSchema = new Schema<ModelCart>(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true, index: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     items: { type: [cartItemSchema], default: [] },
   },
   { timestamps: true, collection: 'carts' }
 );
-
-cartSchema.index({ user: 1 });
 
 export const Cart = mongoose.models.Cart || model<ModelCart>('Cart', cartSchema);
 

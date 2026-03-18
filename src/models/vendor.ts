@@ -20,7 +20,6 @@ const vendorSchema = new Schema<ModelVendor>(
       type: String,
       enum: ['pending', 'active', 'suspended', 'inactive'],
       default: 'pending',
-      index: true,
     },
     isVerified: { type: Boolean, default: false },
   },

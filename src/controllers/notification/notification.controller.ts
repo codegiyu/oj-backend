@@ -99,7 +99,7 @@ export async function readOne(
       userModel,
     },
     { isRead, readAt: isRead ? new Date() : null },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
   if (!notification) throw new AppError('Notification not found', 404);
   sendResponse(reply, 200, {

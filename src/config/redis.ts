@@ -6,15 +6,16 @@ let redisClient: Redis | null = null;
 
 export const getRedisClient = (): Redis => {
   if (!redisClient) {
-    redisClient = new Redis({
-      host: ENVIRONMENT.redis.host,
-      port: ENVIRONMENT.redis.port,
-      password: ENVIRONMENT.redis.password,
-      db: ENVIRONMENT.redis.db,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
+    const retryStrategy = (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    };
+
+    // Always use a single Redis URL.
+    redisClient = new Redis(ENVIRONMENT.redis.url, {
+      enableOfflineQueue: false,
+      offlineQueue: false,
+      retryStrategy,
       maxRetriesPerRequest: 3,
     });
 

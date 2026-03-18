@@ -47,7 +47,7 @@ export async function updateEmailStatus(
   if (updates.messageId) updateData.messageId = updates.messageId;
   if (updates.htmlContent !== undefined) updateData.htmlContent = updates.htmlContent;
   if (updates.metadata) updateData.metadata = updates.metadata;
-  const emailLog = await EmailLog.findOneAndUpdate(query, updateData, { new: true });
+  const emailLog = await EmailLog.findOneAndUpdate(query, updateData, { returnDocument: 'after' });
   return emailLog as ModelEmailLog | null;
 }
 

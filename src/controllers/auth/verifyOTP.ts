@@ -35,7 +35,7 @@ export async function verifyOTP(
         'kyc.email.isVerified': true,
         'kyc.email.data': { verifiedAt: new Date() },
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).lean();
     if (!updatedUser) throw new AppError('User account not found', 401);
   }
