@@ -2,9 +2,9 @@ FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 
 # Install timezone data and set timezone
-RUN apk add --no-cache tzdata \
-  && cp /usr/share/zoneinfo/Africa/Lagos /etc/localtime \
-  && echo "Africa/Lagos" > /etc/timezone
+# RUN apk add --no-cache tzdata \
+#   && cp /usr/share/zoneinfo/Africa/Lagos /etc/localtime \
+#   && echo "Africa/Lagos" > /etc/timezone
 
 # Install dependencies first to maximize Docker layer caching
 COPY package.json ./
