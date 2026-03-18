@@ -65,8 +65,9 @@ export const TemplateLayout = ({
   code,
   branding,
 }: TemplateLayoutProps) => {
+  const TailwindWrapper = Tailwind as any;
   return (
-    <Tailwind>
+    <TailwindWrapper>
       <Html>
         <Head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -125,7 +126,7 @@ export const TemplateLayout = ({
           </Container>
         </Body>
       </Html>
-    </Tailwind>
+    </TailwindWrapper>
   );
 };
 
