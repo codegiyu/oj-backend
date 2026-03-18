@@ -1,6 +1,11 @@
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 
+# Install timezone data and set timezone
+RUN apk add --no-cache tzdata \
+  && cp /usr/share/zoneinfo/Africa/Lagos /etc/localtime \
+  && echo "Africa/Lagos" > /etc/timezone
+
 # Install dependencies first to maximize Docker layer caching
 COPY package.json ./
 RUN npm install --no-audit --no-fund --legacy-peer-deps --include=dev
@@ -8,17 +13,15 @@ RUN npm install --no-audit --no-fund --legacy-peer-deps --include=dev
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json tsconfig.json ./
-COPY src ./src
+COPY . .
 
 RUN npm run build
 
-# Remove dev dependencies after building
-RUN npm prune --omit=dev
+# # Remove dev dependencies after building
+# RUN npm prune --omit=dev
 
-FROM node:20-bookworm-slim AS runtime
-WORKDIR /app
+# FROM node:20-bookworm-slim AS runtime
+# WORKDIR /app
 
 # Expose the port the app runs on in the container
 EXPOSE 4400
@@ -84,7 +87,7 @@ ARG ADMIN_APP_URL
 ARG CLIENT_APP_URL
 
 # Set environment variables
-ENV NODE_ENV=$NODE_ENV \
+ENV NODE_ENV=production \
   HOST=$HOST \
   PORT=$PORT \
   DATABASE_URL=$DATABASE_URL \
@@ -132,10 +135,8 @@ ENV NODE_ENV=$NODE_ENV \
   RATE_LIMIT_MAX=$RATE_LIMIT_MAX \
   RATE_LIMIT_TIME_WINDOW=$RATE_LIMIT_TIME_WINDOW \
   ADMIN_APP_URL=$ADMIN_APP_URL \
-  CLIENT_APP_URL=$CLIENT_APP_URL
+  CLIENT_APP_URL=$CLIENT_APP_URL \
+  TZ=Africa/Lagos
 
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-
+#  Run the app
 CMD ["npm", "start"]
