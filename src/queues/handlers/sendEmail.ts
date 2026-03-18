@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import nodemailer from 'nodemailer';
 import { render } from '@react-email/render';
-import type { JSX } from 'react';
+import type { ReactNode } from 'react';
 import { OTPCode } from '../templates/OTP';
 import { ResetPasswordLink } from '../templates/ResetPassword';
 import { NotificationEmailTemplate } from '../templates/NotificationEmail';
@@ -16,24 +16,27 @@ import type { JOB_TYPE, JobData } from '../../lib/types/queues';
 const TEMPLATES: Partial<
   Record<
     JOB_TYPE,
-    { subject: string; template: (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => JSX.Element }
+    {
+      subject: string;
+      template: (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode;
+    }
   >
 > = {
   verificationCode: {
     subject: 'Account verification code',
-    template: OTPCode as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => JSX.Element,
+    template: OTPCode as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
   },
   resetPassword: {
     subject: 'Reset your password',
-    template: ResetPasswordLink as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => JSX.Element,
+    template: ResetPasswordLink as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
   },
   notificationEmail: {
     subject: 'You have a new notification',
-    template: NotificationEmailTemplate as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => JSX.Element,
+    template: NotificationEmailTemplate as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
   },
   inviteAdmin: {
     subject: 'Your invitation to OJ Multimedia Admin',
-    template: InviteAdminTemplate as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => JSX.Element,
+    template: InviteAdminTemplate as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
   },
 };
 
@@ -86,7 +89,7 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
     const html = await render(
       options.template(
         templatePayload as JobData & { branding: ReturnType<typeof getAppBranding> }
-      )
+      ) as any
     );
 
     const transporter = nodemailer.createTransport({
