@@ -23,6 +23,7 @@ export const listProductsQuerystringSchema: FastifySchema = {
       limit: { type: 'string', pattern: '^[0-9]+$' },
       page: { type: 'string', pattern: '^[0-9]+$' },
       search: { type: 'string' },
+      q: { type: 'string' },
       sort: { type: 'string' },
     },
   },

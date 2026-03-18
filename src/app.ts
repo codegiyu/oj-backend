@@ -40,7 +40,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   });
 
   await app.register(cors, {
-    origin: ENVIRONMENT.cors.origin,
+    origin: ENVIRONMENT.cors.origin.split(',').map((s) => s.trim()),
     credentials: true,
   });
 

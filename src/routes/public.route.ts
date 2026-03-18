@@ -30,6 +30,10 @@ import {
   createPoll,
   votePoll,
 } from '../controllers/public/community.controller';
+import { submitContact } from '../controllers/public/contact.controller';
+import { search } from '../controllers/public/search.controller';
+import { submitContactBodySchema } from '../controllers/public/contact.validation';
+import { searchQuerystringSchema } from '../controllers/public/search.validation';
 import {
   listPublicMusicQuerystringSchema,
   listPublicVideosQuerystringSchema,
@@ -37,7 +41,14 @@ import {
   idOrSlugParamSchema,
 } from '../controllers/public/public.validation';
 import {
-  communityListQuerystringSchema,
+  listDevotionalsQuerystringSchema,
+  listTestimoniesQuerystringSchema,
+  listPrayerRequestsQuerystringSchema,
+  listAskAPastorQuestionsQuerystringSchema,
+  listPollsQuerystringSchema,
+  listArtistsQuerystringSchema,
+  listPastorsQuerystringSchema,
+  listResourcesQuerystringSchema,
   communityIdOrSlugParamSchema,
   submitPrayerRequestBodySchema,
   submitQuestionBodySchema,
@@ -102,21 +113,21 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   // Community
   app.get('/community', catchAsync(getCommunity));
 
-  app.get('/devotionals', { schema: communityListQuerystringSchema }, catchAsync(listDevotionals));
+  app.get('/devotionals', { schema: listDevotionalsQuerystringSchema }, catchAsync(listDevotionals));
   app.get<{ Params: { idOrSlug: string } }>(
     '/devotionals/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getDevotionalByIdOrSlug)
   );
 
-  app.get('/testimonies', { schema: communityListQuerystringSchema }, catchAsync(listTestimonies));
+  app.get('/testimonies', { schema: listTestimoniesQuerystringSchema }, catchAsync(listTestimonies));
   app.get<{ Params: { idOrSlug: string } }>(
     '/testimonies/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getTestimonyByIdOrSlug)
   );
 
-  app.get('/prayer-requests', { schema: communityListQuerystringSchema }, catchAsync(listPrayerRequests));
+  app.get('/prayer-requests', { schema: listPrayerRequestsQuerystringSchema }, catchAsync(listPrayerRequests));
   app.get<{ Params: { idOrSlug: string } }>(
     '/prayer-requests/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
@@ -125,7 +136,7 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
 
   app.get<{ Querystring: { status?: string; category?: string; page?: string; limit?: string } }>(
     '/ask-a-pastor/questions',
-    { schema: communityListQuerystringSchema },
+    { schema: listAskAPastorQuestionsQuerystringSchema },
     catchAsync(listAskAPastorQuestions)
   );
   app.get<{ Params: { idOrSlug: string } }>(
@@ -133,11 +144,11 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getAskAPastorQuestionByIdOrSlug)
   );
-  app.get('/ask-a-pastor/pastors', catchAsync(listAskAPastorPastors));
+  app.get('/ask-a-pastor/pastors', { schema: listPastorsQuerystringSchema }, catchAsync(listAskAPastorPastors));
 
   app.get<{ Querystring: { status?: string; page?: string; limit?: string } }>(
     '/polls',
-    { schema: communityListQuerystringSchema },
+    { schema: listPollsQuerystringSchema },
     catchAsync(listPolls)
   );
   app.get<{ Params: { idOrSlug: string } }>(
@@ -156,14 +167,26 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     catchAsync(createPoll)
   );
 
-  app.get('/artists', catchAsync(listCommunityArtists));
+  app.get('/artists', { schema: listArtistsQuerystringSchema }, catchAsync(listCommunityArtists));
   app.get<{ Params: { idOrSlug: string } }>(
     '/artists/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getCommunityArtistByIdOrSlug)
   );
 
-  app.get('/resources', { schema: communityListQuerystringSchema }, catchAsync(listResources));
+  app.get('/resources', { schema: listResourcesQuerystringSchema }, catchAsync(listResources));
+
+  app.post<{ Body: { name: string; phone: string; email?: string; subject: string; message: string } }>(
+    '/contact',
+    { schema: submitContactBodySchema },
+    catchAsync(submitContact)
+  );
+
+  app.get<{ Querystring: { q?: string; type?: string; page?: string; limit?: string } }>(
+    '/search',
+    { schema: searchQuerystringSchema },
+    catchAsync(search)
+  );
 
   app.post<{ Body: { name?: string; email?: string; title: string; content: string; category?: string; urgent?: boolean } }>(
     '/prayer-requests',

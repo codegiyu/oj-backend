@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { User, unselectedFields as userUnselected } from '../../models/user';
 import { Product } from '../../models/product';
 import { Wishlist } from '../../models/wishlist';
+import { Cart } from '../../models/cart';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
@@ -187,5 +188,238 @@ export async function removeFromWishlist(
   });
 
   sendResponse(reply, 200, { success: true }, 'Item removed from wishlist.');
+}
+
+type CartItemInput = { productId: string; quantity: number; sku?: string };
+
+async function loadCartWithProducts(userId: mongoose.Types.ObjectId) {
+  const cart = await Cart.findOne({ user: userId })
+    .populate({
+      path: 'items.product',
+      select: 'name slug price images vendor variationOptions variants',
+      populate: { path: 'vendor', select: 'storeName slug name whatsapp' },
+    })
+    .lean();
+  return cart;
+}
+
+function mapCart(cart: Record<string, unknown> | null | undefined) {
+  if (!cart) {
+    return { items: [], totalItems: 0, subtotal: 0 };
+  }
+
+  const rawItems = (cart.items as Array<Record<string, unknown>> | undefined) ?? [];
+  const items = rawItems.map(item => {
+    const product = item.product as Record<string, unknown> | undefined;
+    const vendor = (product?.vendor ?? null) as Record<string, unknown> | null;
+    const quantity = Number(item.quantity) || 0;
+    const price = Number(product?.price ?? 0);
+    const lineTotal = quantity * price;
+
+    return {
+      productId: product?._id != null ? String(product._id) : '',
+      quantity,
+      sku: item.sku as string | undefined,
+      product: product
+        ? {
+            _id: product._id != null ? String(product._id) : '',
+            name: product.name,
+            slug: product.slug,
+            price,
+            image: Array.isArray(product.images) ? (product.images as string[])[0] : undefined,
+            vendorSlug: vendor?.slug,
+            vendorName: vendor?.storeName ?? vendor?.name,
+            whatsapp: vendor?.whatsapp,
+            variationOptions: product.variationOptions,
+            variants: product.variants,
+          }
+        : undefined,
+      lineTotal,
+    };
+  });
+
+  const totalItems = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
+  const subtotal = items.reduce((sum, it) => sum + (it.lineTotal || 0), 0);
+
+  return { items, totalItems, subtotal };
+}
+
+async function upsertCartItem(userId: mongoose.Types.ObjectId, input: CartItemInput) {
+  const { productId, quantity, sku } = input;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new AppError('Invalid productId', 400);
+  }
+
+  const product = await Product.findOne({
+    _id: new mongoose.Types.ObjectId(productId),
+    status: 'published',
+  })
+    .select('_id price inStock variants')
+    .lean();
+  if (!product) throw new AppError('Product not found', 404);
+
+  if (product.variants?.length) {
+    if (!sku || String(sku).trim() === '') {
+      throw new AppError('sku is required for variant products', 400);
+    }
+  }
+
+  const cart =
+    (await Cart.findOne({ user: userId }).lean()) ??
+    (await Cart.create({ user: userId, items: [] }).then(doc => doc.toObject()));
+
+  const items = (cart.items as Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }> | undefined) ?? [];
+  const existingIndex = items.findIndex(
+    it =>
+      String(it.product) === productId &&
+      ((it.sku ?? '') === (sku ?? '') || (!it.sku && !sku))
+  );
+
+  if (existingIndex === -1) {
+    items.push({
+      product: new mongoose.Types.ObjectId(productId),
+      quantity,
+      ...(sku ? { sku } : {}),
+    });
+  } else {
+    items[existingIndex].quantity = quantity;
+    if (sku) items[existingIndex].sku = sku;
+  }
+
+  await Cart.updateOne(
+    { user: userId },
+    { $set: { items } },
+    { upsert: true }
+  );
+}
+
+export async function getCart(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+  const cart = await loadCartWithProducts(userId);
+  const shaped = mapCart(cart as Record<string, unknown> | null | undefined);
+  sendResponse(reply, 200, shaped, 'Cart loaded.');
+}
+
+export async function addToCart(
+  request: FastifyRequest<{ Body: CartItemInput }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  const body = request.body;
+  if (body.quantity < 1) {
+    throw new AppError('Quantity must be at least 1', 400);
+  }
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+  await upsertCartItem(userId, body);
+  const cart = await loadCartWithProducts(userId);
+  const shaped = mapCart(cart as Record<string, unknown> | null | undefined);
+
+  sendResponse(reply, 200, shaped, 'Cart updated.');
+}
+
+export async function updateCart(
+  request: FastifyRequest<{ Body: { productId?: string; quantity?: number; updates?: CartItemInput[] } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+
+  const body = request.body ?? {};
+  const updates: CartItemInput[] =
+    body.updates && Array.isArray(body.updates)
+      ? body.updates
+      : body.productId != null && body.quantity != null
+      ? [{ productId: body.productId, quantity: body.quantity, sku: (body as CartItemInput).sku }]
+      : [];
+
+  if (!updates.length) {
+    throw new AppError('No updates provided', 400);
+  }
+
+  const cart = await Cart.findOne({ user: userId }).lean();
+  if (!cart) {
+    sendResponse(reply, 200, { items: [], totalItems: 0, subtotal: 0 }, 'Cart updated.');
+    return;
+  }
+
+  const items = (cart.items as Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }> | undefined) ?? [];
+
+  for (const upd of updates) {
+    if (!mongoose.Types.ObjectId.isValid(upd.productId)) {
+      throw new AppError('Invalid productId', 400);
+    }
+    const index = items.findIndex(
+      it => String(it.product) === upd.productId && ((it.sku ?? '') === (upd.sku ?? '') || (!it.sku && !upd.sku))
+    );
+    if (upd.quantity != null && upd.quantity < 1) {
+      if (index !== -1) {
+        items.splice(index, 1);
+      }
+    } else if (index !== -1 && upd.quantity != null) {
+      items[index].quantity = upd.quantity;
+    }
+  }
+
+  await Cart.updateOne(
+    { user: userId },
+    { $set: { items } }
+  );
+
+  const updated = await loadCartWithProducts(userId);
+  const shaped = mapCart(updated as Record<string, unknown> | null | undefined);
+
+  sendResponse(reply, 200, shaped, 'Cart updated.');
+}
+
+export async function removeFromCart(
+  request: FastifyRequest<{ Params: { productId: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const { productId } = request.params;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new AppError('Invalid productId', 400);
+  }
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+  await Cart.updateOne(
+    { user: userId },
+    { $pull: { items: { product: new mongoose.Types.ObjectId(productId) } } }
+  );
+
+  const cart = await loadCartWithProducts(userId);
+  const shaped = mapCart(cart as Record<string, unknown> | null | undefined);
+  sendResponse(reply, 200, shaped, 'Cart updated.');
+}
+
+export async function clearCart(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+  await Cart.updateOne({ user: userId }, { $set: { items: [] } }, { upsert: true });
+
+  sendResponse(
+    reply,
+    200,
+    { items: [], totalItems: 0, subtotal: 0 },
+    'Cart cleared.'
+  );
 }
 

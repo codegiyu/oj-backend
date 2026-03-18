@@ -7,12 +7,20 @@ import {
   listWishlist,
   addToWishlist,
   removeFromWishlist,
+  getCart,
+  addToCart,
+  updateCart,
+  removeFromCart,
+  clearCart,
 } from '../controllers/user/user.controller';
 import {
   updateMeBodySchema,
   addToWishlistBodySchema,
   listWishlistQuerystringSchema,
   wishlistProductIdParamSchema,
+  cartBodySchema,
+  updateCartBodySchema,
+  cartProductIdParamSchema,
 } from '../controllers/user/user.validation';
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
@@ -34,6 +42,28 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     '/wishlist/:productId',
     { preHandler: authenticate, schema: wishlistProductIdParamSchema },
     catchAsync(removeFromWishlist)
+  );
+
+  app.get('/cart', { preHandler: authenticate }, catchAsync(getCart));
+  app.post<{ Body: { productId: string; quantity: number; sku?: string } }>(
+    '/cart',
+    { preHandler: authenticate, schema: cartBodySchema },
+    catchAsync(addToCart)
+  );
+  app.patch<{ Body: { productId?: string; quantity?: number; updates?: { productId: string; quantity: number }[] } }>(
+    '/cart',
+    { preHandler: authenticate, schema: updateCartBodySchema },
+    catchAsync(updateCart)
+  );
+  app.delete<{ Params: { productId: string } }>(
+    '/cart/:productId',
+    { preHandler: authenticate, schema: cartProductIdParamSchema },
+    catchAsync(removeFromCart)
+  );
+  app.delete(
+    '/cart',
+    { preHandler: authenticate },
+    catchAsync(clearCart)
   );
 }
 

@@ -446,12 +446,18 @@ export interface IVideo {
   updatedAt: Date;
 }
 
+/** Pastor for "Ask a pastor": list/detail and assignment to questions. */
 export interface IPastor {
   _id: mongoose.Types.ObjectId;
   name: string;
   slug: string;
+  title?: string;
+  church?: string;
   bio?: string;
   image?: string;
+  expertise?: string[];
+  questionsAnswered?: number;
+  rating?: number;
   isFeatured: boolean;
   isActive: boolean;
   displayOrder: number;
@@ -459,12 +465,33 @@ export interface IPastor {
   updatedAt: Date;
 }
 
+/** Devotional types for community list filtering (daily, latest, popular, etc.). */
+export const DEVOTIONAL_TYPES = [
+  'daily',
+  'latest',
+  'popular',
+  'bible-study',
+  'prayer-points',
+  'living-tips',
+  'marriage-family',
+] as const;
+export type DevotionalType = (typeof DEVOTIONAL_TYPES)[number];
+
 export interface IDevotional {
   _id: mongoose.Types.ObjectId;
   title: string;
   slug: string;
+  excerpt?: string;
   content: string;
-  date: Date;
+  type?: DevotionalType;
+  category?: string;
+  author?: mongoose.Types.ObjectId | string;
+  verse?: string;
+  date?: Date;
+  readingTime?: number;
+  lessons?: string[];
+  duration?: number;
+  views?: number;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
@@ -492,16 +519,22 @@ export interface INewsArticle {
   updatedAt: Date;
 }
 
+/** Resource types for community resources list. */
+export const RESOURCE_TYPES = ['ebook', 'template', 'beat', 'wallpaper', 'affiliate'] as const;
+export type ResourceType = (typeof RESOURCE_TYPES)[number];
+
 export interface IResource {
   _id: mongoose.Types.ObjectId;
   title: string;
   slug: string;
   description?: string;
-  category: string;
+  type: ResourceType;
+  category?: string;
   fileUrl?: string;
   coverImage?: string;
-  price: number;
-  isFree: boolean;
+  price?: number;
+  isFree?: boolean;
+  downloads?: number;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
@@ -509,42 +542,102 @@ export interface IResource {
   updatedAt: Date;
 }
 
+/** Community prayer request: title, content, author (display name), status active|answered. */
 export interface IPrayerRequest {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  email: string;
-  request: string;
-  status: 'pending' | 'prayed' | 'answered' | 'archived';
-  isPublic: boolean;
-  isAnonymous: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ITestimony {
   _id: mongoose.Types.ObjectId;
   title: string;
   slug: string;
   content: string;
-  authorName: string;
-  status: 'pending' | 'approved' | 'rejected' | 'archived';
+  author: string;
+  email?: string;
+  category?: string;
+  prayers: number;
+  comments: number;
+  urgent: boolean;
+  testimony?: string;
+  answeredAt?: Date;
+  status: 'active' | 'answered';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Contact form submission: name, phone (required), email (optional), subject, message (persisted for admin/reply). */
+export interface IContactSubmission {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  phone: string;
+  email?: string;
+  subject: string;
+  message: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Community testimony: author (display), content, likes, comments count. */
+export interface ITestimony {
+  _id: mongoose.Types.ObjectId;
+  slug: string;
+  author: string;
+  avatar?: string;
+  content: string;
+  likes: number;
+  comments: number;
+  category?: string;
+  status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
+/** Ask a pastor question: question text, answer, pastor ref, status active|answered. */
+export interface IAskPastorQuestion {
+  _id: mongoose.Types.ObjectId;
+  question: string;
+  slug: string;
+  author: string;
+  email?: string;
+  category?: string;
+  status: 'active' | 'answered';
+  answer?: string;
+  pastor?: mongoose.Types.ObjectId;
+  answeredAt?: Date;
+  views: number;
+  helpful: number;
+  urgent: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Poll option subdocument: _id for voting, text, votes. */
+export interface IPollOption {
+  _id: mongoose.Types.ObjectId;
+  text: string;
+  votes: number;
+}
+
 export interface IPoll {
   _id: mongoose.Types.ObjectId;
   question: string;
   slug: string;
-  options: Array<{ text: string; votes: number }>;
-  status: 'draft' | 'active' | 'closed';
-  startDate: Date;
+  description?: string;
+  category?: string;
+  options: IPollOption[];
+  status: 'active' | 'closed';
+  startDate?: Date;
   endDate?: Date;
   totalVotes: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Tracks a single vote per poll (by session or user) to prevent duplicate votes. */
+export interface IPollVote {
+  _id: mongoose.Types.ObjectId;
+  poll: mongoose.Types.ObjectId;
+  optionId: mongoose.Types.ObjectId;
+  voterIdentifier: string;
+  createdAt: Date;
 }
 
 export const PRODUCT_CATEGORIES = [
@@ -642,6 +735,20 @@ export interface IOrder {
   updatedAt: Date;
 }
 
+export interface ICartItem {
+  product: mongoose.Types.ObjectId;
+  quantity: number;
+  sku?: string;
+}
+
+export interface ICart {
+  _id: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
+  items: ICartItem[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface INewsletter {
   _id: mongoose.Types.ObjectId;
   email: string;
@@ -674,9 +781,13 @@ export type ModelDevotional = IDevotional & IModelIndex & Document;
 export type ModelNewsArticle = INewsArticle & IModelIndex & Document;
 export type ModelResource = IResource & IModelIndex & Document;
 export type ModelPrayerRequest = IPrayerRequest & IModelIndex & Document;
+export type ModelContactSubmission = IContactSubmission & IModelIndex & Document;
 export type ModelTestimony = ITestimony & IModelIndex & Document;
+export type ModelAskPastorQuestion = IAskPastorQuestion & IModelIndex & Document;
 export type ModelPoll = IPoll & IModelIndex & Document;
+export type ModelPollVote = IPollVote & IModelIndex & Document;
 export type ModelVendor = IVendor & IModelIndex & Document;
 export type ModelProduct = IProduct & IModelIndex & Document;
 export type ModelOrder = IOrder & IModelIndex & Document;
 export type ModelNewsletter = INewsletter & IModelIndex & Document;
+export type ModelCart = ICart & IModelIndex & Document;
