@@ -18,6 +18,46 @@ import {
   normalizeSort,
 } from '../../utils/helpers';
 
+function buildWhatsappMessage(order: Record<string, unknown>): { message: string; link?: string } {
+  const customer = order.customer as { name?: string; email?: string; phone?: string; address?: string } | undefined;
+  const items = (order.items as Array<Record<string, unknown>> | undefined) ?? [];
+  const vendor = order.vendor as { whatsapp?: string } | undefined;
+
+  const lines: string[] = [];
+  lines.push(`New order ${order.orderNumber ?? ''}`);
+  if (customer?.name) lines.push(`Customer: ${customer.name}`);
+  if (customer?.phone) lines.push(`Phone: ${customer.phone}`);
+  if (customer?.email) lines.push(`Email: ${customer.email}`);
+  if (customer?.address) lines.push(`Address: ${customer.address}`);
+  lines.push('');
+  lines.push('Items:');
+
+  let total = 0;
+  for (const item of items) {
+    const name = (item.productName as string) ?? '';
+    const qty = Number(item.quantity) || 0;
+    const price = Number(item.price) || 0;
+    const lineTotal = Number(item.totalPrice) || qty * price;
+    total += lineTotal;
+    lines.push(`- ${name} x${qty} @ ${price} = ${lineTotal}`);
+  }
+
+  lines.push('');
+  lines.push(`Total: ${order.totalAmount ?? total}`);
+
+  const message = lines.join('\n');
+
+  if (!vendor?.whatsapp) {
+    return { message };
+  }
+
+  const digits = String(vendor.whatsapp).replace(/[^\d+]/g, '');
+  const encoded = encodeURIComponent(message);
+  const link = `https://wa.me/${digits}?text=${encoded}`;
+
+  return { message, link };
+}
+
 async function getActiveCategories(includeInactive: boolean | undefined) {
   const filter: Record<string, unknown> = {};
   if (!includeInactive) {
@@ -189,6 +229,7 @@ export async function getProducts(
       limit?: string;
       page?: string;
       search?: string;
+      q?: string;
       sort?: string;
     };
   }>,
@@ -200,12 +241,24 @@ export async function getProducts(
   const limit = parsePositiveInteger(request.query.limit, 20, 50);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const skip = (page - 1) * limit;
-  const search = parseSearch(request.query.search);
-  const sortStr = normalizeSort(
-    request.query.sort,
-    PRODUCT_SORT_FIELDS,
-    'displayOrder -createdAt'
-  );
+  const search = parseSearch(request.query.search ?? request.query.q);
+  const sortParam = request.query.sort;
+  let sortStr: string;
+  if (sortParam === 'recent') {
+    sortStr = '-createdAt';
+  } else if (sortParam === 'price-asc') {
+    sortStr = 'price';
+  } else if (sortParam === 'price-desc') {
+    sortStr = '-price';
+  } else if (sortParam === 'hot') {
+    sortStr = '-displayOrder -createdAt';
+  } else {
+    sortStr = normalizeSort(
+      sortParam,
+      PRODUCT_SORT_FIELDS,
+      'displayOrder -createdAt'
+    );
+  }
 
   const filter: Record<string, unknown> = { status: 'published' };
 
@@ -256,7 +309,7 @@ export async function getProducts(
 
   const [products, total] = await Promise.all([
     Product.find(filter)
-      .populate('vendor', 'storeName slug')
+      .populate('vendor', 'storeName slug whatsapp')
       .populate('category', 'name slug')
       .populate('subCategory', 'name slug category')
       .sort(sortStr)
@@ -267,7 +320,7 @@ export async function getProducts(
   ]);
 
   const list = products.map((p: Record<string, unknown>) => {
-    const v = p.vendor as { _id?: mongoose.Types.ObjectId; storeName?: string; slug?: string } | null;
+    const v = p.vendor as { _id?: mongoose.Types.ObjectId; storeName?: string; slug?: string; whatsapp?: string } | null;
     const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
     const s =
       p.subCategory as
@@ -277,6 +330,7 @@ export async function getProducts(
       ...p,
       vendorName: v?.storeName,
       vendorSlug: v?.slug,
+        vendorWhatsapp: v?.whatsapp,
       vendor: (v?._id ?? (p.vendor as mongoose.Types.ObjectId))?.toString(),
       category: c
         ? {
@@ -315,13 +369,13 @@ export async function getProductBySlug(
     slug: request.params.slug,
     status: 'published',
   })
-    .populate('vendor', 'storeName slug')
+    .populate('vendor', 'storeName slug whatsapp')
     .populate('category', 'name slug')
     .populate('subCategory', 'name slug category')
     .lean();
   if (!product) throw new AppError('Product not found', 404);
   const p = product as Record<string, unknown>;
-  const v = p.vendor as { storeName?: string; slug?: string } | null;
+  const v = p.vendor as { storeName?: string; slug?: string; whatsapp?: string } | null;
   const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
   const s =
     p.subCategory as
@@ -331,6 +385,7 @@ export async function getProductBySlug(
     ...p,
     vendorName: v?.storeName,
     vendorSlug: v?.slug,
+    vendorWhatsapp: v?.whatsapp,
     vendor: (p.vendor as mongoose.Types.ObjectId)?.toString(),
     category: c
       ? {
@@ -438,29 +493,41 @@ export async function placeOrder(
   const products = await Product.find({
     _id: { $in: productIds.map(id => new mongoose.Types.ObjectId(id)) },
     status: 'published',
-  }).lean<ModelProduct[]>();
-  const productMap = new Map(products.map(p => [p._id.toString(), p]));
+  })
+    .populate('vendor', 'name storeName slug phone whatsapp')
+    .lean<ModelProduct[]>();
 
-  let vendorId: mongoose.Types.ObjectId | null = null;
-  let totalAmount = 0;
-  const orderItems: Array<{
-    product: mongoose.Types.ObjectId;
-    productName?: string;
-    quantity: number;
-    price: number;
-    totalPrice: number;
-    sku?: string;
-    selectedOptions?: Record<string, string>;
-  }> = [];
+  const productMap = new Map<string, ModelProduct>();
+  for (const p of products) {
+    productMap.set(p._id.toString(), p);
+  }
+
+  const itemsByVendor = new Map<
+    string,
+    {
+      vendorId: mongoose.Types.ObjectId;
+      items: {
+        product: mongoose.Types.ObjectId;
+        productName?: string;
+        quantity: number;
+        price: number;
+        totalPrice: number;
+        sku?: string;
+        selectedOptions?: Record<string, string>;
+      }[];
+      totalAmount: number;
+    }
+  >();
 
   for (const item of items) {
     const prod = productMap.get(item.productId);
     if (!prod) throw new AppError(`Product not found: ${item.productId}`, 400);
-    if (!vendorId) vendorId = (prod as { vendor: mongoose.Types.ObjectId }).vendor;
-    else if (
-      (prod as { vendor: mongoose.Types.ObjectId }).vendor.toString() !== vendorId.toString()
-    ) {
-      throw new AppError('All items must be from the same vendor', 400);
+    const vendorId = (prod as { vendor: mongoose.Types.ObjectId }).vendor;
+
+    let bucket = itemsByVendor.get(vendorId.toString());
+    if (!bucket) {
+      bucket = { vendorId, items: [], totalAmount: 0 };
+      itemsByVendor.set(vendorId.toString(), bucket);
     }
 
     if (prod.variants?.length) {
@@ -490,8 +557,8 @@ export async function placeOrder(
         );
       }
       const itemTotal = item.price * item.quantity;
-      totalAmount += itemTotal;
-      orderItems.push({
+      bucket.totalAmount += itemTotal;
+      bucket.items.push({
         product: new mongoose.Types.ObjectId(item.productId),
         productName: item.productName,
         quantity: item.quantity,
@@ -502,8 +569,8 @@ export async function placeOrder(
       });
     } else {
       const itemTotal = item.price * item.quantity;
-      totalAmount += itemTotal;
-      orderItems.push({
+      bucket.totalAmount += itemTotal;
+      bucket.items.push({
         product: new mongoose.Types.ObjectId(item.productId),
         productName: item.productName,
         quantity: item.quantity,
@@ -513,55 +580,73 @@ export async function placeOrder(
     }
   }
 
-  if (!vendorId) throw new AppError('Invalid items', 400);
-
-  const orderNumber =
-    'ORD-' +
-    new Date().toISOString().slice(0, 10).replace(/-/g, '') +
-    '-' +
-    Math.random().toString(36).slice(2, 8).toUpperCase();
+  if (itemsByVendor.size === 0) throw new AppError('Invalid items', 400);
 
   const user = getAuthUser(request);
-  const order = await Order.create({
-    orderNumber,
-    customer: {
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address ?? '',
-    },
-    customerId: user?.scope === 'client-access' ? new mongoose.Types.ObjectId(user.userId) : undefined,
-    vendor: vendorId,
-    items: orderItems,
-    totalAmount,
-    status: 'pending',
-    paymentStatus: 'pending',
-  });
-  const created = await Order.findById(order._id)
-    .populate('vendor', 'name storeName slug phone whatsapp')
-    .populate('items.product', 'name slug images')
-    .lean();
+  const createdOrders: Array<Record<string, unknown>> = [];
 
-  const v = (created as any)?.vendor as any;
+  for (const { vendorId, items: vendorItems, totalAmount } of itemsByVendor.values()) {
+    const orderNumber =
+      'ORD-' +
+      new Date().toISOString().slice(0, 10).replace(/-/g, '') +
+      '-' +
+      Math.random().toString(36).slice(2, 8).toUpperCase();
 
-  // Fire-and-forget notification job to send order details to vendor via WhatsApp (or email hook)
-  if (v && v.whatsapp) {
-    try {
-      await addJobToQueue({
-        type: 'notificationEmail',
-        to: v.whatsapp,
-        userModel: 'User',
-        title: 'New marketplace order',
-        message: `New order ${created?.orderNumber} from ${customer.name}`,
-      });
-    } catch {
-      // Swallow notification errors to avoid blocking checkout
+    const order = await Order.create({
+      orderNumber,
+      customer: {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address ?? '',
+      },
+      customerId:
+        user?.scope === 'client-access' ? new mongoose.Types.ObjectId(user.userId) : undefined,
+      vendor: vendorId,
+      items: vendorItems,
+      totalAmount,
+      status: 'pending',
+      paymentStatus: 'pending',
+    });
+    const created = await Order.findById(order._id)
+      .populate('vendor', 'name storeName slug phone whatsapp')
+      .populate('items.product', 'name slug images')
+      .lean();
+
+    if (!created) {
+      // eslint-disable-next-line no-continue
+      continue;
     }
+
+    const { message, link } = buildWhatsappMessage(created as Record<string, unknown>);
+    const v = (created as any)?.vendor as any;
+
+    if (v && v.whatsapp) {
+      try {
+        await addJobToQueue({
+          type: 'notificationEmail',
+          to: v.whatsapp,
+          userModel: 'User',
+          title: 'New marketplace order',
+          message,
+        });
+      } catch {
+        // ignore notification errors
+      }
+    }
+
+    const shaped = mapOrderToPopulated(created as Record<string, unknown>);
+    createdOrders.push({
+      ...shaped,
+      whatsappLink: link,
+    });
   }
 
-  const populated = mapOrderToPopulated(created);
-
-  sendResponse(reply, 201, { order: populated }, 'Order placed.');
+  if (createdOrders.length === 1) {
+    sendResponse(reply, 201, { order: createdOrders[0] }, 'Order placed.');
+  } else {
+    sendResponse(reply, 201, { orders: createdOrders }, 'Orders placed.');
+  }
 }
 
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
@@ -622,4 +707,50 @@ export async function getMyOrders(
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
   }, 'Orders loaded.');
+}
+
+export async function getOrderWhatsappLink(
+  request: FastifyRequest<{ Params: { orderId: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  const { orderId } = request.params;
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new AppError('Invalid orderId', 400);
+  }
+
+  const order = await Order.findOne({
+    _id: new mongoose.Types.ObjectId(orderId),
+    customerId: new mongoose.Types.ObjectId(auth.userId),
+  })
+    .populate('vendor', 'name storeName slug phone whatsapp')
+    .populate('items.product', 'name slug images')
+    .lean();
+
+  if (!order) throw new AppError('Order not found', 404);
+
+  const shaped = mapOrderToPopulated(order as Record<string, unknown>);
+  const { message, link } = buildWhatsappMessage({
+    ...order,
+    ...shaped,
+  } as Record<string, unknown>);
+
+  if (!link) {
+    sendResponse(
+      reply,
+      200,
+      { whatsappLink: null, message },
+      'Vendor WhatsApp not configured for this order.'
+    );
+    return;
+  }
+
+  sendResponse(
+    reply,
+    200,
+    { whatsappLink: link, message },
+    'WhatsApp link generated.'
+  );
 }

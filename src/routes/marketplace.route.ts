@@ -11,6 +11,7 @@ import {
   becomeVendor,
   placeOrder,
   getMyOrders,
+  getOrderWhatsappLink,
 } from '../controllers/marketplace/marketplace.controller';
 import {
   listProductsQuerystringSchema,
@@ -68,4 +69,9 @@ export async function registerMarketplaceRoutes(app: FastifyInstance): Promise<v
       sort?: string;
     };
   }>('/orders', { preHandler: authenticate, schema: listOrdersQuerystringSchema }, catchAsync(getMyOrders));
+  app.get<{ Params: { orderId: string } }>(
+    '/orders/:orderId/whatsapp-link',
+    { preHandler: authenticate },
+    catchAsync(getOrderWhatsappLink)
+  );
 }

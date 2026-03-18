@@ -45,3 +45,57 @@ export const wishlistProductIdParamSchema: FastifySchema = {
   },
 };
 
+export const cartBodySchema: FastifySchema = {
+  body: {
+    type: 'object',
+    required: ['productId', 'quantity'],
+    properties: {
+      productId: { type: 'string' },
+      quantity: { type: 'number', minimum: 1 },
+      sku: { type: 'string' },
+    },
+  },
+};
+
+export const updateCartBodySchema: FastifySchema = {
+  body: {
+    type: 'object',
+    oneOf: [
+      {
+        required: ['productId', 'quantity'],
+        properties: {
+          productId: { type: 'string' },
+          quantity: { type: 'number' },
+        },
+      },
+      {
+        required: ['updates'],
+        properties: {
+          updates: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              required: ['productId', 'quantity'],
+              properties: {
+                productId: { type: 'string' },
+                quantity: { type: 'number' },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+
+export const cartProductIdParamSchema: FastifySchema = {
+  params: {
+    type: 'object',
+    required: ['productId'],
+    properties: {
+      productId: { type: 'string' },
+    },
+  },
+};
+
