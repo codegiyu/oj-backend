@@ -10,9 +10,6 @@ RUN apk add --no-cache tzdata \
 COPY package.json ./
 RUN npm install --no-audit --no-fund --legacy-peer-deps --include=dev
 
-FROM node:20-bookworm-slim AS build
-WORKDIR /app
-
 COPY . .
 
 RUN npm run build
