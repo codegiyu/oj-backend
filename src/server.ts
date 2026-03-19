@@ -26,7 +26,6 @@ const start = async (): Promise<void> => {
 
     await app.listen({
       port: ENVIRONMENT.port,
-      host: ENVIRONMENT.host,
     });
 
     const httpServer = app.server;
@@ -35,7 +34,7 @@ const start = async (): Promise<void> => {
       logger.info('Socket.io attached');
     }
 
-    logger.info(`Server listening on http://${ENVIRONMENT.host}:${ENVIRONMENT.port}`);
+    logger.info(`Server listening on port ${ENVIRONMENT.port}`);
     logger.info(`Environment: ${ENVIRONMENT.nodeEnv}`);
   } catch (error) {
     logger.error('Error starting server:', error);
