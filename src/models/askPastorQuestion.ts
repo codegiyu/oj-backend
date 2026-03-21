@@ -20,6 +20,9 @@ const askPastorQuestionSchema = new Schema<ModelAskPastorQuestion>(
     views: { type: Number, default: 0 },
     helpful: { type: Number, default: 0 },
     urgent: { type: Boolean, default: false },
+    rejectionReason: { type: String, default: '' },
+    rejectedAt: { type: Date, default: null },
+    rejectedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
   },
   { timestamps: true, collection: 'askpastorquestions' }
 );

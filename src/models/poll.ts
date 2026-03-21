@@ -26,6 +26,8 @@ const pollSchema = new Schema<ModelPoll>(
     startDate: { type: Date, default: Date.now },
     endDate: { type: Date, default: null },
     totalVotes: { type: Number, default: 0 },
+    closedReason: { type: String, default: '' },
+    closedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
   },
   { timestamps: true, collection: 'polls' }
 );

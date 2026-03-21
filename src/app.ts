@@ -16,6 +16,7 @@ import {
   registerAdminDocumentRoutes,
 } from './routes/document.route';
 import { registerAdminEmailLogRoutes } from './routes/emailLog.route';
+import { registerAdminContactSubmissionRoutes } from './routes/contactSubmission.route';
 import { registerNotificationRoutes } from './routes/notification.route';
 import {
   registerSiteSettingsRoutes,
@@ -26,6 +27,8 @@ import { registerUserRoutes } from './routes/user.route';
 import { registerVendorRoutes } from './routes/vendor.route';
 import { registerArtistRoutes } from './routes/artist.route';
 import { registerPublicRoutes } from './routes/public.route';
+import { registerAdminPromotionRoutes } from './routes/promotionAdmin.route';
+import { registerAdminContentRoutes } from './routes/adminContent.route';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { sendErrorResponse } from './utils/response';
 
@@ -64,6 +67,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerDocumentRoutes, { prefix: '/documents' });
   await app.register(registerAdminDocumentRoutes, { prefix: '/admin/documents' });
   await app.register(registerAdminEmailLogRoutes, { prefix: '/admin/email-logs' });
+  await app.register(registerAdminContactSubmissionRoutes, { prefix: '/admin/contact-submissions' });
   await app.register(registerNotificationRoutes, { prefix: '/notifications' });
   await app.register(registerSiteSettingsRoutes, { prefix: '/site-settings' });
   await app.register(registerAdminSiteSettingsRoutes, { prefix: '/admin/site-settings' });
@@ -72,6 +76,8 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerVendorRoutes, { prefix: '/vendor' });
   await app.register(registerArtistRoutes, { prefix: '/artist' });
   await app.register(registerPublicRoutes, { prefix: '/public' });
+  await app.register(registerAdminPromotionRoutes, { prefix: '/admin' });
+  await app.register(registerAdminContentRoutes, { prefix: '/admin' });
 
   app.setErrorHandler(errorHandler);
 

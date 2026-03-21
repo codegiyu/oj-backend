@@ -23,6 +23,12 @@ const musicSchema = new Schema<ModelMusic>(
     displayOrder: { type: Number, default: 0, index: true },
     plays: { type: Number, default: 0 },
     downloads: { type: Number, default: 0 },
+    // Moderation
+    approvedAt: { type: Date, default: null },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
+    rejectionReason: { type: String, default: '' },
+    rejectedAt: { type: Date, default: null },
+    rejectedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
   },
   { timestamps: true, collection: 'music' }
 );

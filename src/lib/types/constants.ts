@@ -424,6 +424,11 @@ export interface IMusic {
   displayOrder: number;
   plays?: number;
   downloads?: number;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -442,6 +447,11 @@ export interface IVideo {
   isMonetizable?: boolean;
   displayOrder: number;
   views?: number;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -495,6 +505,11 @@ export interface IDevotional {
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -538,6 +553,72 @@ export interface IResource {
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IFeaturedOption {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  duration: string;
+  price: string;
+  description: string;
+  features: string[];
+  icon: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPromotionPricingOption {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  price: string;
+  description: string;
+  features: string[];
+  isFeatured: boolean;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IResourceDownloadCategory {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  count: string;
+  description: string;
+  icon: string;
+  href: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IContactMethod {
+  _id: mongoose.Types.ObjectId;
+  method: string;
+  value: string;
+  action: string;
+  icon: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPartnershipBenefit {
+  _id: mongoose.Types.ObjectId;
+  text: string;
+  displayOrder: number;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -586,6 +667,11 @@ export interface ITestimony {
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -605,6 +691,9 @@ export interface IAskPastorQuestion {
   views: number;
   helpful: number;
   urgent: boolean;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -627,6 +716,8 @@ export interface IPoll {
   startDate?: Date;
   endDate?: Date;
   totalVotes: number;
+  closedReason?: string;
+  closedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -668,6 +759,11 @@ export interface IVendor {
   bankAccountName?: string;
   bankAccountNumber?: string;
   bankName?: string;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -705,6 +801,11 @@ export interface IProduct {
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -780,6 +881,11 @@ export type ModelPastor = IPastor & IModelIndex & Document;
 export type ModelDevotional = IDevotional & IModelIndex & Document;
 export type ModelNewsArticle = INewsArticle & IModelIndex & Document;
 export type ModelResource = IResource & IModelIndex & Document;
+export type ModelFeaturedOption = IFeaturedOption & IModelIndex & Document;
+export type ModelPromotionPricingOption = IPromotionPricingOption & IModelIndex & Document;
+export type ModelResourceDownloadCategory = IResourceDownloadCategory & IModelIndex & Document;
+export type ModelContactMethod = IContactMethod & IModelIndex & Document;
+export type ModelPartnershipBenefit = IPartnershipBenefit & IModelIndex & Document;
 export type ModelPrayerRequest = IPrayerRequest & IModelIndex & Document;
 export type ModelContactSubmission = IContactSubmission & IModelIndex & Document;
 export type ModelTestimony = ITestimony & IModelIndex & Document;
