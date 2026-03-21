@@ -22,6 +22,11 @@ const vendorSchema = new Schema<ModelVendor>(
       default: 'pending',
     },
     isVerified: { type: Boolean, default: false },
+    rejectionReason: { type: String, default: '' },
+    rejectedAt: { type: Date, default: null },
+    rejectedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
+    approvedAt: { type: Date, default: null },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
   },
   { timestamps: true, collection: 'vendors' }
 );

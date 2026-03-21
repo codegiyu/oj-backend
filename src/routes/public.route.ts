@@ -41,6 +41,13 @@ import {
   idOrSlugParamSchema,
 } from '../controllers/public/public.validation';
 import {
+  listFeaturedOptions,
+  listPromotionPricingOptions,
+  listResourceDownloadCategories,
+  getPromotionContact,
+} from '../controllers/public/promotion.controller';
+import { promotionPublicListQuerystringSchema } from '../controllers/public/promotion.validation';
+import {
   listDevotionalsQuerystringSchema,
   listTestimoniesQuerystringSchema,
   listPrayerRequestsQuerystringSchema,
@@ -58,6 +65,23 @@ import {
 } from '../controllers/public/community.validation';
 
 export async function registerPublicRoutes(app: FastifyInstance): Promise<void> {
+  app.get('/featured-options', { schema: promotionPublicListQuerystringSchema }, catchAsync(listFeaturedOptions));
+  app.get(
+    '/promotion-pricing-options',
+    { schema: promotionPublicListQuerystringSchema },
+    catchAsync(listPromotionPricingOptions)
+  );
+  app.get(
+    '/resource-download-categories',
+    { schema: promotionPublicListQuerystringSchema },
+    catchAsync(listResourceDownloadCategories)
+  );
+  app.get(
+    '/promotion-contact',
+    { schema: promotionPublicListQuerystringSchema },
+    catchAsync(getPromotionContact)
+  );
+
   // Music
   app.get<{
     Querystring: {

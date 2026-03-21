@@ -1,7 +1,7 @@
-import { seedMarketplaceCategories } from './functions';
+import { seedMarketplaceCategories, seedPromotionContent } from './functions';
 import { logger } from '../utils/logger';
 
-export { seedMarketplaceCategories } from './functions';
+export { seedMarketplaceCategories, seedPromotionContent } from './functions';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -11,6 +11,7 @@ export const seedDb = async (): Promise<void> => {
   try {
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
     await seedMarketplaceCategories();
+    await seedPromotionContent();
 
     // Add more seed steps here as needed, e.g.:
     // await seedRolesAndPermissions();

@@ -19,3 +19,8 @@ export { Poll } from './poll';
 export { PollVote } from './pollVote';
 export { Resource } from './resource';
 export { Cart } from './cart';
+export { FeaturedOption } from './featuredOption';
+export { PromotionPricingOption } from './promotionPricingOption';
+export { ResourceDownloadCategory } from './resourceDownloadCategory';
+export { ContactMethod } from './contactMethod';
+export { PartnershipBenefit } from './partnershipBenefit';

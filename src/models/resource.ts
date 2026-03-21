@@ -26,6 +26,12 @@ const resourceSchema = new Schema<ModelResource>(
     },
     isFeatured: { type: Boolean, default: false, index: true },
     displayOrder: { type: Number, default: 0, index: true },
+    // Moderation
+    approvedAt: { type: Date, default: null },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
+    rejectionReason: { type: String, default: '' },
+    rejectedAt: { type: Date, default: null },
+    rejectedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
   },
   { timestamps: true, collection: 'resources' }
 );
