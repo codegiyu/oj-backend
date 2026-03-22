@@ -19,7 +19,6 @@ const SLICES: SiteSettingsSlice[] = [
 
 async function getSettingsDoc() {
   let doc = await SiteSettings.findOne();
-  console.log('getSettingsDoc: doc', doc);
 
   if (!doc) {
     doc = await SiteSettings.create({ name: 'settings' });

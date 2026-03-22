@@ -46,9 +46,10 @@ export async function assertEmailNotRegisteredAsUser(email: string): Promise<voi
 
 const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 const refreshCookieName = ENVIRONMENT.tokenNames.cookies.refresh;
-const isProduction = ENVIRONMENT.nodeEnv === 'production';
 const cookiePath = '/';
-const sameSite = isProduction ? ('strict' as const) : ('lax' as const);
+const sameSite = 'none' as const;
+/** SameSite=None requires Secure. Use secure when production or when sameSite is 'none'. */
+const secure = true;
 
 export function setAuthCookies(
   reply: FastifyReply,
@@ -58,9 +59,11 @@ export function setAuthCookies(
   const baseOptions = {
     path: cookiePath,
     httpOnly: true,
-    secure: isProduction,
+    secure,
+    partitioned: true,
     sameSite,
   };
+
   reply.setCookie(accessCookieName, accessToken, {
     ...baseOptions,
     maxAge: ENVIRONMENT.jwt.accessCookieMaxAge,
@@ -71,9 +74,11 @@ export function setAuthCookies(
   });
 }
 
+/** Must pass same path, secure, sameSite as setAuthCookies for the browser to clear correctly. */
 export function clearAuthCookies(reply: FastifyReply): void {
-  reply.clearCookie(accessCookieName, { path: cookiePath });
-  reply.clearCookie(refreshCookieName, { path: cookiePath });
+  const clearOptions = { path: cookiePath, secure, sameSite };
+  reply.clearCookie(accessCookieName, clearOptions);
+  reply.clearCookie(refreshCookieName, clearOptions);
 }
 
 export type AccessType = 'client' | 'console';

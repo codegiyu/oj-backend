@@ -2,7 +2,7 @@ import {
   // seedMarketplaceCategories,
   // seedPromotionContent,
   // seedRoles,
-  seedSiteSettings,
+  // seedSiteSettings,
   // seedAdmins,
 } from './functions';
 import { logger } from '../utils/logger';
@@ -22,7 +22,7 @@ export {
 export const seedDb = async (): Promise<void> => {
   try {
     // Roles, site settings, and admins (admins depend on roles)
-    await seedSiteSettings();
+    // await seedSiteSettings();
     // await seedRoles();
     // await seedAdmins();
     
