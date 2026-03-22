@@ -298,6 +298,17 @@ export const seedSiteSettings = async (): Promise<void> => {
   const siteSettingsCount = await SiteSettings.countDocuments();
   logger.info(`seedSiteSettings: number of site settings documents: ${siteSettingsCount}`);
 
+  // If more than one SiteSettings document exists, delete all but one
+  if (siteSettingsCount > 1) {
+    const docs = await SiteSettings.find().select('_id').lean();
+    if (docs.length > 1) {
+      // Keep the first one, remove the rest
+      const idsToDelete = docs.slice(1).map(doc => doc._id);
+      await SiteSettings.deleteMany({ _id: { $in: idsToDelete } });
+      logger.info(`seedSiteSettings: Deleted ${idsToDelete.length} extra site settings documents`);
+    }
+  }
+
   await SiteSettings.findOneAndUpdate(
     { name: 'settings' },
     { $setOnInsert: defaultSiteSettings },
