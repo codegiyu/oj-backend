@@ -9,6 +9,13 @@ import { PromotionPricingOption } from '../models/promotionPricingOption';
 import { ResourceDownloadCategory } from '../models/resourceDownloadCategory';
 import { ContactMethod } from '../models/contactMethod';
 import { PartnershipBenefit } from '../models/partnershipBenefit';
+import { Role } from '../models/role';
+import { SiteSettings } from '../models/siteSettings';
+import { Admin } from '../models/admin';
+import { authService } from '../services/auth.service';
+
+/** Seed email used for both ContactMethod and admins */
+const SEED_EMAIL = 'ohemultimedia@gmail.com';
 
 /**
  * Seeds Category and SubCategory documents from MARKETPLACE_CATEGORIES.
@@ -189,8 +196,8 @@ export const seedPromotionContent = async (): Promise<void> => {
   const contactMethods = [
     {
       method: 'Email',
-      value: 'ohemultimedia@gmail.com',
-      action: 'mailto:ohemultimedia@gmail.com',
+      value: SEED_EMAIL,
+      action: `mailto:${SEED_EMAIL}`,
       icon: 'mail',
       displayOrder: 1,
     },
@@ -260,4 +267,182 @@ export const seedPromotionContent = async (): Promise<void> => {
   }
 
   logger.info('seedPromotionContent: promotion content upserted');
+};
+
+/**
+ * Seeds Role documents (super-admin, admin, customer).
+ * Idempotent: upserts by slug.
+ */
+export const seedRoles = async (): Promise<void> => {
+  const roles = [
+    { slug: 'super-admin' as const, name: 'Super Admin', description: 'Full platform access' },
+    { slug: 'admin' as const, name: 'Admin', description: 'Administrator access' },
+    { slug: 'customer' as const, name: 'Customer', description: 'Customer/user access' },
+  ];
+
+  for (const r of roles) {
+    await Role.findOneAndUpdate(
+      { slug: r.slug },
+      { $set: { name: r.name, description: r.description } },
+      { upsert: true, runValidators: true }
+    );
+  }
+
+  logger.info('seedRoles: roles upserted');
+};
+
+/** Base URL for the frontend (from oj-multimedia NEXT_PUBLIC_LIVE_URL) */
+const FRONTEND_BASE_URL = 'https://www.ojmultimedia.com';
+
+/** Default site settings derived from oj-multimedia frontend (texts.ts, layout, Footer, globals.css) */
+const DEFAULT_SITE_SETTINGS = {
+  name: 'settings',
+  appDetails: {
+    logo: 'https://static.ojmultimedia.com/favicon.png',
+    appName: 'OJ Multimedia',
+    description:
+      'Your platform for fresh music, creative videos, and inspiring stories. Explore music categories, top charts, resources, promotional services, and a vendor marketplace.',
+  },
+  seo: {
+    metaTitleTemplate: '%s | OHEJUIRA',
+    metaDescription:
+      'OHEJUIRA is a dynamic multimedia platform featuring music categories, top charts, recent uploads, download metrics, and diverse content. Explore music, audio content, resources, promotional services, and a vendor marketplace. Serving humanity through innovation in entertainment and technology.',
+    keywords: [
+      'OHEJUIRA',
+      'OHEJUIRA-Multimedia',
+      'Music Platform',
+      'Music Categories',
+      'Top Charts',
+      'Music Downloads',
+      'Audio Content',
+      'Multimedia Platform',
+      'Content Hub',
+      'Music Streaming',
+      'Download Metrics',
+      'Recent Uploads',
+      'Music Discovery',
+      'Content Creation',
+      'Production Services',
+      'Vendor Marketplace',
+      'Entertainment',
+      'Digital Media',
+      'Creative Platform',
+      'Content Distribution',
+    ],
+    ogImageUrl: 'https://static.ojmultimedia.com/favicon.png',
+    faviconUrl: 'https://static.ojmultimedia.com/favicon.png',
+    canonicalUrlBase: FRONTEND_BASE_URL,
+    robotsIndex: true,
+    robotsFollow: true,
+  },
+  legal: {
+    termsOfServiceUrl: `${FRONTEND_BASE_URL}/terms-and-conditions`,
+    privacyPolicyUrl: `${FRONTEND_BASE_URL}/privacy-policy`,
+    cookiePolicyUrl: '',
+    disclaimerText: '',
+  },
+  email: {
+    fromEmail: SEED_EMAIL,
+    fromName: 'OJ Multimedia',
+    replyToEmail: SEED_EMAIL,
+  },
+  features: { maintenanceMode: false, registrationEnabled: true, loginEnabled: true },
+  analytics: { googleAnalyticsId: '', facebookPixelId: '', otherTrackingIds: [] },
+  localization: {
+    defaultLanguage: 'en',
+    supportedLanguages: ['en'],
+    defaultTimezone: 'Africa/Lagos',
+    defaultCurrency: 'NGN',
+  },
+  branding: {
+    faviconUrl: 'https://static.ojmultimedia.com/favicon.png',
+    primaryBrandColor: '#eb6b3a', // hsl(16, 90%, 58%) from globals.css --primary
+    secondaryBrandColor: '#ffffff',
+  },
+  contactInfo: {
+    address: [] as string[],
+    tel: ['+234 705 692 3436', '+234 913 667 0466', '+234 707 324 4801'],
+    email: [SEED_EMAIL],
+    whatsapp: '+2349136670466',
+    locationUrl: '',
+    officeHours: {
+      monday: null,
+      tuesday: null,
+      wednesday: null,
+      thursday: null,
+      friday: null,
+      saturday: null,
+      sunday: null,
+    },
+  },
+  socials: [] as Array<{ platform: string; href: string }>,
+};
+
+/**
+ * Seeds site settings (singleton). Idempotent: upserts default settings derived from oj-multimedia frontend.
+ */
+export const seedSiteSettings = async (): Promise<void> => {
+  await SiteSettings.findOneAndUpdate(
+    { name: 'settings' },
+    { $setOnInsert: DEFAULT_SITE_SETTINGS },
+    { upsert: true, runValidators: true }
+  );
+
+  logger.info('seedSiteSettings: site settings upserted');
+};
+
+const ADMIN_SEED_PASSWORD = 'Admin@123';
+
+/**
+ * Seeds admin accounts. Idempotent: upserts by email, updates password if admin exists.
+ * Admins: ohemultimedia@gmail.com, eomegbu@gmail.com (both password: Admin@123)
+ */
+export const seedAdmins = async (): Promise<void> => {
+  await seedRoles(); // Ensure roles exist first
+
+  const superAdminRole = await Role.findOne({ slug: 'super-admin' }).lean();
+  if (!superAdminRole) {
+    logger.warn('seedAdmins: super-admin role not found, skipping admin seed');
+    return;
+  }
+
+  const admins = [
+    { email: SEED_EMAIL, firstName: 'OJ', lastName: 'Multimedia' },
+    { email: 'eomegbu@gmail.com', firstName: 'Code', lastName: 'Giyu' },
+  ];
+
+  const hashedPassword = await authService.hashPassword(ADMIN_SEED_PASSWORD);
+  if (!hashedPassword) {
+    logger.warn('seedAdmins: failed to hash password, skipping');
+    return;
+  }
+
+  for (const a of admins) {
+    const email = a.email.toLowerCase().trim();
+    const existing = await Admin.findOne({ email }).select('_id').lean();
+
+    await Admin.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          firstName: a.firstName,
+          lastName: a.lastName,
+          accountStatus: 'active',
+          'auth.password.value': hashedPassword,
+          'auth.roles': [
+            { slug: superAdminRole.slug, roleId: superAdminRole._id },
+          ],
+        },
+      },
+      { upsert: true, runValidators: true }
+    );
+
+    if (existing) {
+      logger.info(`seedAdmins: admin ${email} updated`);
+    } else {
+      logger.info(`seedAdmins: admin ${email} created`);
+    }
+  }
+
+  logger.info('seedAdmins: admin accounts seeded');
 };

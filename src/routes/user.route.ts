@@ -55,7 +55,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: authenticate, schema: updateCartBodySchema },
     catchAsync(updateCart)
   );
-  app.delete<{ Params: { productId: string } }>(
+  app.delete<{
+    Params: { productId: string };
+    Querystring: { sku?: string };
+  }>(
     '/cart/:productId',
     { preHandler: authenticate, schema: cartProductIdParamSchema },
     catchAsync(removeFromCart)
