@@ -72,15 +72,6 @@ const LegalComplianceSchema = new Schema(
   { _id: false }
 );
 
-const EmailConfigSchema = new Schema(
-  {
-    fromEmail: { type: String, default: '' },
-    fromName: { type: String, default: '' },
-    replyToEmail: { type: String, default: '' },
-  },
-  { _id: false }
-);
-
 const FeatureFlagsSchema = new Schema(
   {
     maintenanceMode: { type: Boolean, default: false },
@@ -124,7 +115,6 @@ const SiteSettingsSchema = new Schema<ModelSiteSettings>(
     appDetails: { type: AppDetailsSchema, required: true, default: () => ({}) },
     seo: { type: SEODetailsSchema, required: true, default: () => ({}) },
     legal: { type: LegalComplianceSchema, required: true, default: () => ({}) },
-    email: { type: EmailConfigSchema, required: true, default: () => ({}) },
     features: { type: FeatureFlagsSchema, required: true, default: () => ({}) },
     analytics: { type: AnalyticsSchema, required: true, default: () => ({}) },
     localization: { type: LocalizationSchema, required: true, default: () => ({}) },
@@ -135,26 +125,55 @@ const SiteSettingsSchema = new Schema<ModelSiteSettings>(
   { timestamps: true, collection: 'sitesettings' }
 );
 
-const defaultSettings = {
+const FRONTEND_BASE_URL = 'https://www.ojmultimedia.com';
+
+/** Default site settings (from oj-multimedia frontend). Used by getSettings and seed. */
+export const defaultSiteSettings = {
   name: 'settings',
-  appDetails: { logo: '', appName: '', description: '' },
+  appDetails: {
+    logo: 'https://static.ojmultimedia.com/favicon.png',
+    appName: 'OJ Multimedia',
+    description:
+      'Your platform for fresh music, creative videos, and inspiring stories. Explore music categories, top charts, resources, promotional services, and a vendor marketplace.',
+  },
   seo: {
-    metaTitleTemplate: '',
-    metaDescription: '',
-    keywords: [],
-    ogImageUrl: '',
-    faviconUrl: '',
-    canonicalUrlBase: '',
+    metaTitleTemplate: '%s | OHEJUIRA',
+    metaDescription:
+      'OHEJUIRA is a dynamic multimedia platform featuring music categories, top charts, recent uploads, download metrics, and diverse content. Explore music, audio content, resources, promotional services, and a vendor marketplace. Serving humanity through innovation in entertainment and technology.',
+    keywords: [
+      'OHEJUIRA',
+      'OHEJUIRA-Multimedia',
+      'Music Platform',
+      'Music Categories',
+      'Top Charts',
+      'Music Downloads',
+      'Audio Content',
+      'Multimedia Platform',
+      'Content Hub',
+      'Music Streaming',
+      'Download Metrics',
+      'Recent Uploads',
+      'Music Discovery',
+      'Content Creation',
+      'Production Services',
+      'Vendor Marketplace',
+      'Entertainment',
+      'Digital Media',
+      'Creative Platform',
+      'Content Distribution',
+    ],
+    ogImageUrl: 'https://static.ojmultimedia.com/favicon.png',
+    faviconUrl: 'https://static.ojmultimedia.com/favicon.png',
+    canonicalUrlBase: FRONTEND_BASE_URL,
     robotsIndex: true,
     robotsFollow: true,
   },
   legal: {
-    termsOfServiceUrl: '',
-    privacyPolicyUrl: '',
+    termsOfServiceUrl: `${FRONTEND_BASE_URL}/terms-and-conditions`,
+    privacyPolicyUrl: `${FRONTEND_BASE_URL}/privacy-policy`,
     cookiePolicyUrl: '',
     disclaimerText: '',
   },
-  email: { fromEmail: '', fromName: '', replyToEmail: '' },
   features: { maintenanceMode: false, registrationEnabled: true, loginEnabled: true },
   analytics: { googleAnalyticsId: '', facebookPixelId: '', otherTrackingIds: [] },
   localization: {
@@ -163,12 +182,16 @@ const defaultSettings = {
     defaultTimezone: 'Africa/Lagos',
     defaultCurrency: 'NGN',
   },
-  branding: { faviconUrl: '', primaryBrandColor: '', secondaryBrandColor: '' },
+  branding: {
+    faviconUrl: 'https://static.ojmultimedia.com/favicon.png',
+    primaryBrandColor: '#eb6b3a',
+    secondaryBrandColor: '#ffffff',
+  },
   contactInfo: {
-    address: [],
-    tel: [],
-    email: [],
-    whatsapp: '',
+    address: [] as string[],
+    tel: ['+234 705 692 3436', '+234 913 667 0466', '+234 707 324 4801'],
+    email: ['ohemultimedia@gmail.com'],
+    whatsapp: '+2349136670466',
     locationUrl: '',
     officeHours: {
       monday: null,
@@ -180,13 +203,13 @@ const defaultSettings = {
       sunday: null,
     },
   },
-  socials: [],
+  socials: [] as Array<{ platform: string; href: string }>,
 };
 
 SiteSettingsSchema.statics.getSettings = async function () {
   let settings = await this.findOne();
   if (!settings) {
-    settings = await this.create(defaultSettings);
+    settings = await this.create(defaultSiteSettings);
   }
   return settings;
 };

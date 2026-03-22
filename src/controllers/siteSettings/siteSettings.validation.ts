@@ -5,7 +5,6 @@ const SLICE_NAMES = [
   'appDetails',
   'seo',
   'legal',
-  'email',
   'features',
   'analytics',
   'localization',

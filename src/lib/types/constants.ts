@@ -149,12 +149,6 @@ export interface LegalCompliance {
   disclaimerText: string;
 }
 
-export interface EmailConfig {
-  fromEmail: string;
-  fromName: string;
-  replyToEmail: string;
-}
-
 export interface FeatureFlags {
   maintenanceMode: boolean;
   registrationEnabled: boolean;
@@ -186,7 +180,6 @@ export interface ISiteSettings {
   appDetails: AppDetails;
   seo: SEODetails;
   legal: LegalCompliance;
-  email: EmailConfig;
   features: FeatureFlags;
   analytics: Analytics;
   localization: Localization;

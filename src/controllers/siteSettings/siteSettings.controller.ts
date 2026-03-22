@@ -9,7 +9,6 @@ const SLICES: SiteSettingsSlice[] = [
   'appDetails',
   'seo',
   'legal',
-  'email',
   'features',
   'analytics',
   'localization',
