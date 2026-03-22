@@ -13,6 +13,7 @@ import { getRoleWithSlug } from '../../services/role.service';
 import { signAccess, signRefresh } from '../../utils/token';
 import { generateRandomString } from '../../utils/helpers';
 import { setAuthCookies, assertEmailNotRegisteredAsAdmin, buildClientUserPayload } from './auth.helpers';
+import { addUserToCache } from '../../utils/authCache';
 import type { ModelUser } from '../../lib/types/constants';
 
 export async function googleAuth(
@@ -101,6 +102,7 @@ export async function googleAuth(
     });
 
     setAuthCookies(reply, accessToken, refreshToken);
+    await addUserToCache(user);
     const populatedUser = await buildClientUserPayload(user);
 
     sendResponse(reply, 200, { user: populatedUser }, 'Google sign-in successful.');
@@ -136,6 +138,7 @@ export async function googleAuth(
   const updated = await User.findById(user._id).select(userUnselected.join(' ')).lean<ModelUser>();
 
   const effectiveUser = (updated ?? user) as ModelUser;
+  await addUserToCache(effectiveUser);
   const populatedUser = await buildClientUserPayload(effectiveUser);
 
   sendResponse(reply, 200, { user: populatedUser }, 'Google sign-in successful.');

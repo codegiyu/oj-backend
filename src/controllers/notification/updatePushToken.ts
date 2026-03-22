@@ -1,8 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { Admin } from '../../models/admin';
+import { invalidateAuthCache } from '../../utils/authCache';
 import { getAuthUser } from '../../utils/getAuthUser';
+import { Admin } from '@/models';
 
 export async function updatePushToken(
   request: FastifyRequest<{
@@ -31,6 +32,7 @@ export async function updatePushToken(
   }
 
   await Admin.findByIdAndUpdate(user.userId, { 'auth.pushToken': value });
+  await invalidateAuthCache(user.email, 'admin');
 
   sendResponse(reply, 200, { registered: value.length > 0 }, 'Push token updated.');
 }

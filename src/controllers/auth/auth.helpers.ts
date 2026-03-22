@@ -12,6 +12,7 @@ import { Artist } from '../../models/artist';
 import { Vendor } from '../../models/vendor';
 import { unselectedFields as adminUnselected } from '../../models/admin';
 import { unselectedFields as userUnselected } from '../../models/user';
+import { findAdminByEmail, findUserByEmail, invalidateAuthCache } from '../../utils/authCache';
 import type { ModelAdmin, ModelUser } from '../../lib/types/constants';
 import { serializePopulatedUser } from '../user/dashboard.helpers';
 
@@ -144,6 +145,8 @@ export async function processPasswordChange(options: {
   const userId = String((user as { _id: unknown })._id);
   const email = user.email;
 
+  await invalidateAuthCache(email, accessType === 'console' ? 'admin' : 'user');
+
   if (accessType === 'console') {
     await Admin.findOneAndUpdate(
       { email },
@@ -170,8 +173,8 @@ export async function processPasswordChange(options: {
 
   const updated =
     accessType === 'console'
-      ? await Admin.findOne({ email }).select(adminUnselected.join(' ')).lean()
-      : await User.findOne({ email }).select(userUnselected.join(' ')).lean();
+      ? await findAdminByEmail(email)
+      : await findUserByEmail(email);
 
   if (!updated) throw new AppError('Password update failed', 500);
 
