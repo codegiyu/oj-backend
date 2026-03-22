@@ -10,7 +10,7 @@ import { ResourceDownloadCategory } from '../models/resourceDownloadCategory';
 import { ContactMethod } from '../models/contactMethod';
 import { PartnershipBenefit } from '../models/partnershipBenefit';
 import { Role } from '../models/role';
-import { SiteSettings } from '../models/siteSettings';
+import { SiteSettings, defaultSiteSettings } from '../models/siteSettings';
 import { Admin } from '../models/admin';
 import { authService } from '../services/auth.service';
 
@@ -291,100 +291,13 @@ export const seedRoles = async (): Promise<void> => {
   logger.info('seedRoles: roles upserted');
 };
 
-/** Base URL for the frontend (from oj-multimedia NEXT_PUBLIC_LIVE_URL) */
-const FRONTEND_BASE_URL = 'https://www.ojmultimedia.com';
-
-/** Default site settings derived from oj-multimedia frontend (texts.ts, layout, Footer, globals.css) */
-const DEFAULT_SITE_SETTINGS = {
-  name: 'settings',
-  appDetails: {
-    logo: 'https://static.ojmultimedia.com/favicon.png',
-    appName: 'OJ Multimedia',
-    description:
-      'Your platform for fresh music, creative videos, and inspiring stories. Explore music categories, top charts, resources, promotional services, and a vendor marketplace.',
-  },
-  seo: {
-    metaTitleTemplate: '%s | OHEJUIRA',
-    metaDescription:
-      'OHEJUIRA is a dynamic multimedia platform featuring music categories, top charts, recent uploads, download metrics, and diverse content. Explore music, audio content, resources, promotional services, and a vendor marketplace. Serving humanity through innovation in entertainment and technology.',
-    keywords: [
-      'OHEJUIRA',
-      'OHEJUIRA-Multimedia',
-      'Music Platform',
-      'Music Categories',
-      'Top Charts',
-      'Music Downloads',
-      'Audio Content',
-      'Multimedia Platform',
-      'Content Hub',
-      'Music Streaming',
-      'Download Metrics',
-      'Recent Uploads',
-      'Music Discovery',
-      'Content Creation',
-      'Production Services',
-      'Vendor Marketplace',
-      'Entertainment',
-      'Digital Media',
-      'Creative Platform',
-      'Content Distribution',
-    ],
-    ogImageUrl: 'https://static.ojmultimedia.com/favicon.png',
-    faviconUrl: 'https://static.ojmultimedia.com/favicon.png',
-    canonicalUrlBase: FRONTEND_BASE_URL,
-    robotsIndex: true,
-    robotsFollow: true,
-  },
-  legal: {
-    termsOfServiceUrl: `${FRONTEND_BASE_URL}/terms-and-conditions`,
-    privacyPolicyUrl: `${FRONTEND_BASE_URL}/privacy-policy`,
-    cookiePolicyUrl: '',
-    disclaimerText: '',
-  },
-  email: {
-    fromEmail: SEED_EMAIL,
-    fromName: 'OJ Multimedia',
-    replyToEmail: SEED_EMAIL,
-  },
-  features: { maintenanceMode: false, registrationEnabled: true, loginEnabled: true },
-  analytics: { googleAnalyticsId: '', facebookPixelId: '', otherTrackingIds: [] },
-  localization: {
-    defaultLanguage: 'en',
-    supportedLanguages: ['en'],
-    defaultTimezone: 'Africa/Lagos',
-    defaultCurrency: 'NGN',
-  },
-  branding: {
-    faviconUrl: 'https://static.ojmultimedia.com/favicon.png',
-    primaryBrandColor: '#eb6b3a', // hsl(16, 90%, 58%) from globals.css --primary
-    secondaryBrandColor: '#ffffff',
-  },
-  contactInfo: {
-    address: [] as string[],
-    tel: ['+234 705 692 3436', '+234 913 667 0466', '+234 707 324 4801'],
-    email: [SEED_EMAIL],
-    whatsapp: '+2349136670466',
-    locationUrl: '',
-    officeHours: {
-      monday: null,
-      tuesday: null,
-      wednesday: null,
-      thursday: null,
-      friday: null,
-      saturday: null,
-      sunday: null,
-    },
-  },
-  socials: [] as Array<{ platform: string; href: string }>,
-};
-
 /**
- * Seeds site settings (singleton). Idempotent: upserts default settings derived from oj-multimedia frontend.
+ * Seeds site settings (singleton). Idempotent: upserts default settings from model.
  */
 export const seedSiteSettings = async (): Promise<void> => {
   await SiteSettings.findOneAndUpdate(
     { name: 'settings' },
-    { $setOnInsert: DEFAULT_SITE_SETTINGS },
+    { $setOnInsert: defaultSiteSettings },
     { upsert: true, runValidators: true }
   );
 

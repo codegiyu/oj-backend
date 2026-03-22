@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import { login, session, logout } from '../controllers/auth/auth.controller';
 import { googleAuth } from '../controllers/auth/googleAuth';
@@ -66,7 +66,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     '/session',
-    { preHandler: authenticate },
+    { preHandler: optionalAuthenticate },
     catchAsync(session)
   );
 
