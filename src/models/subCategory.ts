@@ -27,26 +27,19 @@ const subCategorySchema = new Schema<ISubCategory>(
 subCategorySchema.index({ category: 1, slug: 1 }, { unique: true });
 subCategorySchema.index({ category: 1, displayOrder: 1 });
 
-(subCategorySchema.pre as any)('save', function (
-  this: ISubCategory & mongoose.Document,
-  next: (err?: Error) => void
-) {
-  if (!this.isModified('name') && !this.isModified('category')) return next();
+subCategorySchema.pre('save', async function (this: ISubCategory & mongoose.Document) {
+  if (!this.isModified('name') && !this.isModified('category')) return;
 
   const SubCategoryModel =
     mongoose.models.SubCategory || model<ISubCategory>('SubCategory', subCategorySchema);
 
-  generateSubCategorySlug(
+  const slug = await generateSubCategorySlug(
     Category,
     SubCategoryModel as mongoose.Model<{ slug: string; category: mongoose.Types.ObjectId }>,
     this.category,
     this.name
-  )
-    .then(slug => {
-      this.slug = slug;
-      next();
-    })
-    .catch(err => next(err as Error));
+  );
+  this.slug = slug;
 });
 
 export const SubCategory =
