@@ -10,7 +10,6 @@ import { addAdminToCache, invalidateAuthCache } from '../../utils/authCache';
 import { Admin } from '../../models/admin';
 import { User } from '../../models/user';
 import { unselectedFields as adminUnselected } from '../../models/admin';
-import { unselectedFields as userUnselected } from '../../models/user';
 import { getAuthUser } from '../../utils/getAuthUser';
 import type { ModelAdmin, ModelUser } from '../../lib/types/constants';
 
@@ -84,7 +83,6 @@ export async function session(
 
   if (scope === 'console-access') {
     const admin = await Admin.findById(user.userId)
-      .select(adminUnselected.join(' '))
       .lean<ModelAdmin>();
 
     console.log('admin', admin);
@@ -103,7 +101,6 @@ export async function session(
   }
 
   const userDoc = await User.findById(user.userId)
-    .select(userUnselected.join(' '))
     .lean<ModelUser>();
 
   console.log('userDoc', userDoc);
