@@ -10,6 +10,7 @@ import {
   dispatchNotification,
 } from '../../services/notification.service';
 import { getAuthUser } from '../../utils/getAuthUser';
+import { invalidateAuthCache } from '../../utils/authCache';
 
 export async function list(
   request: FastifyRequest<{
@@ -172,5 +173,6 @@ export async function updatePreferences(
     return;
   }
   await Model.findByIdAndUpdate(user.userId, { $set: update });
+  await invalidateAuthCache(user.email, user.scope === 'console-access' ? 'admin' : 'user');
   sendResponse(reply, 200, { success: true }, 'Preferences updated.');
 }

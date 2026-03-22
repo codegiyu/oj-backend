@@ -8,6 +8,7 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { parseSearch, normalizeSort, parsePositiveInteger } from '../../utils/helpers';
+import { updateCachedUser } from '../../utils/authCache';
 import { buildClientUserPayload } from '../auth/auth.helpers';
 import { serializePopulatedUser, shapeWishlistItem } from './dashboard.helpers';
 
@@ -57,6 +58,7 @@ export async function updateMe(
     .lean();
   if (!user) throw new AppError('User not found', 404);
 
+  await updateCachedUser(user);
   const payload = await buildClientUserPayload(user);
   const serialized = serializePopulatedUser(payload as Record<string, unknown>);
   sendResponse(reply, 200, { user: serialized }, 'User updated.');

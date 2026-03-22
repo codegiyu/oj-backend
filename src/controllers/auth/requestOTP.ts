@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { User } from '../../models/user';
+import { findUserByEmail } from '../../utils/authCache';
 import { sendVerification } from './sendVerification';
 import type { TokenScope } from '../../utils/token';
 import { addToCache } from '../../utils/cache';
@@ -20,7 +20,7 @@ export async function requestOTP(
     throw new AppError('Invalid scope. Must be one of: verify-email', 400);
   }
 
-  const user = await User.findOne({ email: (email as string).toLowerCase() }).lean();
+  const user = await findUserByEmail((email as string).toLowerCase());
   if (!user) throw new AppError('User not found', 404);
 
   const name = user.firstName ?? email;

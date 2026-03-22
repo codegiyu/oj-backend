@@ -1,8 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { Admin } from '../../models/admin';
-import { User } from '../../models/user';
+import { findAdminByEmail, findUserByEmail } from '../../utils/authCache';
 import { sendPasswordResetLink } from './sendPasswordResetLink';
 
 export async function requestPasswordReset(
@@ -25,8 +24,8 @@ export async function requestPasswordReset(
     resolvedAccessType = accessType;
   }
 
-  const admin = await Admin.findOne({ email: emailLower }).lean();
-  const user = await User.findOne({ email: emailLower }).lean();
+  const admin = await findAdminByEmail(emailLower);
+  const user = await findUserByEmail(emailLower);
 
   if (admin) {
     resolvedAccessType = 'console';
