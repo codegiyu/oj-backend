@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
-import { User, unselectedFields as userUnselected } from '../../models/user';
+import { User } from '../../models/user';
 import { Product } from '../../models/product';
 import { Wishlist } from '../../models/wishlist';
 import { Cart } from '../../models/cart';
@@ -19,9 +19,7 @@ export async function getMe(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const user = await User.findById(auth.userId)
-    .select(userUnselected.join(' '))
-    .lean();
+  const user = await User.findById(auth.userId).lean();
   if (!user || user.accountStatus === 'deleted') {
     throw new AppError('User not found', 404);
   }
@@ -53,9 +51,7 @@ export async function updateMe(
     { _id: new mongoose.Types.ObjectId(auth.userId), accountStatus: { $ne: 'deleted' } },
     { $set: updates },
     { returnDocument: 'after' }
-  )
-    .select(userUnselected.join(' '))
-    .lean();
+  ).lean();
   if (!user) throw new AppError('User not found', 404);
 
   await updateCachedUser(user);

@@ -8,7 +8,6 @@ import { ENVIRONMENT } from '../../config/env';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
-import { unselectedFields as userUnselected } from '../../models/user';
 import { getRoleWithSlug } from '../../services/role.service';
 import { signAccess, signRefresh } from '../../utils/token';
 import { generateRandomString } from '../../utils/helpers';
@@ -54,9 +53,7 @@ export async function googleAuth(
 
   let user: ModelUser | null = await User.findOne({
     $or: [{ googleId: sub }, { email: email!.toLowerCase() }],
-  })
-    .select(userUnselected.join(' '))
-    .lean<ModelUser>();
+  }).lean<ModelUser>();
 
   if (!user) {
     const emailLower = email!.toLowerCase();
@@ -83,7 +80,7 @@ export async function googleAuth(
       }),
     });
 
-    user = await User.findById(newUser._id).select(userUnselected.join(' ')).lean<ModelUser>();
+    user = await User.findById(newUser._id).lean<ModelUser>();
 
     if (!user) throw new AppError('Failed to create user', 500);
 
@@ -135,7 +132,7 @@ export async function googleAuth(
   });
 
   setAuthCookies(reply, accessToken, refreshToken);
-  const updated = await User.findById(user._id).select(userUnselected.join(' ')).lean<ModelUser>();
+  const updated = await User.findById(user._id).lean<ModelUser>();
 
   const effectiveUser = (updated ?? user) as ModelUser;
   await addUserToCache(effectiveUser);
