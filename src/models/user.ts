@@ -20,9 +20,7 @@ export const DISALLOWED_FIELDS = [
 ];
 
 export const unselectedFields = [
-  'auth.password',
-  'auth.password.value',
-  'auth.password.passwordChangedAt',
+  'auth.password', // Excludes entire auth.password (value, passwordChangedAt)
   'auth.refreshTokenJTI',
   'isDeleted',
   'deleteRequestedAt',
