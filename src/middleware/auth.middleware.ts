@@ -6,8 +6,6 @@ import { AppError } from '../utils/AppError';
 const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 
 function getAccessToken(request: FastifyRequest): string | undefined {
-  console.log('accessCookieName', accessCookieName);
-  console.log('request.cookies', request.cookies);
   const fromCookie = request.cookies?.[accessCookieName];
   if (fromCookie && typeof fromCookie === 'string') return fromCookie;
   const auth = request.headers.authorization;
@@ -43,13 +41,14 @@ export const optionalAuthenticate = async (
   _reply: FastifyReply
 ): Promise<void> => {
   const token = getAccessToken(request);
-  console.log('token', token);
+
   if (!token) return;
   const payload = verifyAccess(token);
-  console.log('payload', payload);
+
   if (!payload || !payload.userId || !payload.email || !payload.scope || !payload.jti) {
     return;
   }
+
   request.authUser = {
     userId: String(payload.userId),
     email: payload.email,
