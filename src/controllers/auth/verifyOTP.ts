@@ -2,10 +2,10 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
-import { unselectedFields as userUnselected } from '../../models/user';
 import { getFromCache, removeFromCache } from '../../utils/cache';
 import { updateCachedUser } from '../../utils/authCache';
 import { verifyOtpToken } from '../../utils/token';
+import { buildClientUserPayload } from './auth.helpers';
 
 export async function verifyOTP(
   request: FastifyRequest<{
@@ -38,14 +38,17 @@ export async function verifyOTP(
         'kyc.email.data': { verifiedAt: new Date() },
       },
       { returnDocument: 'after' }
-    )
-      .select(userUnselected.join(' '))
-      .lean();
+    ).lean();
+
     if (!updatedUser) throw new AppError('User account not found', 401);
+
+    
     await updateCachedUser(updatedUser);
   }
 
+  const populatedUser = await buildClientUserPayload(updatedUser);
+
   sendResponse(reply, 200, {
-    ...(updatedUser ? { user: updatedUser } : {}),
+    ...(populatedUser ? { user: populatedUser } : {}),
   }, 'Verification successful.');
 }

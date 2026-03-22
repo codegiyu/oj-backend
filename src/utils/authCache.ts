@@ -4,8 +4,6 @@
  */
 import { Admin } from '../models/admin';
 import { User } from '../models/user';
-import { unselectedFields as adminUnselected } from '../models/admin';
-import { unselectedFields as userUnselected } from '../models/user';
 import { addToCache, getFromCache, removeFromCache } from './cache';
 import type { ModelAdmin, ModelUser } from '../lib/types/constants';
 
@@ -28,9 +26,7 @@ export async function findAdminByEmail(email: string): Promise<ModelAdmin | null
   const cached = await getFromCache<ModelAdmin>(key);
   if (cached) return cached;
 
-  const admin = await Admin.findOne({ email: email.toLowerCase().trim() })
-    .select(adminUnselected.join(' '))
-    .lean<ModelAdmin>();
+  const admin = await Admin.findOne({ email: email.toLowerCase().trim() }).lean<ModelAdmin>();
 
   if (admin) {
     await addToCache(key, admin);
@@ -47,9 +43,7 @@ export async function findUserByEmail(email: string): Promise<ModelUser | null> 
   const cached = await getFromCache<ModelUser>(key);
   if (cached) return cached;
 
-  const user = await User.findOne({ email: email.toLowerCase().trim() })
-    .select(userUnselected.join(' '))
-    .lean<ModelUser>();
+  const user = await User.findOne({ email: email.toLowerCase().trim() }).lean<ModelUser>();
 
   if (user) {
     await addToCache(key, user);
