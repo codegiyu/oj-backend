@@ -3,7 +3,8 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { invalidateAuthCache } from '../../utils/authCache';
 import { getAuthUser } from '../../utils/getAuthUser';
-import { Admin } from '@/models';
+import { Admin } from '../../models/admin';
+import { User } from '../../models/user';
 
 export async function updatePushToken(
   request: FastifyRequest<{
@@ -31,8 +32,13 @@ export async function updatePushToken(
     throw new AppError('pushToken is too long', 400);
   }
 
-  await Admin.findByIdAndUpdate(user.userId, { 'auth.pushToken': value });
-  await invalidateAuthCache(user.email, 'admin');
+  if (user.scope === 'console-access') {
+    await Admin.findByIdAndUpdate(user.userId, { 'auth.pushToken': value });
+  } else {
+    await User.findByIdAndUpdate(user.userId, { 'auth.pushToken': value });
+  }
+
+  await invalidateAuthCache(user.email, user.scope === 'console-access' ? 'admin' : 'user');
 
   sendResponse(reply, 200, { registered: value.length > 0 }, 'Push token updated.');
 }
