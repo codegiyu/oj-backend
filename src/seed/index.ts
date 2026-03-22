@@ -1,9 +1,9 @@
 import {
-  seedMarketplaceCategories,
-  seedPromotionContent,
-  seedRoles,
+  // seedMarketplaceCategories,
+  // seedPromotionContent,
+  // seedRoles,
   seedSiteSettings,
-  seedAdmins,
+  // seedAdmins,
 } from './functions';
 import { logger } from '../utils/logger';
 
@@ -22,13 +22,13 @@ export {
 export const seedDb = async (): Promise<void> => {
   try {
     // Roles, site settings, and admins (admins depend on roles)
-    await seedRoles();
     await seedSiteSettings();
-    await seedAdmins();
+    // await seedRoles();
+    // await seedAdmins();
     
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
-    await seedMarketplaceCategories();
-    await seedPromotionContent();
+    // await seedMarketplaceCategories();
+    // await seedPromotionContent();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;

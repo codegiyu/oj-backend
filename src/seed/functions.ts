@@ -295,11 +295,17 @@ export const seedRoles = async (): Promise<void> => {
  * Seeds site settings (singleton). Idempotent: upserts default settings from model.
  */
 export const seedSiteSettings = async (): Promise<void> => {
+  const siteSettingsCount = await SiteSettings.countDocuments();
+  logger.info(`seedSiteSettings: number of site settings documents: ${siteSettingsCount}`);
+
   await SiteSettings.findOneAndUpdate(
     { name: 'settings' },
     { $setOnInsert: defaultSiteSettings },
     { upsert: true, runValidators: true }
   );
+
+  const siteSettings = await SiteSettings.findOne();
+  console.log('siteSettings', siteSettings);
 
   logger.info('seedSiteSettings: site settings upserted');
 };
