@@ -311,7 +311,7 @@ export const seedSiteSettings = async (): Promise<void> => {
 
   await SiteSettings.findOneAndUpdate(
     { name: 'settings' },
-    { $setOnInsert: defaultSiteSettings },
+    { $set: defaultSiteSettings },
     { upsert: true, runValidators: true }
   );
 
