@@ -83,14 +83,13 @@ function defaultSku(slug: string, options: Record<string, string>): string {
   return `${slug}-${parts.join('-')}`.toUpperCase().replace(/[^A-Z0-9-]/gi, '');
 }
 
-productSchema.pre('save', function (this: ModelProduct, ...args: unknown[]) {
-  const next = args[args.length - 1] as (err?: Error) => void;
+productSchema.pre('save', function (this: ModelProduct) {
   const doc = this;
   const opts = doc.variationOptions;
   const vars = doc.variants;
 
   if (!opts?.length || !vars?.length) {
-    return next();
+    return;
   }
 
   const requiredCombos = new Set(getAllCombinations(opts).map(c => optionsKey(c)));
@@ -99,22 +98,20 @@ productSchema.pre('save', function (this: ModelProduct, ...args: unknown[]) {
   for (const v of vars) {
     const key = optionsKey(v.options);
     if (!requiredCombos.has(key)) {
-      return next(
-        new Error(
-          `Variant options ${JSON.stringify(v.options)} do not match variationOptions; every combination must exist exactly once.`
-        )
+      throw new Error(
+        `Variant options ${JSON.stringify(v.options)} do not match variationOptions; every combination must exist exactly once.`
       );
     }
     if (seen.has(key)) {
-      return next(new Error(`Duplicate variant for combination: ${key}`));
+      throw new Error(`Duplicate variant for combination: ${key}`);
     }
     seen.add(key);
   }
 
   if (seen.size !== requiredCombos.size) {
     const missing = [...requiredCombos].filter(k => !seen.has(k));
-    return next(
-      new Error(`Missing variants for combination(s): ${missing.join(', ')}. Every combination of variationOptions must have one variant.`)
+    throw new Error(
+      `Missing variants for combination(s): ${missing.join(', ')}. Every combination of variationOptions must have one variant.`
     );
   }
 
@@ -143,8 +140,6 @@ productSchema.pre('save', function (this: ModelProduct, ...args: unknown[]) {
   } else if (anyInStock) {
     doc.inStock = true;
   }
-
-  next();
 });
 
 productSchema.index({ vendor: 1, status: 1 });

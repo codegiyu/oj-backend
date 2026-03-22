@@ -112,12 +112,9 @@ export const UserSchema = new Schema<ModelUser>(
   { timestamps: true, collection: 'users' }
 );
 
-type QueryNext = (err?: Error) => void;
-const userFindPre: (this: mongoose.Query<unknown, ModelUser>, next: QueryNext) => void = function (next: QueryNext) {
+// Exclude soft-deleted users from queries by default
+UserSchema.pre(/^find/, function () {
   this.find({ isDeleted: { $ne: true } });
-  next();
-};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- pre() overload resolution requires cast
-UserSchema.pre(/^find/, userFindPre as any);
+});
 
 export const User = mongoose.models.User || model<ModelUser>('User', UserSchema);

@@ -52,13 +52,10 @@ export const DocumentSchema = new Schema<ModelDocument>(
 DocumentSchema.index({ entityType: 1, entityId: 1, status: 1 });
 DocumentSchema.index({ expiresAt: 1 });
 
-type QueryNext = (err?: Error) => void;
-const documentFindPre: (this: mongoose.Query<unknown, ModelDocument>, next: QueryNext) => void = function (next: QueryNext) {
+// Exclude soft-deleted documents from queries by default
+DocumentSchema.pre(/^find/, function () {
   this.find({ isDeleted: { $ne: true } });
-  next();
-};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- pre() overload resolution requires cast
-DocumentSchema.pre(/^find/, documentFindPre as any);
+});
 
 export const Document =
   mongoose.models.Document || model<ModelDocument>('Document', DocumentSchema);

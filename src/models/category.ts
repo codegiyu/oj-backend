@@ -23,17 +23,15 @@ const categorySchema = new Schema<ICategory>(
 
 categorySchema.index({ displayOrder: 1 });
 
-(categorySchema.pre as any)('save', function (this: ICategory & mongoose.Document, next: (err?: Error) => void) {
-  if (!this.isModified('name')) return next();
+categorySchema.pre('save', async function (this: ICategory & mongoose.Document) {
+  if (!this.isModified('name')) return;
 
   const CategoryModel = mongoose.models.Category || model<ICategory>('Category', categorySchema);
-
-  generateCategorySlug(CategoryModel as mongoose.Model<{ slug: string }>, this.name)
-    .then(slug => {
-      this.slug = slug;
-      next();
-    })
-    .catch(err => next(err as Error));
+  const slug = await generateCategorySlug(
+    CategoryModel as mongoose.Model<{ slug: string }>,
+    this.name
+  );
+  this.slug = slug;
 });
 
 export const Category =

@@ -49,16 +49,13 @@ const notificationSchema = new Schema<ModelNotification>(
 
 notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-type QueryNext = (err?: Error) => void;
-const notificationFindPre: (this: mongoose.Query<unknown, ModelNotification>, next: QueryNext) => void = function (next: QueryNext) {
+// Filter to active notifications (not expired, trigger date reached)
+notificationSchema.pre(/^find/, function () {
   this.find({
     expiresAt: { $gt: new Date() },
     triggerDate: { $lte: new Date() },
   });
-  next();
-};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- pre() overload resolution requires cast
-notificationSchema.pre(/^find/, notificationFindPre as any);
+});
 
 export const Notification =
   mongoose.models.Notification || model<ModelNotification>('Notification', notificationSchema);
