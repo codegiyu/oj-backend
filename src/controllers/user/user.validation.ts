@@ -66,6 +66,7 @@ export const updateCartBodySchema: FastifySchema = {
         properties: {
           productId: { type: 'string' },
           quantity: { type: 'number' },
+          sku: { type: 'string' },
         },
       },
       {
@@ -80,6 +81,7 @@ export const updateCartBodySchema: FastifySchema = {
               properties: {
                 productId: { type: 'string' },
                 quantity: { type: 'number' },
+                sku: { type: 'string' },
               },
             },
           },
@@ -95,6 +97,12 @@ export const cartProductIdParamSchema: FastifySchema = {
     required: ['productId'],
     properties: {
       productId: { type: 'string' },
+    },
+  },
+  querystring: {
+    type: 'object',
+    properties: {
+      sku: { type: 'string' },
     },
   },
 };

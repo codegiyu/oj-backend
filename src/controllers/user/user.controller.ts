@@ -230,6 +230,7 @@ function mapCart(cart: Record<string, unknown> | null | undefined) {
             vendorSlug: vendor?.slug,
             vendorName: vendor?.storeName ?? vendor?.name,
             whatsapp: vendor?.whatsapp,
+            vendorWhatsapp: vendor?.whatsapp,
             variationOptions: product.variationOptions,
             variants: product.variants,
           }
@@ -383,22 +384,30 @@ export async function updateCart(
 }
 
 export async function removeFromCart(
-  request: FastifyRequest<{ Params: { productId: string } }>,
+  request: FastifyRequest<{
+    Params: { productId: string };
+    Querystring: { sku?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const { productId } = request.params;
+  const sku = request.query?.sku;
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new AppError('Invalid productId', 400);
   }
 
   const userId = new mongoose.Types.ObjectId(auth.userId);
-  await Cart.updateOne(
-    { user: userId },
-    { $pull: { items: { product: new mongoose.Types.ObjectId(productId) } } }
-  );
+  const productObjId = new mongoose.Types.ObjectId(productId);
+
+  const pullCondition: Record<string, unknown> = { product: productObjId };
+  if (sku != null && String(sku).trim() !== '') {
+    pullCondition.sku = String(sku).trim();
+  }
+
+  await Cart.updateOne({ user: userId }, { $pull: { items: pullCondition } });
 
   const cart = await loadCartWithProducts(userId);
   const shaped = mapCart(cart as Record<string, unknown> | null | undefined);

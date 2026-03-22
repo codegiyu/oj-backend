@@ -1,7 +1,19 @@
-import { seedMarketplaceCategories, seedPromotionContent } from './functions';
+import {
+  seedMarketplaceCategories,
+  seedPromotionContent,
+  seedRoles,
+  seedSiteSettings,
+  seedAdmins,
+} from './functions';
 import { logger } from '../utils/logger';
 
-export { seedMarketplaceCategories, seedPromotionContent } from './functions';
+export {
+  seedMarketplaceCategories,
+  seedPromotionContent,
+  seedRoles,
+  seedSiteSettings,
+  seedAdmins,
+} from './functions';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -9,13 +21,14 @@ export { seedMarketplaceCategories, seedPromotionContent } from './functions';
  */
 export const seedDb = async (): Promise<void> => {
   try {
+    // Roles, site settings, and admins (admins depend on roles)
+    await seedRoles();
+    await seedSiteSettings();
+    await seedAdmins();
+    
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
     await seedMarketplaceCategories();
     await seedPromotionContent();
-
-    // Add more seed steps here as needed, e.g.:
-    // await seedRolesAndPermissions();
-    // await seedSuperAdmin();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;
