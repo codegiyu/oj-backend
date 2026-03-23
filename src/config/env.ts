@@ -74,6 +74,7 @@ export type Environment = {
     readonly adminAppUrl: string;
     readonly clientAppUrl: string;
   };
+  readonly domain: string;
 };
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379/0';
@@ -156,4 +157,5 @@ export const ENVIRONMENT: Environment = {
     adminAppUrl: process.env.ADMIN_APP_URL || 'http://localhost:3001',
     clientAppUrl: process.env.CLIENT_APP_URL || 'http://localhost:3000',
   },
+  domain: process.env.DOMAIN || 'localhost',
 };

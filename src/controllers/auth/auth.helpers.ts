@@ -1,4 +1,5 @@
 import { FastifyReply } from 'fastify';
+import { CookieSerializeOptions } from '@fastify/cookie';
 import { ENVIRONMENT } from '../../config/env';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
@@ -48,16 +49,18 @@ export async function assertEmailNotRegisteredAsUser(email: string): Promise<voi
 const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 const refreshCookieName = ENVIRONMENT.tokenNames.cookies.refresh;
 const cookiePath = '/';
-const sameSite = 'none' as const;
 /** SameSite=None requires Secure. Use secure when production or when sameSite is 'none'. */
-const secure = true;
+const secure = ENVIRONMENT.nodeEnv === 'production' ? true : false;
+const sameSite = secure ? 'none' as const : 'lax' as const;
+const domain = ENVIRONMENT.nodeEnv === 'production' ? ENVIRONMENT.domain : undefined;
 
 export function setAuthCookies(
   reply: FastifyReply,
   accessToken: string,
   refreshToken: string
 ): void {
-  const baseOptions = {
+  const baseOptions: CookieSerializeOptions = {
+    domain,
     path: cookiePath,
     httpOnly: true,
     secure,
