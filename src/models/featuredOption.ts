@@ -18,4 +18,5 @@ const featuredOptionSchema = new Schema<ModelFeaturedOption>(
 featuredOptionSchema.index({ isActive: 1, displayOrder: 1 });
 
 export const FeaturedOption =
-  mongoose.models.FeaturedOption || model<ModelFeaturedOption>('FeaturedOption', featuredOptionSchema);
+  mongoose.models.FeaturedOption ||
+  model<ModelFeaturedOption>('FeaturedOption', featuredOptionSchema);

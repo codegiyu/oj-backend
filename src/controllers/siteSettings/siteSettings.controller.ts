@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { SiteSettings } from '../../models/siteSettings';
-import { getAuthUser } from '../../utils/getAuthUser';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import type { SiteSettingsSlice } from './siteSettings.validation';
@@ -47,7 +46,12 @@ export async function getSiteSettings(
   if (value === undefined) {
     throw new AppError(`Slice not found: ${slice}`, 404);
   }
-  sendResponse(reply, 200, (typeof value === 'object' && value !== null ? value : { value }) as Record<string, unknown>, 'Site settings loaded.');
+  sendResponse(
+    reply,
+    200,
+    (typeof value === 'object' && value !== null ? value : { value }) as Record<string, unknown>,
+    'Site settings loaded.'
+  );
 }
 
 interface UpdateSiteSettingsBody {
@@ -58,11 +62,6 @@ export async function updateSiteSettings(
   request: FastifyRequest<{ Body: UpdateSiteSettingsBody }>,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Forbidden', 403);
-  }
-
   const { settingsPayload } = request.body;
   if (!Array.isArray(settingsPayload) || settingsPayload.length === 0) {
     throw new AppError('settingsPayload must be a non-empty array', 400);

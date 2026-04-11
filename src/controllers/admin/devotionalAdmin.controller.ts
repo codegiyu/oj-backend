@@ -3,16 +3,64 @@ import mongoose from 'mongoose';
 import { Devotional } from '../../models/devotional';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
+import { toArtistSummary } from '../artist/artist.helpers';
+import {
+  resolveArtistIdForAdminContent,
+  applyContentOwnershipUpdate,
+} from '../../services/contentOwner.service';
 
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'date'];
+const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'date', 'views', 'plays'];
+
+const artistPopulate = {
+  path: 'artist' as const,
+  select: '_id name slug image user',
+  populate: { path: 'user', select: '_id' },
+};
+
+function ownerApiFields(raw: Record<string, unknown>): {
+  ownerLocked: boolean;
+  ownerUserId?: string;
+} {
+  const artistVal = raw.artist;
+  if (artistVal == null) return { ownerLocked: false };
+  if (
+    typeof artistVal === 'object' &&
+    artistVal !== null &&
+    (artistVal as { _id?: unknown })._id == null
+  ) {
+    return { ownerLocked: false };
+  }
+  const u =
+    typeof artistVal === 'object' && artistVal !== null && 'user' in artistVal
+      ? (artistVal as { user?: { _id?: unknown } | unknown }).user
+      : undefined;
+  let ownerUserId: string | undefined;
+  if (u != null && typeof u === 'object' && u !== null && '_id' in u) {
+    ownerUserId = String((u as { _id: unknown })._id);
+  } else if (u != null && mongoose.Types.ObjectId.isValid(String(u))) {
+    ownerUserId = String(u);
+  }
+  return { ownerLocked: true, ...(ownerUserId ? { ownerUserId } : {}) };
+}
 
 function shapeDevotionalItem(raw: Record<string, unknown>): Record<string, unknown> {
+  const artist = toArtistSummary(
+    raw.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
+  );
+  const owner = ownerApiFields(raw);
   return {
     _id: raw._id != null ? String(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
+    coverImage: raw.coverImage ?? '',
     excerpt: raw.excerpt,
     content: raw.content,
     type: raw.type,
@@ -24,9 +72,12 @@ function shapeDevotionalItem(raw: Record<string, unknown>): Record<string, unkno
     lessons: raw.lessons,
     duration: raw.duration,
     views: raw.views ?? 0,
+    plays: raw.plays ?? 0,
     status: raw.status,
     isFeatured: raw.isFeatured,
     displayOrder: raw.displayOrder,
+    ownerLocked: owner.ownerLocked,
+    ...(owner.ownerUserId ? { ownerUserId: owner.ownerUserId } : {}),
     approvedAt: raw.approvedAt,
     approvedBy: raw.approvedBy,
     rejectionReason: raw.rejectionReason,
@@ -34,14 +85,16 @@ function shapeDevotionalItem(raw: Record<string, unknown>): Record<string, unkno
     rejectedBy: raw.rejectedBy,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
+    ...(artist && { artist }),
   };
 }
 
 export async function listAdminDevotionals(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -62,33 +115,43 @@ export async function listAdminDevotionals(
   const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
 
   const [items, total] = await Promise.all([
-    Devotional.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
+    Devotional.find(filter).sort(sortStr).populate(artistPopulate).skip(skip).limit(limit).lean(),
     Devotional.countDocuments(filter),
   ]);
 
   const devotionals = (items as Record<string, unknown>[]).map(shapeDevotionalItem);
 
-  sendResponse(reply, 200, {
-    devotionals,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Devotionals list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      devotionals,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Devotionals list loaded.'
+  );
 }
 
 export async function getAdminDevotional(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
-  const doc = await Devotional.findById(id).lean();
+  const doc = await Devotional.findById(id).populate(artistPopulate).lean();
   if (!doc) throw new AppError('Devotional not found', 404);
-  sendResponse(reply, 200, { devotional: shapeDevotionalItem(doc as unknown as Record<string, unknown>) }, 'Devotional loaded.');
+  sendResponse(
+    reply,
+    200,
+    { devotional: shapeDevotionalItem(doc as unknown as Record<string, unknown>) },
+    'Devotional loaded.'
+  );
 }
 
 export async function createAdminDevotional(
   request: FastifyRequest<{
     Body: {
       title: string;
+      coverImage?: string;
       excerpt?: string;
       content?: string;
       type?: string;
@@ -102,21 +165,29 @@ export async function createAdminDevotional(
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
       displayOrder?: number;
+      artistId?: string;
+      ownerUserId?: string;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.title || typeof body.title !== 'string' || !body.title.trim()) {
     throw new AppError('Title is required', 400);
   }
 
-  const slug = await generateUniqueSlug(Devotional, body.title.trim());
+  const resolvedArtistId = await resolveArtistIdForAdminContent({
+    ownerUserId: body.ownerUserId,
+    artistId: body.artistId,
+  });
+  const slugFilter = resolvedArtistId ? { artist: resolvedArtistId } : { artist: null };
+  const slug = await generateUniqueSlug(Devotional, body.title.trim(), slugFilter);
 
   const devotional = await Devotional.create({
     title: body.title.trim(),
     slug,
+    artist: resolvedArtistId ?? null,
+    coverImage: body.coverImage ?? '',
     excerpt: body.excerpt ?? '',
     content: body.content ?? '',
     type: body.type ?? 'latest',
@@ -127,13 +198,24 @@ export async function createAdminDevotional(
     readingTime: body.readingTime ?? 0,
     lessons: Array.isArray(body.lessons) ? body.lessons : [],
     duration: body.duration ?? 0,
+    views: 0,
+    plays: 0,
     status: body.status ?? 'draft',
     isFeatured: body.isFeatured ?? false,
     displayOrder: body.displayOrder ?? 0,
   });
 
-  const populated = await Devotional.findById(devotional._id).lean();
-  sendResponse(reply, 201, { devotional: shapeDevotionalItem((populated ?? devotional) as unknown as Record<string, unknown>) }, 'Devotional created.');
+  const populated = await Devotional.findById(devotional._id).populate(artistPopulate).lean();
+  sendResponse(
+    reply,
+    201,
+    {
+      devotional: shapeDevotionalItem(
+        (populated ?? devotional) as unknown as Record<string, unknown>
+      ),
+    },
+    'Devotional created.'
+  );
 }
 
 export async function updateAdminDevotional(
@@ -141,6 +223,7 @@ export async function updateAdminDevotional(
     Params: { id: string };
     Body: {
       title?: string;
+      coverImage?: string;
       excerpt?: string;
       content?: string;
       type?: string;
@@ -154,26 +237,32 @@ export async function updateAdminDevotional(
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
       displayOrder?: number;
+      artistId?: string;
+      ownerUserId?: string;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const devotional = await Devotional.findById(id);
   if (!devotional) throw new AppError('Devotional not found', 404);
 
   const body = request.body ?? {};
+  const newArtistId = await applyContentOwnershipUpdate(devotional, body, 'Devotional');
+  if (newArtistId) devotional.artist = newArtistId;
+
   if (body.title !== undefined) devotional.title = body.title;
+  if (body.coverImage !== undefined) devotional.coverImage = body.coverImage;
   if (body.excerpt !== undefined) devotional.excerpt = body.excerpt;
   if (body.content !== undefined) devotional.content = body.content;
-  if (body.type !== undefined) devotional.type = body.type;
+  if (body.type !== undefined) devotional.type = body.type as typeof devotional.type;
   if (body.category !== undefined) devotional.category = body.category;
   if (body.author !== undefined) devotional.author = body.author;
   if (body.verse !== undefined) devotional.verse = body.verse;
   if (body.date !== undefined) devotional.date = body.date ? new Date(body.date) : null;
   if (body.readingTime !== undefined) devotional.readingTime = body.readingTime;
-  if (body.lessons !== undefined) devotional.lessons = Array.isArray(body.lessons) ? body.lessons : devotional.lessons;
+  if (body.lessons !== undefined)
+    devotional.lessons = Array.isArray(body.lessons) ? body.lessons : devotional.lessons;
   if (body.duration !== undefined) devotional.duration = body.duration;
   if (body.status !== undefined) devotional.status = body.status;
   if (body.isFeatured !== undefined) devotional.isFeatured = body.isFeatured;
@@ -181,15 +270,23 @@ export async function updateAdminDevotional(
 
   await devotional.save();
 
-  const populated = await Devotional.findById(devotional._id).lean();
-  sendResponse(reply, 200, { devotional: shapeDevotionalItem((populated ?? devotional.toObject()) as Record<string, unknown>) }, 'Devotional updated.');
+  const populated = await Devotional.findById(devotional._id).populate(artistPopulate).lean();
+  sendResponse(
+    reply,
+    200,
+    {
+      devotional: shapeDevotionalItem(
+        (populated ?? devotional.toObject()) as Record<string, unknown>
+      ),
+    },
+    'Devotional updated.'
+  );
 }
 
 export async function deleteAdminDevotional(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await Devotional.findByIdAndDelete(id);
   if (!result) throw new AppError('Devotional not found', 404);
@@ -213,8 +310,17 @@ export async function approveAdminDevotional(
   devotional.rejectedBy = null;
   await devotional.save();
 
-  const populated = await Devotional.findById(devotional._id).lean();
-  sendResponse(reply, 200, { devotional: shapeDevotionalItem((populated ?? devotional.toObject()) as Record<string, unknown>) }, 'Devotional approved.');
+  const populated = await Devotional.findById(devotional._id).populate(artistPopulate).lean();
+  sendResponse(
+    reply,
+    200,
+    {
+      devotional: shapeDevotionalItem(
+        (populated ?? devotional.toObject()) as Record<string, unknown>
+      ),
+    },
+    'Devotional approved.'
+  );
 }
 
 export async function rejectAdminDevotional(
@@ -235,6 +341,15 @@ export async function rejectAdminDevotional(
   devotional.approvedBy = null;
   await devotional.save();
 
-  const populated = await Devotional.findById(devotional._id).lean();
-  sendResponse(reply, 200, { devotional: shapeDevotionalItem((populated ?? devotional.toObject()) as Record<string, unknown>) }, 'Devotional rejected.');
+  const populated = await Devotional.findById(devotional._id).populate(artistPopulate).lean();
+  sendResponse(
+    reply,
+    200,
+    {
+      devotional: shapeDevotionalItem(
+        (populated ?? devotional.toObject()) as Record<string, unknown>
+      ),
+    },
+    'Devotional rejected.'
+  );
 }

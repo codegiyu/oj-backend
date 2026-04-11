@@ -51,7 +51,7 @@ const refreshCookieName = ENVIRONMENT.tokenNames.cookies.refresh;
 const cookiePath = '/';
 /** SameSite=None requires Secure. Use secure when production or when sameSite is 'none'. */
 const secure = ENVIRONMENT.nodeEnv === 'production' ? true : false;
-const sameSite = secure ? 'none' as const : 'lax' as const;
+const sameSite = secure ? ('none' as const) : ('lax' as const);
 const domain = ENVIRONMENT.nodeEnv === 'production' ? ENVIRONMENT.domain : undefined;
 
 export function setAuthCookies(
@@ -91,15 +91,13 @@ export type AccessType = 'client' | 'console';
  * Build the client-facing user payload with linked artist/vendor summaries.
  * Used by session, Google auth, and any other client-access flows that return a user object.
  */
-export async function buildClientUserPayload(
-  user: ModelUser
-): Promise<Record<string, unknown>> {
+export async function buildClientUserPayload(user: ModelUser): Promise<Record<string, unknown>> {
   const sanitized = deleteFields(user as unknown as Record<string, unknown>, userUnselected);
 
   if (user.artistId) {
     const artist = await Artist.findById(user.artistId).select('_id name slug image').lean();
     if (artist) {
-      (sanitized as Record<string, unknown>).artist = {
+      sanitized.artist = {
         _id: artist._id,
         name: artist.name,
         slug: artist.slug,
@@ -109,11 +107,9 @@ export async function buildClientUserPayload(
   }
 
   if (user.vendorId) {
-    const vendor = await Vendor.findById(user.vendorId)
-      .select('_id slug storeName name')
-      .lean();
+    const vendor = await Vendor.findById(user.vendorId).select('_id slug storeName name').lean();
     if (vendor) {
-      (sanitized as Record<string, unknown>).vendor = {
+      sanitized.vendor = {
         _id: vendor._id,
         slug: vendor.slug,
         storeName: vendor.storeName,
@@ -175,20 +171,13 @@ export async function processPasswordChange(options: {
   setAuthCookies(reply, accessToken, refreshToken);
 
   const updated =
-    accessType === 'console'
-      ? await findAdminByEmail(email)
-      : await findUserByEmail(email);
+    accessType === 'console' ? await findAdminByEmail(email) : await findUserByEmail(email);
 
   if (!updated) throw new AppError('Password update failed', 500);
 
   const userPayload =
     accessType === 'client'
-      ? serializePopulatedUser(
-          (await buildClientUserPayload(updated as unknown as ModelUser)) as Record<string, unknown>
-        )
-      : deleteFields(
-          updated as unknown as Record<string, unknown>,
-          adminUnselected
-        );
+      ? serializePopulatedUser(await buildClientUserPayload(updated as unknown as ModelUser))
+      : deleteFields(updated as unknown as Record<string, unknown>, adminUnselected);
   sendResponse(reply, 200, { user: userPayload }, 'Password changed successfully.');
 }

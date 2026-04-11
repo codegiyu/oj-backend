@@ -9,7 +9,9 @@ import { requireAdmin, parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
 
-function toPastorSummary(pastor: { _id: unknown; name?: string; slug?: string; image?: string } | null): Record<string, unknown> | null {
+function toPastorSummary(
+  pastor: { _id: unknown; name?: string; slug?: string; image?: string } | null
+): Record<string, unknown> | null {
   if (!pastor) return null;
   return {
     _id: pastor._id != null ? String(pastor._id) : pastor._id,
@@ -20,7 +22,9 @@ function toPastorSummary(pastor: { _id: unknown; name?: string; slug?: string; i
 }
 
 function shapeAskPastorItem(raw: Record<string, unknown>): Record<string, unknown> {
-  const pastor = toPastorSummary(raw.pastor as { _id: unknown; name?: string; slug?: string; image?: string } | null);
+  const pastor = toPastorSummary(
+    raw.pastor as { _id: unknown; name?: string; slug?: string; image?: string } | null
+  );
   return {
     _id: raw._id != null ? String(raw._id) : raw._id,
     question: raw.question,
@@ -46,10 +50,11 @@ function shapeAskPastorItem(raw: Record<string, unknown>): Record<string, unknow
 const PASTOR_POPULATE_SELECT = 'name slug image';
 
 export async function listAdminAskPastor(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -70,27 +75,43 @@ export async function listAdminAskPastor(
   const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
 
   const [items, total] = await Promise.all([
-    AskPastorQuestion.find(filter).sort(sortStr).populate('pastor', PASTOR_POPULATE_SELECT).skip(skip).limit(limit).lean(),
+    AskPastorQuestion.find(filter)
+      .sort(sortStr)
+      .populate('pastor', PASTOR_POPULATE_SELECT)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     AskPastorQuestion.countDocuments(filter),
   ]);
 
   const questions = (items as Record<string, unknown>[]).map(shapeAskPastorItem);
 
-  sendResponse(reply, 200, {
-    questions,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Ask Pastor questions list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      questions,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Ask Pastor questions list loaded.'
+  );
 }
 
 export async function getAdminAskPastor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
-  const doc = await AskPastorQuestion.findById(id).populate('pastor', PASTOR_POPULATE_SELECT).lean();
+  const doc = await AskPastorQuestion.findById(id)
+    .populate('pastor', PASTOR_POPULATE_SELECT)
+    .lean();
   if (!doc) throw new AppError('Ask Pastor question not found', 404);
-  sendResponse(reply, 200, { question: shapeAskPastorItem(doc as unknown as Record<string, unknown>) }, 'Ask Pastor question loaded.');
+  sendResponse(
+    reply,
+    200,
+    { question: shapeAskPastorItem(doc as unknown as Record<string, unknown>) },
+    'Ask Pastor question loaded.'
+  );
 }
 
 export async function updateAdminAskPastor(
@@ -108,7 +129,6 @@ export async function updateAdminAskPastor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const question = await AskPastorQuestion.findById(id);
   if (!question) throw new AppError('Ask Pastor question not found', 404);
@@ -124,15 +144,21 @@ export async function updateAdminAskPastor(
 
   await question.save();
 
-  const populated = await AskPastorQuestion.findById(question._id).populate('pastor', PASTOR_POPULATE_SELECT).lean();
-  sendResponse(reply, 200, { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) }, 'Ask Pastor question updated.');
+  const populated = await AskPastorQuestion.findById(question._id)
+    .populate('pastor', PASTOR_POPULATE_SELECT)
+    .lean();
+  sendResponse(
+    reply,
+    200,
+    { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) },
+    'Ask Pastor question updated.'
+  );
 }
 
 export async function deleteAdminAskPastor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await AskPastorQuestion.findByIdAndDelete(id);
   if (!result) throw new AppError('Ask Pastor question not found', 404);
@@ -143,7 +169,6 @@ export async function assignPastorAdminAskPastor(
   request: FastifyRequest<{ Params: { id: string }; Body: { pastorId: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const pastorId = parseObjectId(request.body?.pastorId, 'pastorId');
 
@@ -156,8 +181,15 @@ export async function assignPastorAdminAskPastor(
   question.pastor = pastorId;
   await question.save();
 
-  const populated = await AskPastorQuestion.findById(question._id).populate('pastor', PASTOR_POPULATE_SELECT).lean();
-  sendResponse(reply, 200, { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) }, 'Pastor assigned.');
+  const populated = await AskPastorQuestion.findById(question._id)
+    .populate('pastor', PASTOR_POPULATE_SELECT)
+    .lean();
+  sendResponse(
+    reply,
+    200,
+    { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) },
+    'Pastor assigned.'
+  );
 }
 
 export async function rejectAdminAskPastor(
@@ -175,6 +207,13 @@ export async function rejectAdminAskPastor(
   question.rejectedBy = new mongoose.Types.ObjectId(userId);
   await question.save();
 
-  const populated = await AskPastorQuestion.findById(question._id).populate('pastor', PASTOR_POPULATE_SELECT).lean();
-  sendResponse(reply, 200, { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) }, 'Ask Pastor question rejected.');
+  const populated = await AskPastorQuestion.findById(question._id)
+    .populate('pastor', PASTOR_POPULATE_SELECT)
+    .lean();
+  sendResponse(
+    reply,
+    200,
+    { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) },
+    'Ask Pastor question rejected.'
+  );
 }

@@ -26,7 +26,13 @@ import {
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   app.get('/me', { preHandler: authenticate }, catchAsync(getMe));
   app.patch<{
-    Body: { firstName?: string; lastName?: string; email?: string; phoneNumber?: string; avatar?: string };
+    Body: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phoneNumber?: string;
+      avatar?: string;
+    };
   }>('/me', { preHandler: authenticate, schema: updateMeBodySchema }, catchAsync(updateMe));
   app.get<{ Querystring: { page?: string; limit?: string; search?: string; sort?: string } }>(
     '/wishlist',
@@ -50,11 +56,13 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: authenticate, schema: cartBodySchema },
     catchAsync(addToCart)
   );
-  app.patch<{ Body: { productId?: string; quantity?: number; updates?: { productId: string; quantity: number }[] } }>(
-    '/cart',
-    { preHandler: authenticate, schema: updateCartBodySchema },
-    catchAsync(updateCart)
-  );
+  app.patch<{
+    Body: {
+      productId?: string;
+      quantity?: number;
+      updates?: { productId: string; quantity: number }[];
+    };
+  }>('/cart', { preHandler: authenticate, schema: updateCartBodySchema }, catchAsync(updateCart));
   app.delete<{
     Params: { productId: string };
     Querystring: { sku?: string };
@@ -63,10 +71,5 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: authenticate, schema: cartProductIdParamSchema },
     catchAsync(removeFromCart)
   );
-  app.delete(
-    '/cart',
-    { preHandler: authenticate },
-    catchAsync(clearCart)
-  );
+  app.delete('/cart', { preHandler: authenticate }, catchAsync(clearCart));
 }
-

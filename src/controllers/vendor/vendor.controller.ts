@@ -60,17 +60,19 @@ export async function getDashboardStats(
 
   const totalPaidRevenue = revenueResult[0]?.total ?? 0;
 
-  sendResponse(reply, 200, {
-    productsCount,
-    pendingOrdersCount,
-    totalPaidRevenue,
-  }, 'Vendor dashboard stats loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      productsCount,
+      pendingOrdersCount,
+      totalPaidRevenue,
+    },
+    'Vendor dashboard stats loaded.'
+  );
 }
 
-export async function getVendorMe(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
+export async function getVendorMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const user = getAuthUser(request);
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const vendor = await getVendorForUser(user.userId);
@@ -105,7 +107,11 @@ export async function getVendorProducts(
   const status = parseString(request.query.status);
   const categoryId = parseString(request.query.category);
   const isFeatured =
-    request.query.isFeatured === 'true' ? true : request.query.isFeatured === 'false' ? false : undefined;
+    request.query.isFeatured === 'true'
+      ? true
+      : request.query.isFeatured === 'false'
+        ? false
+        : undefined;
   const sortStr = normalizeSort(request.query.sort, PRODUCT_SORT_FIELDS, 'displayOrder -createdAt');
 
   const filter: Record<string, unknown> = { vendor: vendor._id };
@@ -127,15 +133,20 @@ export async function getVendorProducts(
     Product.countDocuments(filter),
   ]);
 
-  sendResponse(reply, 200, {
-    products,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
+  sendResponse(
+    reply,
+    200,
+    {
+      products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
     },
-  }, 'Products loaded.');
+    'Products loaded.'
+  );
 }
 
 export async function createProduct(
@@ -151,7 +162,14 @@ export async function createProduct(
       inStock?: boolean;
       isFeatured?: boolean;
       variationOptions?: Array<{ name: string; values: string[] }>;
-      variants?: Array<{ options: Record<string, string>; price: number; inStock: boolean; isDefault?: boolean; sku?: string; image?: string }>;
+      variants?: Array<{
+        options: Record<string, string>;
+        price: number;
+        inStock: boolean;
+        isDefault?: boolean;
+        sku?: string;
+        image?: string;
+      }>;
     };
   }>,
   reply: FastifyReply
@@ -247,7 +265,14 @@ export async function updateProduct(
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
       variationOptions?: Array<{ name: string; values: string[] }>;
-      variants?: Array<{ options: Record<string, string>; price: number; inStock: boolean; isDefault?: boolean; sku?: string; image?: string }>;
+      variants?: Array<{
+        options: Record<string, string>;
+        price: number;
+        inStock: boolean;
+        isDefault?: boolean;
+        sku?: string;
+        image?: string;
+      }>;
     };
   }>,
   reply: FastifyReply
@@ -291,7 +316,9 @@ export async function updateProduct(
       if (!sub) throw new AppError('SubCategory not found', 400);
       subCategoryId = sub._id;
       const effectiveCategoryId =
-        categoryId !== undefined ? categoryId : (product.category as mongoose.Types.ObjectId | null);
+        categoryId !== undefined
+          ? categoryId
+          : (product.category as mongoose.Types.ObjectId | null);
       if (effectiveCategoryId && sub.category.toString() !== effectiveCategoryId.toString()) {
         throw new AppError('SubCategory does not belong to the specified category', 400);
       }
@@ -374,7 +401,7 @@ export async function getVendorOrders(
   ]);
 
   const mapped = orders.map((order: any) => {
-    const vendorDoc = order.vendor as any;
+    const vendorDoc = order.vendor;
     const vendorSummary = {
       _id: (vendorDoc?._id ?? order.vendor)?.toString(),
       name: vendorDoc?.name,
@@ -384,20 +411,21 @@ export async function getVendorOrders(
 
     const items =
       order.items?.map((item: any) => {
-        const productDoc = item.product as any;
-        const product = productDoc && typeof productDoc === 'object' && productDoc._id
-          ? {
-              _id: productDoc._id.toString(),
-              name: productDoc.name,
-              slug: productDoc.slug,
-              image: Array.isArray(productDoc.images) ? productDoc.images[0] : productDoc.image,
-            }
-          : {
-              _id: (item.product ?? '').toString(),
-              name: item.productName ?? '',
-              slug: '',
-              image: undefined,
-            };
+        const productDoc = item.product;
+        const product =
+          productDoc && typeof productDoc === 'object' && productDoc._id
+            ? {
+                _id: productDoc._id.toString(),
+                name: productDoc.name,
+                slug: productDoc.slug,
+                image: Array.isArray(productDoc.images) ? productDoc.images[0] : productDoc.image,
+              }
+            : {
+                _id: (item.product ?? '').toString(),
+                name: item.productName ?? '',
+                slug: '',
+                image: undefined,
+              };
 
         return {
           product,
@@ -426,15 +454,20 @@ export async function getVendorOrders(
     };
   });
 
-  sendResponse(reply, 200, {
-    orders: mapped,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
+  sendResponse(
+    reply,
+    200,
+    {
+      orders: mapped,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
     },
-  }, 'Orders loaded.');
+    'Orders loaded.'
+  );
 }
 
 export async function updateVendorSettings(
@@ -465,11 +498,16 @@ export async function updateVendorSettings(
   if (body.phone !== undefined) vendor.phone = body.phone;
   if (body.logo !== undefined) vendor.logo = body.logo;
   if (body.coverImage !== undefined) vendor.coverImage = body.coverImage;
-   if (body.whatsapp !== undefined) vendor.whatsapp = body.whatsapp;
-   if (body.address !== undefined) vendor.address = body.address;
-   if (body.bankAccountName !== undefined) vendor.bankAccountName = body.bankAccountName;
-   if (body.bankAccountNumber !== undefined) vendor.bankAccountNumber = body.bankAccountNumber;
-   if (body.bankName !== undefined) vendor.bankName = body.bankName;
+  if (body.whatsapp !== undefined) vendor.whatsapp = body.whatsapp;
+  if (body.address !== undefined) vendor.address = body.address;
+  if (body.bankAccountName !== undefined) vendor.bankAccountName = body.bankAccountName;
+  if (body.bankAccountNumber !== undefined) vendor.bankAccountNumber = body.bankAccountNumber;
+  if (body.bankName !== undefined) vendor.bankName = body.bankName;
   await vendor.save();
-  sendResponse(reply, 200, vendor.toObject() as unknown as Record<string, unknown>, 'Vendor settings updated.');
+  sendResponse(
+    reply,
+    200,
+    vendor.toObject() as unknown as Record<string, unknown>,
+    'Vendor settings updated.'
+  );
 }

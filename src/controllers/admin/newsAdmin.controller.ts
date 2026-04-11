@@ -2,10 +2,22 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { NewsArticle } from '../../models/newsArticle';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
+import { parseObjectId } from './admin.helpers';
 
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
+const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views'];
+
+function hasArticleVideoMedia(b: { videoFileUrl?: unknown; embedUrl?: unknown }): boolean {
+  const vf = typeof b.videoFileUrl === 'string' ? b.videoFileUrl.trim() : '';
+  const em = typeof b.embedUrl === 'string' ? b.embedUrl.trim() : '';
+  return Boolean(vf || em);
+}
 
 function shapeNewsItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -16,6 +28,10 @@ function shapeNewsItem(raw: Record<string, unknown>): Record<string, unknown> {
     excerpt: raw.excerpt,
     coverImage: raw.coverImage,
     images: raw.images,
+    audioUrl: raw.audioUrl ?? '',
+    videoFileUrl: raw.videoFileUrl ?? '',
+    embedUrl: raw.embedUrl ?? '',
+    downloadUrl: raw.downloadUrl ?? '',
     category: raw.category,
     author: raw.author,
     status: raw.status,
@@ -29,10 +45,11 @@ function shapeNewsItem(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 export async function listAdminNews(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -59,17 +76,21 @@ export async function listAdminNews(
 
   const news = (items as Record<string, unknown>[]).map(shapeNewsItem);
 
-  sendResponse(reply, 200, {
-    news,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'News list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      news,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'News list loaded.'
+  );
 }
 
 export async function getAdminNews(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await NewsArticle.findById(id).lean();
   if (!doc) throw new AppError('News article not found', 404);
@@ -91,17 +112,22 @@ export async function createAdminNews(
       isFeatured?: boolean;
       displayOrder?: number;
       hasVideo?: boolean;
+      audioUrl?: string;
+      videoFileUrl?: string;
+      embedUrl?: string;
+      downloadUrl?: string;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.title || typeof body.title !== 'string' || !body.title.trim()) {
     throw new AppError('Title is required', 400);
   }
 
   const slug = await generateUniqueSlug(NewsArticle, body.title.trim());
+
+  const hasVideo = body.hasVideo !== undefined ? body.hasVideo : hasArticleVideoMedia(body);
 
   const news = await NewsArticle.create({
     title: body.title.trim(),
@@ -110,16 +136,25 @@ export async function createAdminNews(
     excerpt: body.excerpt ?? '',
     coverImage: body.coverImage ?? '',
     images: Array.isArray(body.images) ? body.images : [],
+    audioUrl: body.audioUrl ?? '',
+    videoFileUrl: body.videoFileUrl ?? '',
+    embedUrl: body.embedUrl ?? '',
+    downloadUrl: body.downloadUrl ?? '',
     category: body.category ?? '',
     author: body.author ?? '',
     status: body.status ?? 'draft',
     isFeatured: body.isFeatured ?? false,
     displayOrder: body.displayOrder ?? 0,
-    hasVideo: body.hasVideo ?? false,
+    hasVideo,
   });
 
   const populated = await NewsArticle.findById(news._id).lean();
-  sendResponse(reply, 201, { news: shapeNewsItem((populated ?? news) as unknown as Record<string, unknown>) }, 'News article created.');
+  sendResponse(
+    reply,
+    201,
+    { news: shapeNewsItem((populated ?? news) as unknown as Record<string, unknown>) },
+    'News article created.'
+  );
 }
 
 export async function updateAdminNews(
@@ -137,11 +172,14 @@ export async function updateAdminNews(
       isFeatured?: boolean;
       displayOrder?: number;
       hasVideo?: boolean;
+      audioUrl?: string;
+      videoFileUrl?: string;
+      embedUrl?: string;
+      downloadUrl?: string;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const news = await NewsArticle.findById(id);
   if (!news) throw new AppError('News article not found', 404);
@@ -151,25 +189,40 @@ export async function updateAdminNews(
   if (body.content !== undefined) news.content = body.content;
   if (body.excerpt !== undefined) news.excerpt = body.excerpt;
   if (body.coverImage !== undefined) news.coverImage = body.coverImage;
-  if (body.images !== undefined) news.images = Array.isArray(body.images) ? body.images : news.images;
+  if (body.images !== undefined)
+    news.images = Array.isArray(body.images) ? body.images : news.images;
+  if (body.audioUrl !== undefined) news.audioUrl = body.audioUrl;
+  if (body.videoFileUrl !== undefined) news.videoFileUrl = body.videoFileUrl;
+  if (body.embedUrl !== undefined) news.embedUrl = body.embedUrl;
+  if (body.downloadUrl !== undefined) news.downloadUrl = body.downloadUrl;
   if (body.category !== undefined) news.category = body.category;
   if (body.author !== undefined) news.author = body.author;
   if (body.status !== undefined) news.status = body.status;
   if (body.isFeatured !== undefined) news.isFeatured = body.isFeatured;
   if (body.displayOrder !== undefined) news.displayOrder = body.displayOrder;
   if (body.hasVideo !== undefined) news.hasVideo = body.hasVideo;
+  else if (body.videoFileUrl !== undefined || body.embedUrl !== undefined) {
+    news.hasVideo = hasArticleVideoMedia({
+      videoFileUrl: news.videoFileUrl,
+      embedUrl: news.embedUrl,
+    });
+  }
 
   await news.save();
 
   const populated = await NewsArticle.findById(news._id).lean();
-  sendResponse(reply, 200, { news: shapeNewsItem((populated ?? news.toObject()) as Record<string, unknown>) }, 'News article updated.');
+  sendResponse(
+    reply,
+    200,
+    { news: shapeNewsItem((populated ?? news.toObject()) as Record<string, unknown>) },
+    'News article updated.'
+  );
 }
 
 export async function deleteAdminNews(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await NewsArticle.findByIdAndDelete(id);
   if (!result) throw new AppError('News article not found', 404);

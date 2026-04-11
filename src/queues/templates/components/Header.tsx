@@ -30,9 +30,7 @@ export const Header = ({ branding }: HeaderProps) => {
   return (
     <Box styles={[{}, { padding: '36px 20px 2px' }]}>
       <MulticolorBand />
-      <Link
-        href={primaryUrl}
-        style={{ width: '151px', display: 'block', margin: '0 auto' }}>
+      <Link href={primaryUrl} style={{ width: '151px', display: 'block', margin: '0 auto' }}>
         <Img src={logoUrl} alt={branding.name} width={152} height={28} style={imgStyle} />
       </Link>
     </Box>

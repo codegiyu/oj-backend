@@ -24,17 +24,11 @@ export async function registerMarketplaceRoutes(app: FastifyInstance): Promise<v
   app.get('/categories', catchAsync(getCategories));
   app.get('/subcategories', catchAsync(getSubCategories));
   app.get('/vendors', catchAsync(getVendors));
-  app.get<{ Params: { slug: string } }>(
-    '/vendors/:slug',
-    catchAsync(getVendorBySlug)
-  );
+  app.get<{ Params: { slug: string } }>('/vendors/:slug', catchAsync(getVendorBySlug));
   app.get<{
     Querystring: { category?: string; featured?: string; limit?: string; page?: string };
   }>('/products', { schema: listProductsQuerystringSchema }, catchAsync(getProducts));
-  app.get<{ Params: { slug: string } }>(
-    '/products/:slug',
-    catchAsync(getProductBySlug)
-  );
+  app.get<{ Params: { slug: string } }>('/products/:slug', catchAsync(getProductBySlug));
   app.post<{
     Body: {
       storeName: string;
@@ -68,7 +62,11 @@ export async function registerMarketplaceRoutes(app: FastifyInstance): Promise<v
       search?: string;
       sort?: string;
     };
-  }>('/orders', { preHandler: authenticate, schema: listOrdersQuerystringSchema }, catchAsync(getMyOrders));
+  }>(
+    '/orders',
+    { preHandler: authenticate, schema: listOrdersQuerystringSchema },
+    catchAsync(getMyOrders)
+  );
   app.get<{ Params: { orderId: string } }>(
     '/orders/:orderId/whatsapp-link',
     { preHandler: authenticate },

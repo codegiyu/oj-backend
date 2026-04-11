@@ -3,6 +3,7 @@
  */
 
 import mongoose from 'mongoose';
+import { toArtistSummary, type PopulatedArtistDoc } from '../artist/artist.helpers';
 
 /** Resolve document by id (ObjectId) or slug. Returns null if not found. */
 export async function findByIdOrSlug<T>(
@@ -54,14 +55,17 @@ function idStr(v: unknown): string | undefined {
 
 /** Shape devotional for list item. */
 export function shapeDevotionalListItem(raw: Record<string, unknown>): Record<string, unknown> {
+  const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
   return {
     _id: idStr(raw._id),
     title: raw.title,
     slug: raw.slug,
+    coverImage: raw.coverImage ?? '',
     excerpt: raw.excerpt ?? (typeof raw.content === 'string' ? raw.content.slice(0, 160) : ''),
     category: raw.category,
     author: raw.author,
     views: raw.views ?? 0,
+    plays: raw.plays ?? 0,
     createdAt: toIso(raw.createdAt as Date),
     type: raw.type,
     verse: raw.verse,
@@ -69,15 +73,18 @@ export function shapeDevotionalListItem(raw: Record<string, unknown>): Record<st
     readingTime: raw.readingTime,
     lessons: raw.lessons,
     duration: raw.duration,
+    ...(artist && { artist }),
   };
 }
 
 /** Shape devotional for detail (full document). */
 export function shapeDevotionalDetail(raw: Record<string, unknown>): Record<string, unknown> {
+  const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
   return {
     _id: idStr(raw._id),
     title: raw.title,
     slug: raw.slug,
+    coverImage: raw.coverImage ?? '',
     excerpt: raw.excerpt,
     content: raw.content,
     type: raw.type,
@@ -89,8 +96,10 @@ export function shapeDevotionalDetail(raw: Record<string, unknown>): Record<stri
     lessons: raw.lessons,
     duration: raw.duration,
     views: raw.views ?? 0,
+    plays: raw.plays ?? 0,
     createdAt: toIso(raw.createdAt as Date),
     updatedAt: toIso(raw.updatedAt as Date),
+    ...(artist && { artist }),
   };
 }
 

@@ -23,7 +23,7 @@ export const createWorker = <T = unknown>(
 ): Worker<T> => {
   const worker = new Worker<T>(
     name,
-    async (job) => {
+    async job => {
       logger.info(`Processing job ${job.id} in queue ${name}`);
       await processor(job);
     },
@@ -33,7 +33,7 @@ export const createWorker = <T = unknown>(
     }
   );
 
-  worker.on('completed', (job) => {
+  worker.on('completed', job => {
     logger.info(`Job ${job.id} completed in queue ${name}`);
   });
 

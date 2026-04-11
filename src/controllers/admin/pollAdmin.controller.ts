@@ -3,7 +3,13 @@ import mongoose from 'mongoose';
 import { Poll } from '../../models/poll';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
@@ -28,10 +34,11 @@ function shapePollItem(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 export async function listAdminPolls(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -57,21 +64,30 @@ export async function listAdminPolls(
 
   const polls = (items as Record<string, unknown>[]).map(shapePollItem);
 
-  sendResponse(reply, 200, {
-    polls,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Polls list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      polls,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Polls list loaded.'
+  );
 }
 
 export async function getAdminPoll(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await Poll.findById(id).lean();
   if (!doc) throw new AppError('Poll not found', 404);
-  sendResponse(reply, 200, { poll: shapePollItem(doc as unknown as Record<string, unknown>) }, 'Poll loaded.');
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollItem(doc as unknown as Record<string, unknown>) },
+    'Poll loaded.'
+  );
 }
 
 export async function createAdminPoll(
@@ -88,7 +104,6 @@ export async function createAdminPoll(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.question || typeof body.question !== 'string' || !body.question.trim()) {
     throw new AppError('Question is required', 400);
@@ -97,10 +112,12 @@ export async function createAdminPoll(
     throw new AppError('At least 2 options are required', 400);
   }
 
-  const options = body.options.map((opt: { text?: string }) => ({
-    text: typeof opt?.text === 'string' ? opt.text.trim() : 'Option',
-    votes: 0,
-  })).filter(opt => opt.text.length > 0);
+  const options = body.options
+    .map((opt: { text?: string }) => ({
+      text: typeof opt?.text === 'string' ? opt.text.trim() : 'Option',
+      votes: 0,
+    }))
+    .filter(opt => opt.text.length > 0);
   if (options.length < 2) throw new AppError('At least 2 valid options are required', 400);
 
   const slug = await generateUniqueSlug(Poll, body.question.trim());
@@ -117,7 +134,12 @@ export async function createAdminPoll(
   });
 
   const populated = await Poll.findById(poll._id).lean();
-  sendResponse(reply, 201, { poll: shapePollItem((populated ?? poll) as unknown as Record<string, unknown>) }, 'Poll created.');
+  sendResponse(
+    reply,
+    201,
+    { poll: shapePollItem((populated ?? poll) as unknown as Record<string, unknown>) },
+    'Poll created.'
+  );
 }
 
 export async function updateAdminPoll(
@@ -135,7 +157,6 @@ export async function updateAdminPoll(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const poll = await Poll.findById(id);
   if (!poll) throw new AppError('Poll not found', 404);
@@ -152,20 +173,25 @@ export async function updateAdminPoll(
     }));
   }
   if (body.status !== undefined) poll.status = body.status;
-  if (body.startDate !== undefined) poll.startDate = body.startDate ? new Date(body.startDate) : poll.startDate;
+  if (body.startDate !== undefined)
+    poll.startDate = body.startDate ? new Date(body.startDate) : poll.startDate;
   if (body.endDate !== undefined) poll.endDate = body.endDate ? new Date(body.endDate) : null;
 
   await poll.save();
 
   const populated = await Poll.findById(poll._id).lean();
-  sendResponse(reply, 200, { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) }, 'Poll updated.');
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) },
+    'Poll updated.'
+  );
 }
 
 export async function deleteAdminPoll(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await Poll.findByIdAndDelete(id);
   if (!result) throw new AppError('Poll not found', 404);
@@ -176,7 +202,6 @@ export async function openAdminPoll(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const poll = await Poll.findById(id);
   if (!poll) throw new AppError('Poll not found', 404);
@@ -188,7 +213,12 @@ export async function openAdminPoll(
   await poll.save();
 
   const populated = await Poll.findById(poll._id).lean();
-  sendResponse(reply, 200, { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) }, 'Poll opened.');
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) },
+    'Poll opened.'
+  );
 }
 
 export async function closeAdminPoll(
@@ -208,5 +238,10 @@ export async function closeAdminPoll(
   await poll.save();
 
   const populated = await Poll.findById(poll._id).lean();
-  sendResponse(reply, 200, { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) }, 'Poll closed.');
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) },
+    'Poll closed.'
+  );
 }

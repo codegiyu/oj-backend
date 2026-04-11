@@ -9,6 +9,8 @@ export { SiteSettings } from './siteSettings';
 export { User } from './user';
 export { Vendor } from './vendor';
 export { NewsArticle } from './newsArticle';
+export { ContentCategory } from './contentCategory';
+export { HomeAdvert } from './homeAdvert';
 export { Devotional } from './devotional';
 export { Testimony } from './testimony';
 export { PrayerRequest } from './prayerRequest';

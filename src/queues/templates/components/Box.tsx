@@ -9,8 +9,15 @@ interface BoxProps {
   [key: string]: unknown;
 }
 
-export const Box = ({ classNames, styles, children, style, gap, ...props }: BoxProps): JSX.Element => {
-  const childrenArray = React.Children.toArray(children) as unknown[];
+export const Box = ({
+  classNames,
+  styles,
+  children,
+  style,
+  gap,
+  ...props
+}: BoxProps): JSX.Element => {
+  const childrenArray = React.Children.toArray(children);
   return (
     <div style={{ width: '100%', maxWidth: '600px', ...style }} {...props}>
       <table style={{ width: '100%' }}>
@@ -25,7 +32,8 @@ export const Box = ({ classNames, styles, children, style, gap, ...props }: BoxP
                     : {}),
                   ...(styles?.[idx] ?? {}),
                 }}
-                className={classNames?.[idx] || ''}>
+                className={classNames?.[idx] || ''}
+              >
                 {child as any}
               </div>
             </td>

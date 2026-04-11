@@ -12,7 +12,8 @@ function validateR2Config(): void {
 
   if (!r2.accountId || r2.accountId.trim() === '') missingVars.push('R2_ACCOUNT_ID');
   if (!r2.accessKeyId || r2.accessKeyId.trim() === '') missingVars.push('R2_ACCESS_KEY_ID');
-  if (!r2.secretAccessKey || r2.secretAccessKey.trim() === '') missingVars.push('R2_SECRET_ACCESS_KEY');
+  if (!r2.secretAccessKey || r2.secretAccessKey.trim() === '')
+    missingVars.push('R2_SECRET_ACCESS_KEY');
   if (!r2.bucketName || r2.bucketName.trim() === '') missingVars.push('R2_BUCKET_NAME');
   if (!r2.folderPrefix || r2.folderPrefix.trim() === '') missingVars.push('R2_FOLDER_PREFIX');
 
@@ -23,10 +24,7 @@ function validateR2Config(): void {
     );
   }
 
-  if (
-    (!r2.cdnUrl || r2.cdnUrl.trim() === '') &&
-    (!r2.publicUrl || r2.publicUrl.trim() === '')
-  ) {
+  if ((!r2.cdnUrl || r2.cdnUrl.trim() === '') && (!r2.publicUrl || r2.publicUrl.trim() === '')) {
     console.warn(
       'Warning: Neither R2_CDN_URL nor R2_PUBLIC_URL is set. Public file URLs may not work correctly.'
     );
@@ -37,9 +35,7 @@ validateR2Config();
 
 const accountId = ENVIRONMENT.r2.accountId;
 const endpoint =
-  accountId && accountId.trim()
-    ? `https://${accountId}.r2.cloudflarestorage.com`
-    : undefined;
+  accountId && accountId.trim() ? `https://${accountId}.r2.cloudflarestorage.com` : undefined;
 
 export const r2Client = new S3Client({
   region: 'auto',

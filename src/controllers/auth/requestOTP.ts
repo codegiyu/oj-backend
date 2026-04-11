@@ -20,22 +20,23 @@ export async function requestOTP(
     throw new AppError('Invalid scope. Must be one of: verify-email', 400);
   }
 
-  const user = await findUserByEmail((email as string).toLowerCase());
+  const user = await findUserByEmail(email.toLowerCase());
   if (!user) throw new AppError('User not found', 404);
 
   const name = user.firstName ?? email;
   await sendVerification({
-    email: (email as string).toLowerCase(),
+    email: email.toLowerCase(),
     scope: scope as TokenScope,
     name,
     avatar: user.avatar,
   });
 
-  await addToCache(
-    `pers:${email}:OTP_SENT_TIME` as `pers:${string}`,
-    Date.now(),
-    60 * 15
-  );
+  await addToCache(`pers:${email}:OTP_SENT_TIME` as `pers:${string}`, Date.now(), 60 * 15);
 
-  sendResponse(reply, 200, { message: 'Verification code sent successfully' }, 'Verification code sent successfully.');
+  sendResponse(
+    reply,
+    200,
+    { message: 'Verification code sent successfully' },
+    'Verification code sent successfully.'
+  );
 }

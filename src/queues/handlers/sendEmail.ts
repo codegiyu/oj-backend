@@ -24,19 +24,27 @@ const TEMPLATES: Partial<
 > = {
   verificationCode: {
     subject: 'Account verification code',
-    template: OTPCode as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
+    template: OTPCode as (
+      data: JobData & { branding: ReturnType<typeof getAppBranding> }
+    ) => ReactNode,
   },
   resetPassword: {
     subject: 'Reset your password',
-    template: ResetPasswordLink as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
+    template: ResetPasswordLink as (
+      data: JobData & { branding: ReturnType<typeof getAppBranding> }
+    ) => ReactNode,
   },
   notificationEmail: {
     subject: 'You have a new notification',
-    template: NotificationEmailTemplate as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
+    template: NotificationEmailTemplate as (
+      data: JobData & { branding: ReturnType<typeof getAppBranding> }
+    ) => ReactNode,
   },
   inviteAdmin: {
     subject: 'Your invitation to OJ Multimedia Admin',
-    template: InviteAdminTemplate as (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode,
+    template: InviteAdminTemplate as (
+      data: JobData & { branding: ReturnType<typeof getAppBranding> }
+    ) => ReactNode,
   },
 };
 
@@ -46,7 +54,7 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
   const jobId = job.id?.toString();
   const branding = getAppBranding();
   const from = `"${branding.email.fromName}" <${branding.email.from}>`;
-  const options = TEMPLATES[type as JOB_TYPE];
+  const options = TEMPLATES[type];
 
   if (!options) {
     logger.warn(`No email template for type: ${type}`);
@@ -72,7 +80,7 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
   if (!emailLog && jobId) {
     emailLog = await createEmailLog({
       jobId,
-      type: type as JOB_TYPE,
+      type: type,
       to,
       from,
       subject,

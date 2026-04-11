@@ -1,10 +1,9 @@
-import {
-  // seedMarketplaceCategories,
-  // seedPromotionContent,
-  // seedRoles,
-  // seedSiteSettings,
-  // seedAdmins,
-} from './functions';
+import {} from // seedMarketplaceCategories,
+// seedPromotionContent,
+// seedRoles,
+// seedSiteSettings,
+// seedAdmins,
+'./functions';
 import { logger } from '../utils/logger';
 
 export {
@@ -25,7 +24,6 @@ export const seedDb = async (): Promise<void> => {
     // await seedSiteSettings();
     // await seedRoles();
     // await seedAdmins();
-    
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
     // await seedMarketplaceCategories();
     // await seedPromotionContent();

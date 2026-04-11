@@ -19,7 +19,9 @@ import {
 } from '../../utils/helpers';
 
 function buildWhatsappMessage(order: Record<string, unknown>): { message: string; link?: string } {
-  const customer = order.customer as { name?: string; email?: string; phone?: string; address?: string } | undefined;
+  const customer = order.customer as
+    | { name?: string; email?: string; phone?: string; address?: string }
+    | undefined;
   const items = (order.items as Array<Record<string, unknown>> | undefined) ?? [];
   const vendor = order.vendor as { whatsapp?: string } | undefined;
 
@@ -78,48 +80,53 @@ async function getActiveCategories(includeInactive: boolean | undefined) {
 function mapOrderToPopulated(order: Record<string, unknown>): Record<string, unknown> {
   const vendorDoc = order.vendor as Record<string, unknown> | undefined;
   const vendorSummary = {
-    _id: (vendorDoc?._id ?? order.vendor) != null ? String(vendorDoc?._id ?? order.vendor) : undefined,
+    _id:
+      (vendorDoc?._id ?? order.vendor) != null ? String(vendorDoc?._id ?? order.vendor) : undefined,
     name: vendorDoc?.name,
     slug: vendorDoc?.slug,
     storeName: vendorDoc?.storeName,
   };
 
   const items =
-    (order.items as Array<Record<string, unknown>> | undefined)?.map((item: Record<string, unknown>) => {
-      const productDoc = item.product as Record<string, unknown> | undefined;
-      const product =
-        productDoc && typeof productDoc === 'object' && productDoc._id != null
-          ? {
-              _id: String(productDoc._id),
-              name: productDoc.name,
-              slug: productDoc.slug,
-              price: productDoc.price,
-              images: Array.isArray(productDoc.images) ? productDoc.images : [],
-              image: Array.isArray(productDoc.images) ? (productDoc.images as string[])[0] : productDoc.image,
-            }
-          : {
-              _id: item.product != null ? String(item.product) : '',
-              name: item.productName ?? '',
-              slug: '',
-              price: item.price,
-              images: [] as string[],
-              image: undefined,
-            };
+    (order.items as Array<Record<string, unknown>> | undefined)?.map(
+      (item: Record<string, unknown>) => {
+        const productDoc = item.product as Record<string, unknown> | undefined;
+        const product =
+          productDoc && typeof productDoc === 'object' && productDoc._id != null
+            ? {
+                _id: String(productDoc._id),
+                name: productDoc.name,
+                slug: productDoc.slug,
+                price: productDoc.price,
+                images: Array.isArray(productDoc.images) ? productDoc.images : [],
+                image: Array.isArray(productDoc.images)
+                  ? (productDoc.images as string[])[0]
+                  : productDoc.image,
+              }
+            : {
+                _id: item.product != null ? String(item.product) : '',
+                name: item.productName ?? '',
+                slug: '',
+                price: item.price,
+                images: [] as string[],
+                image: undefined,
+              };
 
-      return {
-        product,
-        productName: item.productName,
-        quantity: item.quantity,
-        price: item.price,
-        totalPrice: item.totalPrice ?? (Number(item.quantity) || 0) * (Number(item.price) || 0),
-        ...(item.sku != null ? { sku: item.sku } : {}),
-        ...(item.selectedOptions &&
-        typeof item.selectedOptions === 'object' &&
-        Object.keys(item.selectedOptions as object).length > 0
-          ? { selectedOptions: item.selectedOptions }
-          : {}),
-      };
-    }) ?? [];
+        return {
+          product,
+          productName: item.productName,
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice: item.totalPrice ?? (Number(item.quantity) || 0) * (Number(item.price) || 0),
+          ...(item.sku != null ? { sku: item.sku } : {}),
+          ...(item.selectedOptions &&
+          typeof item.selectedOptions === 'object' &&
+          Object.keys(item.selectedOptions).length > 0
+            ? { selectedOptions: item.selectedOptions }
+            : {}),
+        };
+      }
+    ) ?? [];
 
   const createdAt = order.createdAt;
   const updatedAt = order.updatedAt;
@@ -184,10 +191,7 @@ export async function getSubCategories(
   sendResponse(reply, 200, { subcategories }, 'Subcategories loaded.');
 }
 
-export async function getVendors(
-  _request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
+export async function getVendors(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const vendors = await Vendor.find({ status: 'active' })
     .lean()
     .then(async list => {
@@ -215,7 +219,12 @@ export async function getVendorBySlug(
     vendor: vendor._id,
     status: 'published',
   });
-  sendResponse(reply, 200, { ...vendor, productCount } as Record<string, unknown>, 'Vendor loaded.');
+  sendResponse(
+    reply,
+    200,
+    { ...vendor, productCount } as Record<string, unknown>,
+    'Vendor loaded.'
+  );
 }
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder'];
@@ -253,11 +262,7 @@ export async function getProducts(
   } else if (sortParam === 'hot') {
     sortStr = '-displayOrder -createdAt';
   } else {
-    sortStr = normalizeSort(
-      sortParam,
-      PRODUCT_SORT_FIELDS,
-      'displayOrder -createdAt'
-    );
+    sortStr = normalizeSort(sortParam, PRODUCT_SORT_FIELDS, 'displayOrder -createdAt');
   }
 
   const filter: Record<string, unknown> = { status: 'published' };
@@ -320,17 +325,24 @@ export async function getProducts(
   ]);
 
   const list = products.map((p: Record<string, unknown>) => {
-    const v = p.vendor as { _id?: mongoose.Types.ObjectId; storeName?: string; slug?: string; whatsapp?: string } | null;
+    const v = p.vendor as {
+      _id?: mongoose.Types.ObjectId;
+      storeName?: string;
+      slug?: string;
+      whatsapp?: string;
+    } | null;
     const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
-    const s =
-      p.subCategory as
-        | { _id?: mongoose.Types.ObjectId; name?: string; slug?: string; category?: mongoose.Types.ObjectId }
-        | null;
+    const s = p.subCategory as {
+      _id?: mongoose.Types.ObjectId;
+      name?: string;
+      slug?: string;
+      category?: mongoose.Types.ObjectId;
+    } | null;
     return {
       ...p,
       vendorName: v?.storeName,
       vendorSlug: v?.slug,
-        vendorWhatsapp: v?.whatsapp,
+      vendorWhatsapp: v?.whatsapp,
       vendor: (v?._id ?? (p.vendor as mongoose.Types.ObjectId))?.toString(),
       category: c
         ? {
@@ -350,15 +362,20 @@ export async function getProducts(
     };
   });
 
-  sendResponse(reply, 200, {
-    products: list,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
+  sendResponse(
+    reply,
+    200,
+    {
+      products: list,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
     },
-  }, 'Products loaded.');
+    'Products loaded.'
+  );
 }
 
 export async function getProductBySlug(
@@ -377,32 +394,39 @@ export async function getProductBySlug(
   const p = product as Record<string, unknown>;
   const v = p.vendor as { storeName?: string; slug?: string; whatsapp?: string } | null;
   const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
-  const s =
-    p.subCategory as
-      | { _id?: mongoose.Types.ObjectId; name?: string; slug?: string; category?: mongoose.Types.ObjectId }
-      | null;
-  sendResponse(reply, 200, {
-    ...p,
-    vendorName: v?.storeName,
-    vendorSlug: v?.slug,
-    vendorWhatsapp: v?.whatsapp,
-    vendor: (p.vendor as mongoose.Types.ObjectId)?.toString(),
-    category: c
-      ? {
-          _id: c._id?.toString(),
-          name: c.name,
-          slug: c.slug,
-        }
-      : undefined,
-    subCategory: s
-      ? {
-          _id: s._id?.toString(),
-          name: s.name,
-          slug: s.slug,
-          category: s.category?.toString(),
-        }
-      : undefined,
-  }, 'Product loaded.');
+  const s = p.subCategory as {
+    _id?: mongoose.Types.ObjectId;
+    name?: string;
+    slug?: string;
+    category?: mongoose.Types.ObjectId;
+  } | null;
+  sendResponse(
+    reply,
+    200,
+    {
+      ...p,
+      vendorName: v?.storeName,
+      vendorSlug: v?.slug,
+      vendorWhatsapp: v?.whatsapp,
+      vendor: (p.vendor as mongoose.Types.ObjectId)?.toString(),
+      category: c
+        ? {
+            _id: c._id?.toString(),
+            name: c.name,
+            slug: c.slug,
+          }
+        : undefined,
+      subCategory: s
+        ? {
+            _id: s._id?.toString(),
+            name: s.name,
+            slug: s.slug,
+            category: s.category?.toString(),
+          }
+        : undefined,
+    },
+    'Product loaded.'
+  );
 }
 
 export async function becomeVendor(
@@ -425,7 +449,7 @@ export async function becomeVendor(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  let baseSlug = slugify(body.storeName);
+  const baseSlug = slugify(body.storeName);
   let slug = baseSlug;
   let n = 0;
   while (await Vendor.findOne({ slug })) {
@@ -458,9 +482,7 @@ function findVariantBySku(
     return null;
   }
   const skuUpper = String(sku).toUpperCase();
-  const variant = product.variants.find(
-    v => (v.sku ?? '').toUpperCase() === skuUpper
-  );
+  const variant = product.variants.find(v => (v.sku ?? '').toUpperCase() === skuUpper);
   return variant
     ? {
         sku: variant.sku ?? skuUpper,
@@ -614,12 +636,11 @@ export async function placeOrder(
       .lean();
 
     if (!created) {
-      // eslint-disable-next-line no-continue
       continue;
     }
 
     const { message, link } = buildWhatsappMessage(created as Record<string, unknown>);
-    const v = (created as any)?.vendor as any;
+    const v = created?.vendor;
 
     if (v && v.whatsapp) {
       try {
@@ -698,15 +719,20 @@ export async function getMyOrders(
   ]);
 
   const list = (orders as Record<string, unknown>[]).map(o => mapOrderToPopulated(o));
-  sendResponse(reply, 200, {
-    orders: list,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
+  sendResponse(
+    reply,
+    200,
+    {
+      orders: list,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
     },
-  }, 'Orders loaded.');
+    'Orders loaded.'
+  );
 }
 
 export async function getOrderWhatsappLink(
@@ -747,10 +773,5 @@ export async function getOrderWhatsappLink(
     return;
   }
 
-  sendResponse(
-    reply,
-    200,
-    { whatsappLink: link, message },
-    'WhatsApp link generated.'
-  );
+  sendResponse(reply, 200, { whatsappLink: link, message }, 'WhatsApp link generated.');
 }

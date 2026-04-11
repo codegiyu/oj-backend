@@ -6,7 +6,10 @@ import { ResourceDownloadCategory } from '../../models/resourceDownloadCategory'
 import { ContactMethod } from '../../models/contactMethod';
 import { PartnershipBenefit } from '../../models/partnershipBenefit';
 
-export async function listFeaturedOptions(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function listFeaturedOptions(
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
   const featuredOptions = await FeaturedOption.find({ isActive: true })
     .sort({ displayOrder: 1, createdAt: 1 })
     .select('_id title duration price description features icon displayOrder')
@@ -39,7 +42,10 @@ export async function listResourceDownloadCategories(
   sendResponse(reply, 200, { downloadCategories }, 'Resource download categories loaded.');
 }
 
-export async function getPromotionContact(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function getPromotionContact(
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
   const [contactMethods, partnershipBenefitsDocs] = await Promise.all([
     ContactMethod.find({ isActive: true })
       .sort({ displayOrder: 1, createdAt: 1 })
@@ -51,7 +57,7 @@ export async function getPromotionContact(_request: FastifyRequest, reply: Fasti
       .lean(),
   ]);
 
-  const partnershipBenefits = partnershipBenefitsDocs.map((item) => item.text);
+  const partnershipBenefits = partnershipBenefitsDocs.map(item => item.text);
 
   sendResponse(
     reply,

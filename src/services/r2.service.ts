@@ -85,8 +85,9 @@ export async function headObjectInR2(key: string): Promise<{ exists: boolean; si
     const res = await r2Client.send(command);
     return { exists: true, size: res.ContentLength };
   } catch (err: unknown) {
-    const code = (err as { name?: string; $metadata?: { httpStatusCode?: number } })?.$metadata
-      ?.httpStatusCode ?? (err as { name?: string }).name;
+    const code =
+      (err as { name?: string; $metadata?: { httpStatusCode?: number } })?.$metadata
+        ?.httpStatusCode ?? (err as { name?: string }).name;
     if (code === 404 || (typeof code === 'number' && code === 404)) return { exists: false };
     throw err;
   }

@@ -27,7 +27,9 @@ export type PopulatedArtistDoc = {
  * Normalize a populated artist (from Mongoose .populate() or lean doc) to the
  * standard ArtistSummary shape. Handles ObjectId/string _id and missing fields.
  */
-export function toArtistSummary(artist: PopulatedArtistDoc | null | undefined): ArtistSummary | undefined {
+export function toArtistSummary(
+  artist: PopulatedArtistDoc | null | undefined
+): ArtistSummary | undefined {
   if (!artist || artist._id == null) return undefined;
   return {
     _id: String(artist._id),
@@ -50,7 +52,7 @@ export function serializeDocIds<T extends Record<string, unknown>>(doc: T): T {
     out.artist = toArtistSummary(out.artist as PopulatedArtistDoc);
   }
   ['createdAt', 'updatedAt'].forEach(key => {
-    if (out[key] instanceof Date) out[key] = (out[key] as Date).toISOString();
+    if (out[key] instanceof Date) out[key] = out[key].toISOString();
   });
   return out as T;
 }

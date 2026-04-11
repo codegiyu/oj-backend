@@ -6,7 +6,13 @@ import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateVendorProductSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
+import {
+  generateVendorProductSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
@@ -20,7 +26,8 @@ function shapeProductItem(raw: Record<string, unknown>): Record<string, unknown>
     name: raw.name,
     slug: raw.slug,
     vendor: vendor != null ? String(vendor) : vendor,
-    vendorName: (vendor as Record<string, unknown>)?.storeName ?? (vendor as Record<string, unknown>)?.name,
+    vendorName:
+      (vendor as Record<string, unknown>)?.storeName ?? (vendor as Record<string, unknown>)?.name,
     vendorSlug: (vendor as Record<string, unknown>)?.slug,
     description: raw.description,
     category: category,
@@ -43,10 +50,18 @@ function shapeProductItem(raw: Record<string, unknown>): Record<string, unknown>
 }
 
 export async function listAdminProducts(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; vendor?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      vendor?: string;
+      sort?: string;
+    };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -70,27 +85,47 @@ export async function listAdminProducts(
   const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
 
   const [items, total] = await Promise.all([
-    Product.find(filter).sort(sortStr).populate('vendor', 'name slug storeName').populate('category', 'name slug').populate('subCategory', 'name slug').skip(skip).limit(limit).lean(),
+    Product.find(filter)
+      .sort(sortStr)
+      .populate('vendor', 'name slug storeName')
+      .populate('category', 'name slug')
+      .populate('subCategory', 'name slug')
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Product.countDocuments(filter),
   ]);
 
   const products = (items as Record<string, unknown>[]).map(shapeProductItem);
 
-  sendResponse(reply, 200, {
-    products,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Products list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      products,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Products list loaded.'
+  );
 }
 
 export async function getAdminProduct(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
-  const doc = await Product.findById(id).populate('vendor', 'name slug storeName').populate('category', 'name slug').populate('subCategory', 'name slug').lean();
+  const doc = await Product.findById(id)
+    .populate('vendor', 'name slug storeName')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
+    .lean();
   if (!doc) throw new AppError('Product not found', 404);
-  sendResponse(reply, 200, { product: shapeProductItem(doc as unknown as Record<string, unknown>) }, 'Product loaded.');
+  sendResponse(
+    reply,
+    200,
+    { product: shapeProductItem(doc as unknown as Record<string, unknown>) },
+    'Product loaded.'
+  );
 }
 
 export async function createAdminProduct(
@@ -108,15 +143,22 @@ export async function createAdminProduct(
       isFeatured?: boolean;
       status?: 'draft' | 'published' | 'archived';
       variationOptions?: Array<{ name: string; values: string[] }>;
-      variants?: Array<{ options: Record<string, string>; price: number; inStock: boolean; isDefault?: boolean; sku?: string; image?: string }>;
+      variants?: Array<{
+        options: Record<string, string>;
+        price: number;
+        inStock: boolean;
+        isDefault?: boolean;
+        sku?: string;
+        image?: string;
+      }>;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.name?.trim()) throw new AppError('Name is required', 400);
-  if (body?.price == null || typeof body.price !== 'number' || body.price < 0) throw new AppError('Valid price is required', 400);
+  if (body?.price == null || typeof body.price !== 'number' || body.price < 0)
+    throw new AppError('Valid price is required', 400);
   if (!body?.vendorId) throw new AppError('Vendor is required', 400);
 
   const vendorId = parseObjectId(body.vendorId, 'vendorId');
@@ -154,8 +196,17 @@ export async function createAdminProduct(
     variants: body.variants,
   });
 
-  const populated = await Product.findById(product._id).populate('vendor', 'name slug storeName').populate('category', 'name slug').populate('subCategory', 'name slug').lean();
-  sendResponse(reply, 201, { product: shapeProductItem((populated ?? product) as unknown as Record<string, unknown>) }, 'Product created.');
+  const populated = await Product.findById(product._id)
+    .populate('vendor', 'name slug storeName')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
+    .lean();
+  sendResponse(
+    reply,
+    201,
+    { product: shapeProductItem((populated ?? product) as unknown as Record<string, unknown>) },
+    'Product created.'
+  );
 }
 
 export async function updateAdminProduct(
@@ -173,12 +224,18 @@ export async function updateAdminProduct(
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
       variationOptions?: Array<{ name: string; values: string[] }>;
-      variants?: Array<{ options: Record<string, string>; price: number; inStock: boolean; isDefault?: boolean; sku?: string; image?: string }>;
+      variants?: Array<{
+        options: Record<string, string>;
+        price: number;
+        inStock: boolean;
+        isDefault?: boolean;
+        sku?: string;
+        image?: string;
+      }>;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const product = await Product.findById(id);
   if (!product) throw new AppError('Product not found', 404);
@@ -192,31 +249,42 @@ export async function updateAdminProduct(
   if (body.inStock !== undefined) product.inStock = body.inStock;
   if (body.status !== undefined) product.status = body.status;
   if (body.isFeatured !== undefined) product.isFeatured = body.isFeatured;
-  if (body.variationOptions !== undefined) product.variationOptions = body.variationOptions as never;
+  if (body.variationOptions !== undefined)
+    product.variationOptions = body.variationOptions as never;
   if (body.variants !== undefined) product.variants = body.variants as never;
 
   if (body.category !== undefined) {
-    product.category = body.category && mongoose.Types.ObjectId.isValid(body.category)
-      ? new mongoose.Types.ObjectId(body.category) as never
-      : null;
+    product.category =
+      body.category && mongoose.Types.ObjectId.isValid(body.category)
+        ? (new mongoose.Types.ObjectId(body.category) as never)
+        : null;
   }
   if (body.subCategory !== undefined) {
-    product.subCategory = body.subCategory && mongoose.Types.ObjectId.isValid(body.subCategory)
-      ? new mongoose.Types.ObjectId(body.subCategory) as never
-      : null;
+    product.subCategory =
+      body.subCategory && mongoose.Types.ObjectId.isValid(body.subCategory)
+        ? (new mongoose.Types.ObjectId(body.subCategory) as never)
+        : null;
   }
 
   await product.save();
 
-  const populated = await Product.findById(product._id).populate('vendor', 'name slug storeName').populate('category', 'name slug').populate('subCategory', 'name slug').lean();
-  sendResponse(reply, 200, { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) }, 'Product updated.');
+  const populated = await Product.findById(product._id)
+    .populate('vendor', 'name slug storeName')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
+    .lean();
+  sendResponse(
+    reply,
+    200,
+    { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) },
+    'Product updated.'
+  );
 }
 
 export async function deleteAdminProduct(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await Product.findByIdAndDelete(id);
   if (!result) throw new AppError('Product not found', 404);
@@ -240,8 +308,17 @@ export async function approveAdminProduct(
   product.rejectedBy = null;
   await product.save();
 
-  const populated = await Product.findById(product._id).populate('vendor', 'name slug storeName').populate('category', 'name slug').populate('subCategory', 'name slug').lean();
-  sendResponse(reply, 200, { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) }, 'Product approved.');
+  const populated = await Product.findById(product._id)
+    .populate('vendor', 'name slug storeName')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
+    .lean();
+  sendResponse(
+    reply,
+    200,
+    { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) },
+    'Product approved.'
+  );
 }
 
 export async function rejectAdminProduct(
@@ -262,6 +339,15 @@ export async function rejectAdminProduct(
   product.approvedBy = null;
   await product.save();
 
-  const populated = await Product.findById(product._id).populate('vendor', 'name slug storeName').populate('category', 'name slug').populate('subCategory', 'name slug').lean();
-  sendResponse(reply, 200, { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) }, 'Product rejected.');
+  const populated = await Product.findById(product._id)
+    .populate('vendor', 'name slug storeName')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
+    .lean();
+  sendResponse(
+    reply,
+    200,
+    { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) },
+    'Product rejected.'
+  );
 }

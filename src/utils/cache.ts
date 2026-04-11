@@ -12,7 +12,8 @@ export const addToCache = async (
   if (!key) throw new Error('Invalid key provided');
   if (value === undefined || value === null) throw new Error('Invalid value provided');
   const redis = getRedisClient();
-  const serialized = typeof value === 'object' && !Buffer.isBuffer(value) ? JSON.stringify(value) : String(value);
+  const serialized =
+    typeof value === 'object' && !Buffer.isBuffer(value) ? JSON.stringify(value) : String(value);
   await redis.set(key, serialized, 'EX', expiry ?? ENVIRONMENT.redis.cacheExpiry);
 };
 
@@ -59,6 +60,6 @@ export const clearNamespace = async (namespace: string): Promise<void> => {
       }
     });
     stream.on('end', () => resolve());
-    stream.on('error', (err) => reject(err));
+    stream.on('error', err => reject(err));
   });
 };

@@ -93,7 +93,8 @@ export const TemplateLayout = ({
               maxWidth: '600px',
               margin: '0 auto',
               padding: '0',
-            }}>
+            }}
+          >
             <Header branding={branding} />
             <Greeting
               name={name}
@@ -108,12 +109,22 @@ export const TemplateLayout = ({
               {contentsArr.map((item, idx) => {
                 const { type, props } = item;
                 const el =
-                  type === 'button' ? <Button {...(props as ButtonProps)} /> :
-                  type === 'centerText' ? <CenterText {...(props as CenterTextProps)} /> :
-                  type === 'textBlock' ? <TextBlock {...(props as TextBlockProps)} /> :
-                  type === 'pairTable' ? <PairTable {...(props as PairTableProps)} /> :
-                  <CodeOrLinkDisplay {...(props as CodeOrLinkDisplayProps)} />;
-                return <div key={idx} style={{ display: 'contents' }}>{el}</div>;
+                  type === 'button' ? (
+                    <Button {...props} />
+                  ) : type === 'centerText' ? (
+                    <CenterText {...props} />
+                  ) : type === 'textBlock' ? (
+                    <TextBlock {...props} />
+                  ) : type === 'pairTable' ? (
+                    <PairTable {...props} />
+                  ) : (
+                    <CodeOrLinkDisplay {...props} />
+                  );
+                return (
+                  <div key={idx} style={{ display: 'contents' }}>
+                    {el}
+                  </div>
+                );
               })}
 
               <p className="text-d-70" style={endGreetingsTextStyle}>

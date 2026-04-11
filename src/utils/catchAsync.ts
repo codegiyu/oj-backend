@@ -6,10 +6,7 @@ type AsyncRouteHandler<R extends FastifyRequest = FastifyRequest> = (
 ) => Promise<void>;
 
 /** Generic route handler compatible with Fastify's RouteHandlerMethod */
-type GenericRouteHandler = (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => Promise<void>;
+type GenericRouteHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 
 /**
  * Wraps an async route handler so any thrown errors or rejected promises

@@ -73,7 +73,8 @@ export const Footer = ({ email, branding }: FooterProps) => {
                                     <td style={{ paddingLeft: '16px' }}>
                                       <Link
                                         href={socialMedia.instagram}
-                                        style={{ width: 'max-content' }}>
+                                        style={{ width: 'max-content' }}
+                                      >
                                         <Img
                                           src="https://res.cloudinary.com/diirhfihi/image/upload/fl_preserve_transparency/v1733578612/instagram_xojnll.jpg?_s=public-apps"
                                           alt="IG"
@@ -88,7 +89,8 @@ export const Footer = ({ email, branding }: FooterProps) => {
                                     <td style={{ paddingLeft: '16px' }}>
                                       <Link
                                         href={socialMedia.facebook}
-                                        style={{ width: 'max-content' }}>
+                                        style={{ width: 'max-content' }}
+                                      >
                                         <Img
                                           src="https://res.cloudinary.com/diirhfihi/image/upload/fl_preserve_transparency/v1733578613/facebook_1_hpoxjf.jpg?_s=public-apps"
                                           alt="FB"
@@ -103,7 +105,8 @@ export const Footer = ({ email, branding }: FooterProps) => {
                                     <td style={{ paddingLeft: '16px' }}>
                                       <Link
                                         href={socialMedia.tiktok}
-                                        style={{ width: 'max-content' }}>
+                                        style={{ width: 'max-content' }}
+                                      >
                                         <Img
                                           src="https://res.cloudinary.com/diirhfihi/image/upload/fl_preserve_transparency/v1733578614/tiktok_qbyzet.jpg?_s=public-apps"
                                           alt="TK"
@@ -118,7 +121,8 @@ export const Footer = ({ email, branding }: FooterProps) => {
                                     <td style={{ paddingLeft: '16px' }}>
                                       <Link
                                         href={socialMedia.linkedin}
-                                        style={{ width: 'max-content' }}>
+                                        style={{ width: 'max-content' }}
+                                      >
                                         <Img
                                           src="https://res.cloudinary.com/diirhfihi/image/upload/fl_preserve_transparency/v1733578614/tiktok_qbyzet.jpg?_s=public-apps"
                                           alt="LinkedIn"

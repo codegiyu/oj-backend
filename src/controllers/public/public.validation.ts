@@ -10,6 +10,8 @@ export const listPublicMusicQuerystringSchema: FastifySchema = {
     type: 'object',
     properties: {
       category: { type: 'string' },
+      excludeCategory: { type: 'string' },
+      artist: { type: 'string' },
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: ['published'] },
@@ -24,6 +26,7 @@ export const listPublicVideosQuerystringSchema: FastifySchema = {
     type: 'object',
     properties: {
       category: { type: 'string' },
+      artist: { type: 'string' },
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: ['published'] },
@@ -51,5 +54,27 @@ export const idOrSlugParamSchema: FastifySchema = {
     type: 'object',
     required: ['idOrSlug'],
     properties: { idOrSlug: { type: 'string', minLength: 1 } },
+  },
+};
+
+export const listPublicContentCategoriesQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      scope: { type: 'string', enum: ['music', 'video', 'news', 'devotional'] },
+    },
+  },
+};
+
+export const contentAnalyticsEventBodySchema: FastifySchema = {
+  body: {
+    type: 'object',
+    required: ['entityType', 'entityIdOrSlug', 'event'],
+    properties: {
+      entityType: { type: 'string', enum: ['music', 'video', 'devotional', 'news-article'] },
+      entityIdOrSlug: { type: 'string', minLength: 1 },
+      event: { type: 'string', enum: ['view', 'play', 'download'] },
+      clientSessionId: { type: 'string' },
+    },
   },
 };

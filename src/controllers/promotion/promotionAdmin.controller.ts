@@ -88,7 +88,12 @@ export async function createAdminFeaturedOption(
   reply: FastifyReply
 ): Promise<void> {
   const featuredOption = await FeaturedOption.create(request.body);
-  sendResponse(reply, 201, { featuredOption: featuredOption.toObject() }, 'Featured option created.');
+  sendResponse(
+    reply,
+    201,
+    { featuredOption: featuredOption.toObject() },
+    'Featured option created.'
+  );
 }
 
 export async function updateAdminFeaturedOption(
@@ -116,7 +121,12 @@ export async function listAdminPromotionPricingOptions(
     request,
     '_id title price description features isFeatured displayOrder isActive createdAt updatedAt'
   );
-  sendResponse(reply, 200, { pricingOptions: items, pagination }, 'Promotion pricing options loaded.');
+  sendResponse(
+    reply,
+    200,
+    { pricingOptions: items, pagination },
+    'Promotion pricing options loaded.'
+  );
 }
 
 export async function createAdminPromotionPricingOption(
@@ -124,14 +134,23 @@ export async function createAdminPromotionPricingOption(
   reply: FastifyReply
 ): Promise<void> {
   const pricingOption = await PromotionPricingOption.create(request.body);
-  sendResponse(reply, 201, { pricingOption: pricingOption.toObject() }, 'Promotion pricing option created.');
+  sendResponse(
+    reply,
+    201,
+    { pricingOption: pricingOption.toObject() },
+    'Promotion pricing option created.'
+  );
 }
 
 export async function updateAdminPromotionPricingOption(
   request: FastifyRequest<{ Params: IdParams; Body: Record<string, unknown> }>,
   reply: FastifyReply
 ): Promise<void> {
-  const pricingOption = await updateByIdOrThrow(PromotionPricingOption, request.params.id, request.body);
+  const pricingOption = await updateByIdOrThrow(
+    PromotionPricingOption,
+    request.params.id,
+    request.body
+  );
   sendResponse(reply, 200, { pricingOption }, 'Promotion pricing option updated.');
 }
 
@@ -152,7 +171,12 @@ export async function listAdminResourceDownloadCategories(
     request,
     '_id title count description icon href displayOrder isActive createdAt updatedAt'
   );
-  sendResponse(reply, 200, { downloadCategories: items, pagination }, 'Resource download categories loaded.');
+  sendResponse(
+    reply,
+    200,
+    { downloadCategories: items, pagination },
+    'Resource download categories loaded.'
+  );
 }
 
 export async function createAdminResourceDownloadCategory(
@@ -160,14 +184,23 @@ export async function createAdminResourceDownloadCategory(
   reply: FastifyReply
 ): Promise<void> {
   const downloadCategory = await ResourceDownloadCategory.create(request.body);
-  sendResponse(reply, 201, { downloadCategory: downloadCategory.toObject() }, 'Resource download category created.');
+  sendResponse(
+    reply,
+    201,
+    { downloadCategory: downloadCategory.toObject() },
+    'Resource download category created.'
+  );
 }
 
 export async function updateAdminResourceDownloadCategory(
   request: FastifyRequest<{ Params: IdParams; Body: Record<string, unknown> }>,
   reply: FastifyReply
 ): Promise<void> {
-  const downloadCategory = await updateByIdOrThrow(ResourceDownloadCategory, request.params.id, request.body);
+  const downloadCategory = await updateByIdOrThrow(
+    ResourceDownloadCategory,
+    request.params.id,
+    request.body
+  );
   sendResponse(reply, 200, { downloadCategory }, 'Resource download category updated.');
 }
 
@@ -224,7 +257,12 @@ export async function listAdminPartnershipBenefits(
     request,
     '_id text displayOrder isActive createdAt updatedAt'
   );
-  sendResponse(reply, 200, { partnershipBenefits: items, pagination }, 'Partnership benefits loaded.');
+  sendResponse(
+    reply,
+    200,
+    { partnershipBenefits: items, pagination },
+    'Partnership benefits loaded.'
+  );
 }
 
 export async function createAdminPartnershipBenefit(
@@ -244,7 +282,11 @@ export async function updateAdminPartnershipBenefit(
   request: FastifyRequest<{ Params: IdParams; Body: Record<string, unknown> }>,
   reply: FastifyReply
 ): Promise<void> {
-  const partnershipBenefit = await updateByIdOrThrow(PartnershipBenefit, request.params.id, request.body);
+  const partnershipBenefit = await updateByIdOrThrow(
+    PartnershipBenefit,
+    request.params.id,
+    request.body
+  );
   sendResponse(reply, 200, { partnershipBenefit }, 'Partnership benefit updated.');
 }
 

@@ -5,11 +5,21 @@ const devotionalSchema = new Schema<ModelDevotional>(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
+    artist: { type: Schema.Types.ObjectId, ref: 'Artist', default: null, index: true },
+    coverImage: { type: String, default: '' },
     excerpt: { type: String, default: '' },
     content: { type: String, default: '' },
     type: {
       type: String,
-      enum: ['daily', 'latest', 'popular', 'bible-study', 'prayer-points', 'living-tips', 'marriage-family'],
+      enum: [
+        'daily',
+        'latest',
+        'popular',
+        'bible-study',
+        'prayer-points',
+        'living-tips',
+        'marriage-family',
+      ],
       default: 'latest',
       index: true,
     },
@@ -21,6 +31,7 @@ const devotionalSchema = new Schema<ModelDevotional>(
     lessons: { type: [String], default: [] },
     duration: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
+    plays: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ['draft', 'published', 'archived'],

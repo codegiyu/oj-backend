@@ -16,7 +16,7 @@ export async function requestPasswordReset(
     throw new AppError('Invalid scope. Scope must be "reset-password"', 400);
   }
 
-  const emailLower = (email as string).toLowerCase();
+  const emailLower = email.toLowerCase();
   let resolvedAccessType: 'client' | 'console' = 'client';
   let name = emailLower;
 

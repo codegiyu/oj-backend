@@ -59,11 +59,9 @@ export function verifyRefresh(token: string): TokenPayload | null {
 
 /** Create a short-lived token for OTP or reset password (store in Redis with TTL). */
 export function createOtpToken(payload: OtpTokenPayload, expiresInSeconds: number): string {
-  return jwt.sign(
-    { ...payload },
-    ENVIRONMENT.jwt.secret,
-    { expiresIn: expiresInSeconds } as SignOptions
-  );
+  return jwt.sign({ ...payload }, ENVIRONMENT.jwt.secret, {
+    expiresIn: expiresInSeconds,
+  } as SignOptions);
 }
 
 /** Verify short-lived OTP/reset token; returns payload or null. */

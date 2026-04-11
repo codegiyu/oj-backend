@@ -18,11 +18,11 @@ export async function authenticateSocket(socket: Socket): Promise<SocketUser | n
   const accessToken =
     auth?.accessToken ??
     auth?.[accessCookieName] ??
-    (socket.handshake.headers.cookie
+    socket.handshake.headers.cookie
       ?.split(';')
-      .map((c) => c.trim())
-      .find((c) => c.startsWith(`${accessCookieName}=`))
-      ?.slice(accessCookieName.length + 1));
+      .map(c => c.trim())
+      .find(c => c.startsWith(`${accessCookieName}=`))
+      ?.slice(accessCookieName.length + 1);
 
   if (!accessToken) {
     return null;

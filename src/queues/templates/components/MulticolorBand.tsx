@@ -12,7 +12,8 @@ export const MulticolorBand = () => {
                 backgroundColor: item,
                 height: '8px',
                 width: '20%',
-              }}></td>
+              }}
+            ></td>
           ))}
         </tr>
       </tbody>

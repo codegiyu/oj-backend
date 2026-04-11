@@ -18,12 +18,13 @@ export async function verifyOTP(
     throw new AppError('Code, email and scope are required', 400);
   }
 
-  const token = (await getFromCache<string>(`pers:${email}:${scope}` as `pers:${string}`)) as string | null;
+  const token = await getFromCache<string>(`pers:${email}:${scope}` as `pers:${string}`);
   if (!token) throw new AppError('Invalid OTP code or token', 400);
 
   const decoded = verifyOtpToken(token);
   if (!decoded) throw new AppError('Invalid or expired verification code or token', 400);
-  if (decoded.code !== code) throw new AppError('Invalid or expired verification code or token', 400);
+  if (decoded.code !== code)
+    throw new AppError('Invalid or expired verification code or token', 400);
   if (decoded.scope !== scope) throw new AppError('Invalid verification scope', 400);
 
   await removeFromCache(`pers:${email}:${scope}` as `pers:${string}`);
@@ -31,7 +32,7 @@ export async function verifyOTP(
   let updatedUser = null;
   if (scope === 'verify-email') {
     updatedUser = await User.findOneAndUpdate(
-      { email: (email as string).toLowerCase() },
+      { email: email.toLowerCase() },
       {
         accountStatus: 'active',
         'kyc.email.isVerified': true,
@@ -42,13 +43,17 @@ export async function verifyOTP(
 
     if (!updatedUser) throw new AppError('User account not found', 401);
 
-    
     await updateCachedUser(updatedUser);
   }
 
   const populatedUser = await buildClientUserPayload(updatedUser);
 
-  sendResponse(reply, 200, {
-    ...(populatedUser ? { user: populatedUser } : {}),
-  }, 'Verification successful.');
+  sendResponse(
+    reply,
+    200,
+    {
+      ...(populatedUser ? { user: populatedUser } : {}),
+    },
+    'Verification successful.'
+  );
 }

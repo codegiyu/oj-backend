@@ -33,5 +33,4 @@ const vendorSchema = new Schema<ModelVendor>(
 
 vendorSchema.index({ status: 1 });
 
-export const Vendor =
-  mongoose.models.Vendor || model<ModelVendor>('Vendor', vendorSchema);
+export const Vendor = mongoose.models.Vendor || model<ModelVendor>('Vendor', vendorSchema);

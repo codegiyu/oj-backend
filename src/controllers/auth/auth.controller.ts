@@ -35,7 +35,8 @@ export async function login(
   const valid = await authService.comparePassword(password, hasPassword);
 
   if (!valid) throw new AppError('Invalid email or password', 401);
-  if (admin.accountStatus === 'suspended') throw new AppError('Your account has been suspended', 403);
+  if (admin.accountStatus === 'suspended')
+    throw new AppError('Your account has been suspended', 403);
   if (admin.accountStatus === 'deleted') throw new AppError('Account not found', 401);
 
   const jti = generateRandomString(16, 'JTI');
@@ -68,10 +69,7 @@ export async function login(
   sendResponse(reply, 200, { user: sanitized }, 'Login successful.');
 }
 
-export async function session(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
+export async function session(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const user = getAuthUser(request);
 
   if (!user) {
@@ -82,8 +80,7 @@ export async function session(
   const scope = user.scope;
 
   if (scope === 'console-access') {
-    const admin = await Admin.findById(user.userId)
-      .lean<ModelAdmin>();
+    const admin = await Admin.findById(user.userId).lean<ModelAdmin>();
 
     console.log('admin', admin);
 
@@ -100,8 +97,7 @@ export async function session(
     return;
   }
 
-  const userDoc = await User.findById(user.userId)
-    .lean<ModelUser>();
+  const userDoc = await User.findById(user.userId).lean<ModelUser>();
 
   console.log('userDoc', userDoc);
 
@@ -117,17 +113,11 @@ export async function session(
   sendResponse(reply, 200, { user: payload }, 'Session loaded.');
 }
 
-export async function logout(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
+export async function logout(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const user = getAuthUser(request);
 
   if (user) {
-    await invalidateAuthCache(
-      user.email,
-      user.scope === 'console-access' ? 'admin' : 'user'
-    );
+    await invalidateAuthCache(user.email, user.scope === 'console-access' ? 'admin' : 'user');
     if (user.scope === 'console-access') {
       await Admin.findByIdAndUpdate(user.userId, { 'auth.refreshTokenJTI': '' });
     } else {

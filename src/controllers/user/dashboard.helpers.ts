@@ -13,7 +13,7 @@ export function serializePopulatedUser(payload: LeanDoc): LeanDoc {
   const out = { ...payload } as LeanDoc;
   if (out._id != null) out._id = String(out._id);
   ['createdAt', 'updatedAt'].forEach(key => {
-    if (out[key] instanceof Date) out[key] = (out[key] as Date).toISOString();
+    if (out[key] instanceof Date) out[key] = out[key].toISOString();
   });
   const artist = out.artist as LeanDoc | undefined;
   if (artist && typeof artist === 'object' && artist._id != null) {
@@ -70,9 +70,7 @@ export function shapeWishlistItem(item: {
   const product = (item.product as PopulatedProduct | null | undefined) ?? undefined;
   const vendor = product?.vendor;
   const vendorName =
-    vendor && typeof vendor === 'object'
-      ? (vendor.storeName ?? vendor.name ?? '')
-      : '';
+    vendor && typeof vendor === 'object' ? (vendor.storeName ?? vendor.name ?? '') : '';
 
   const vendorSlug =
     vendor && typeof vendor === 'object' && (vendor as { slug?: string }).slug != null

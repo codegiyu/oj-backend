@@ -44,4 +44,3 @@ subCategorySchema.pre('save', async function (this: ISubCategory & mongoose.Docu
 
 export const SubCategory =
   mongoose.models.SubCategory || model<ISubCategory>('SubCategory', subCategorySchema);
-

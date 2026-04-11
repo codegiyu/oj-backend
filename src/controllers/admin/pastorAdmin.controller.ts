@@ -2,8 +2,14 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Pastor } from '../../models/pastor';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
+import { parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name'];
 
@@ -28,10 +34,11 @@ function shapePastorItem(raw: Record<string, unknown>): Record<string, unknown> 
 }
 
 export async function listAdminPastors(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -59,21 +66,30 @@ export async function listAdminPastors(
 
   const pastors = (items as Record<string, unknown>[]).map(shapePastorItem);
 
-  sendResponse(reply, 200, {
-    pastors,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Pastors list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      pastors,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Pastors list loaded.'
+  );
 }
 
 export async function getAdminPastor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await Pastor.findById(id).lean();
   if (!doc) throw new AppError('Pastor not found', 404);
-  sendResponse(reply, 200, { pastor: shapePastorItem(doc as unknown as Record<string, unknown>) }, 'Pastor loaded.');
+  sendResponse(
+    reply,
+    200,
+    { pastor: shapePastorItem(doc as unknown as Record<string, unknown>) },
+    'Pastor loaded.'
+  );
 }
 
 export async function createAdminPastor(
@@ -92,7 +108,6 @@ export async function createAdminPastor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.name || typeof body.name !== 'string' || !body.name.trim()) {
     throw new AppError('Name is required', 400);
@@ -114,7 +129,12 @@ export async function createAdminPastor(
   });
 
   const populated = await Pastor.findById(pastor._id).lean();
-  sendResponse(reply, 201, { pastor: shapePastorItem((populated ?? pastor) as unknown as Record<string, unknown>) }, 'Pastor created.');
+  sendResponse(
+    reply,
+    201,
+    { pastor: shapePastorItem((populated ?? pastor) as unknown as Record<string, unknown>) },
+    'Pastor created.'
+  );
 }
 
 export async function updateAdminPastor(
@@ -134,7 +154,6 @@ export async function updateAdminPastor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const pastor = await Pastor.findById(id);
   if (!pastor) throw new AppError('Pastor not found', 404);
@@ -145,7 +164,8 @@ export async function updateAdminPastor(
   if (body.church !== undefined) pastor.church = body.church;
   if (body.bio !== undefined) pastor.bio = body.bio;
   if (body.image !== undefined) pastor.image = body.image;
-  if (body.expertise !== undefined) pastor.expertise = Array.isArray(body.expertise) ? body.expertise : pastor.expertise;
+  if (body.expertise !== undefined)
+    pastor.expertise = Array.isArray(body.expertise) ? body.expertise : pastor.expertise;
   if (body.isFeatured !== undefined) pastor.isFeatured = body.isFeatured;
   if (body.isActive !== undefined) pastor.isActive = body.isActive;
   if (body.displayOrder !== undefined) pastor.displayOrder = body.displayOrder;
@@ -153,14 +173,18 @@ export async function updateAdminPastor(
   await pastor.save();
 
   const populated = await Pastor.findById(pastor._id).lean();
-  sendResponse(reply, 200, { pastor: shapePastorItem((populated ?? pastor.toObject()) as Record<string, unknown>) }, 'Pastor updated.');
+  sendResponse(
+    reply,
+    200,
+    { pastor: shapePastorItem((populated ?? pastor.toObject()) as Record<string, unknown>) },
+    'Pastor updated.'
+  );
 }
 
 export async function deleteAdminPastor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await Pastor.findByIdAndDelete(id);
   if (!result) throw new AppError('Pastor not found', 404);

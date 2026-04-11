@@ -66,10 +66,15 @@ export async function search(
   const results: SearchResultItem[] = [];
 
   if (!q) {
-    sendResponse(reply, 200, {
-      results: [],
-      pagination: { page: 1, limit, total: 0, totalPages: 0 },
-    }, 'Search results.');
+    sendResponse(
+      reply,
+      200,
+      {
+        results: [],
+        pagination: { page: 1, limit, total: 0, totalPages: 0 },
+      },
+      'Search results.'
+    );
     return;
   }
 
@@ -92,11 +97,7 @@ export async function search(
   if (searchTypes.includes('music')) {
     const runMusic = await Music.find({
       status: 'published',
-      $or: [
-        { title: regex },
-        { description: regex },
-        { category: regex },
-      ],
+      $or: [{ title: regex }, { description: regex }, { category: regex }],
     })
       .populate('artist', ARTIST_POPULATE_SELECT)
       .limit(PER_TYPE_LIMIT)
@@ -157,7 +158,13 @@ export async function search(
   if (searchTypes.includes('devotional')) {
     const docs = await Devotional.find({
       status: 'published',
-      $or: [{ title: regex }, { excerpt: regex }, { content: regex }, { category: regex }, { author: regex }],
+      $or: [
+        { title: regex },
+        { excerpt: regex },
+        { content: regex },
+        { category: regex },
+        { author: regex },
+      ],
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
@@ -285,8 +292,13 @@ export async function search(
   const skip = (page - 1) * limit;
   const paginated = results.slice(skip, skip + limit);
 
-  sendResponse(reply, 200, {
-    results: paginated,
-    pagination: { page, limit, total, totalPages },
-  }, 'Search results.');
+  sendResponse(
+    reply,
+    200,
+    {
+      results: paginated,
+      pagination: { page, limit, total, totalPages },
+    },
+    'Search results.'
+  );
 }
