@@ -2,8 +2,14 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { PrayerRequest } from '../../models/prayerRequest';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
+import { parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 
@@ -28,10 +34,11 @@ function shapePrayerRequestItem(raw: Record<string, unknown>): Record<string, un
 }
 
 export async function listAdminPrayerRequests(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -58,21 +65,30 @@ export async function listAdminPrayerRequests(
 
   const prayerRequests = (items as Record<string, unknown>[]).map(shapePrayerRequestItem);
 
-  sendResponse(reply, 200, {
-    prayerRequests,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Prayer requests list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      prayerRequests,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Prayer requests list loaded.'
+  );
 }
 
 export async function getAdminPrayerRequest(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await PrayerRequest.findById(id).lean();
   if (!doc) throw new AppError('Prayer request not found', 404);
-  sendResponse(reply, 200, { prayerRequest: shapePrayerRequestItem(doc as unknown as Record<string, unknown>) }, 'Prayer request loaded.');
+  sendResponse(
+    reply,
+    200,
+    { prayerRequest: shapePrayerRequestItem(doc as unknown as Record<string, unknown>) },
+    'Prayer request loaded.'
+  );
 }
 
 export async function createAdminPrayerRequest(
@@ -89,7 +105,6 @@ export async function createAdminPrayerRequest(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.title || typeof body.title !== 'string' || !body.title.trim()) {
     throw new AppError('Title is required', 400);
@@ -115,7 +130,16 @@ export async function createAdminPrayerRequest(
   });
 
   const populated = await PrayerRequest.findById(prayerRequest._id).lean();
-  sendResponse(reply, 201, { prayerRequest: shapePrayerRequestItem((populated ?? prayerRequest) as unknown as Record<string, unknown>) }, 'Prayer request created.');
+  sendResponse(
+    reply,
+    201,
+    {
+      prayerRequest: shapePrayerRequestItem(
+        (populated ?? prayerRequest) as unknown as Record<string, unknown>
+      ),
+    },
+    'Prayer request created.'
+  );
 }
 
 export async function updateAdminPrayerRequest(
@@ -134,7 +158,6 @@ export async function updateAdminPrayerRequest(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const prayerRequest = await PrayerRequest.findById(id);
   if (!prayerRequest) throw new AppError('Prayer request not found', 404);
@@ -152,14 +175,22 @@ export async function updateAdminPrayerRequest(
   await prayerRequest.save();
 
   const populated = await PrayerRequest.findById(prayerRequest._id).lean();
-  sendResponse(reply, 200, { prayerRequest: shapePrayerRequestItem((populated ?? prayerRequest.toObject()) as Record<string, unknown>) }, 'Prayer request updated.');
+  sendResponse(
+    reply,
+    200,
+    {
+      prayerRequest: shapePrayerRequestItem(
+        (populated ?? prayerRequest.toObject()) as Record<string, unknown>
+      ),
+    },
+    'Prayer request updated.'
+  );
 }
 
 export async function deleteAdminPrayerRequest(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await PrayerRequest.findByIdAndDelete(id);
   if (!result) throw new AppError('Prayer request not found', 404);
@@ -170,7 +201,6 @@ export async function answerAdminPrayerRequest(
   request: FastifyRequest<{ Params: { id: string }; Body: { answer: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const prayerRequest = await PrayerRequest.findById(id);
   if (!prayerRequest) throw new AppError('Prayer request not found', 404);
@@ -182,5 +212,14 @@ export async function answerAdminPrayerRequest(
   await prayerRequest.save();
 
   const populated = await PrayerRequest.findById(prayerRequest._id).lean();
-  sendResponse(reply, 200, { prayerRequest: shapePrayerRequestItem((populated ?? prayerRequest.toObject()) as Record<string, unknown>) }, 'Prayer request answered.');
+  sendResponse(
+    reply,
+    200,
+    {
+      prayerRequest: shapePrayerRequestItem(
+        (populated ?? prayerRequest.toObject()) as Record<string, unknown>
+      ),
+    },
+    'Prayer request answered.'
+  );
 }

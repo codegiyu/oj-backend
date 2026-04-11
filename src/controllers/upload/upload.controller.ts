@@ -7,6 +7,8 @@ import { Document } from '../../models/document';
 import { ENTITY_TYPES, UPLOAD_INTENTS } from '../../lib/types/constants';
 import type { EntityType, UploadIntent } from '../../lib/types/constants';
 import { getAuthUser } from '../../utils/getAuthUser';
+import { User } from '../../models/user';
+import { Product } from '../../models/product';
 
 const ENTITY_TYPES_SET = new Set<string>(ENTITY_TYPES);
 const UPLOAD_INTENTS_SET = new Set<string>(UPLOAD_INTENTS);
@@ -20,6 +22,36 @@ const ALLOWED_CLIENT_INTENTS: UploadIntent[] = [
   'other',
 ];
 const ALLOWED_CLIENT_INTENTS_SET = new Set(ALLOWED_CLIENT_INTENTS);
+
+async function assertClientEntityUploadAllowed(
+  userId: string,
+  entityType: string,
+  entityId: string
+): Promise<void> {
+  if (entityType === 'user' && entityId === userId) return;
+
+  const dbUser = await User.findById(userId).select('vendorId').lean();
+  const vendorId = dbUser?.vendorId ? String(dbUser.vendorId) : '';
+
+  if (entityType === 'vendor') {
+    if (!vendorId || entityId !== vendorId) {
+      throw new AppError('You can only upload for your own vendor profile', 403);
+    }
+    return;
+  }
+
+  if (entityType === 'product') {
+    if (!vendorId) throw new AppError('Vendor profile required for product uploads', 403);
+    const product = await Product.findById(entityId).select('vendor').lean();
+    if (!product) throw new AppError('Product not found', 404);
+    if (String((product as { vendor?: unknown }).vendor) !== vendorId) {
+      throw new AppError('You can only upload images for your own products', 403);
+    }
+    return;
+  }
+
+  throw new AppError('You are not allowed to upload for this entity', 403);
+}
 
 function resolveContentType(
   fileExtension: string,
@@ -62,9 +94,7 @@ export async function presignedUrlClient(
   if (!ENTITY_TYPES_SET.has(entityType)) {
     throw new AppError(`Invalid entityType: ${entityType}`, 400);
   }
-  if (entityType !== 'user' || entityId !== user.userId) {
-    throw new AppError('You can only upload for your own user profile', 403);
-  }
+  await assertClientEntityUploadAllowed(user.userId, entityType, entityId);
   if (!UPLOAD_INTENTS_SET.has(intent)) {
     throw new AppError(`Invalid intent: ${intent}`, 400);
   }
@@ -166,15 +196,20 @@ export async function presignedUrlClient(
     uploadedByModel: 'User',
   });
 
-  sendResponse(reply, 200, {
-    uploadUrl: url,
-    key,
-    filename,
-    publicUrl,
-    documentId: doc._id.toString(),
-    expiresIn: expiresInSeconds,
-    expiresAt: expiresAt.toISOString(),
-  }, 'Presigned URL generated.');
+  sendResponse(
+    reply,
+    200,
+    {
+      uploadUrl: url,
+      key,
+      filename,
+      publicUrl,
+      documentId: doc._id.toString(),
+      expiresIn: expiresInSeconds,
+      expiresAt: expiresAt.toISOString(),
+    },
+    'Presigned URL generated.'
+  );
 }
 
 export async function presignedUrlAdmin(
@@ -182,9 +217,7 @@ export async function presignedUrlAdmin(
   reply: FastifyReply
 ): Promise<void> {
   const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Unauthorized', 401);
-  }
+  if (!user) throw new AppError('Unauthorized', 401);
 
   const { entityType, entityId, intent, fileExtension, contentType, files } = request.body;
   if (!entityType || !entityId || !intent) {
@@ -291,13 +324,18 @@ export async function presignedUrlAdmin(
     uploadedByModel: 'Admin',
   });
 
-  sendResponse(reply, 200, {
-    uploadUrl: url,
-    key,
-    filename,
-    publicUrl,
-    documentId: doc._id.toString(),
-    expiresIn: expiresInSeconds,
-    expiresAt: expiresAt.toISOString(),
-  }, 'Presigned URL generated.');
+  sendResponse(
+    reply,
+    200,
+    {
+      uploadUrl: url,
+      key,
+      filename,
+      publicUrl,
+      documentId: doc._id.toString(),
+      expiresIn: expiresInSeconds,
+      expiresAt: expiresAt.toISOString(),
+    },
+    'Presigned URL generated.'
+  );
 }

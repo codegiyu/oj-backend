@@ -23,7 +23,7 @@ export const getRedisClient = (): Redis => {
       logger.info('Redis client connected');
     });
 
-    redisClient.on('error', (error) => {
+    redisClient.on('error', error => {
       logger.error('Redis client error:', error);
     });
 

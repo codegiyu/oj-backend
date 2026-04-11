@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
 import { verifyAccess } from '../utils/token';
 import { AppError } from '../utils/AppError';
+import { assertConsoleAccess } from '../utils/consoleAccess';
 
 const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 
@@ -55,4 +56,14 @@ export const optionalAuthenticate = async (
     scope: payload.scope,
     jti: payload.jti,
   };
+};
+
+/**
+ * Run after authenticate. Ensures JWT is console (admin) scope — 401 if unauthenticated, 403 if wrong scope.
+ */
+export const requireConsoleAccess = async (
+  request: FastifyRequest,
+  _reply: FastifyReply
+): Promise<void> => {
+  assertConsoleAccess(request);
 };

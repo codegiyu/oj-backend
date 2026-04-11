@@ -4,17 +4,10 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import cookie from '@fastify/cookie';
 import { ENVIRONMENT } from './config/env';
-import { registerJwtPlugin } from './plugins/jwt.plugin';
 import { registerHealthRoutes } from './routes/health.route';
 import { registerAuthRoutes } from './routes/auth.route';
-import {
-  registerUploadRoutes,
-  registerAdminUploadRoutes,
-} from './routes/upload.route';
-import {
-  registerDocumentRoutes,
-  registerAdminDocumentRoutes,
-} from './routes/document.route';
+import { registerUploadRoutes, registerAdminUploadRoutes } from './routes/upload.route';
+import { registerDocumentRoutes, registerAdminDocumentRoutes } from './routes/document.route';
 import { registerAdminEmailLogRoutes } from './routes/emailLog.route';
 import { registerAdminContactSubmissionRoutes } from './routes/contactSubmission.route';
 import { registerNotificationRoutes } from './routes/notification.route';
@@ -43,7 +36,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   });
 
   await app.register(cors, {
-    origin: ENVIRONMENT.cors.origin.split(',').map((s) => s.trim()),
+    origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
     credentials: true,
   });
 
@@ -56,9 +49,6 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     timeWindow: ENVIRONMENT.rateLimit.timeWindow,
   });
 
-  // JWT plugin
-  await app.register(registerJwtPlugin);
-
   // Routes
   await app.register(registerHealthRoutes);
   await app.register(registerAuthRoutes, { prefix: '/auth' });
@@ -67,7 +57,9 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerDocumentRoutes, { prefix: '/documents' });
   await app.register(registerAdminDocumentRoutes, { prefix: '/admin/documents' });
   await app.register(registerAdminEmailLogRoutes, { prefix: '/admin/email-logs' });
-  await app.register(registerAdminContactSubmissionRoutes, { prefix: '/admin/contact-submissions' });
+  await app.register(registerAdminContactSubmissionRoutes, {
+    prefix: '/admin/contact-submissions',
+  });
   await app.register(registerNotificationRoutes, { prefix: '/notifications' });
   await app.register(registerSiteSettingsRoutes, { prefix: '/site-settings' });
   await app.register(registerAdminSiteSettingsRoutes, { prefix: '/admin/site-settings' });

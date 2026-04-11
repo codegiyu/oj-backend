@@ -11,7 +11,11 @@ import { User } from '../../models/user';
 import { getRoleWithSlug } from '../../services/role.service';
 import { signAccess, signRefresh } from '../../utils/token';
 import { generateRandomString } from '../../utils/helpers';
-import { setAuthCookies, assertEmailNotRegisteredAsAdmin, buildClientUserPayload } from './auth.helpers';
+import {
+  setAuthCookies,
+  assertEmailNotRegisteredAsAdmin,
+  buildClientUserPayload,
+} from './auth.helpers';
 import { addUserToCache } from '../../utils/authCache';
 import type { ModelUser } from '../../lib/types/constants';
 
@@ -52,11 +56,11 @@ export async function googleAuth(
   const namesSplit = (name ?? '').split(' ');
 
   let user: ModelUser | null = await User.findOne({
-    $or: [{ googleId: sub }, { email: email!.toLowerCase() }],
+    $or: [{ googleId: sub }, { email: email.toLowerCase() }],
   }).lean<ModelUser>();
 
   if (!user) {
-    const emailLower = email!.toLowerCase();
+    const emailLower = email.toLowerCase();
     await assertEmailNotRegisteredAsAdmin(emailLower);
     const customerRole = await getRoleWithSlug('customer');
 
@@ -68,7 +72,7 @@ export async function googleAuth(
       firstName: given_name || namesSplit[0] || 'User',
       lastName:
         family_name || (namesSplit.length > 1 ? namesSplit[namesSplit.length - 1] : '') || 'User',
-      email: email!.toLowerCase(),
+      email: email.toLowerCase(),
       googleId: sub,
       avatar: picture || '',
       'auth.refreshTokenJTI': jti,
@@ -106,7 +110,8 @@ export async function googleAuth(
     return;
   }
 
-  if (user.accountStatus === 'suspended') throw new AppError('Your account has been suspended', 403);
+  if (user.accountStatus === 'suspended')
+    throw new AppError('Your account has been suspended', 403);
   if (user.accountStatus === 'deleted') throw new AppError('Account not found', 401);
 
   const jti = generateRandomString(16, 'JTI');
@@ -134,7 +139,7 @@ export async function googleAuth(
   setAuthCookies(reply, accessToken, refreshToken);
   const updated = await User.findById(user._id).lean<ModelUser>();
 
-  const effectiveUser = (updated ?? user) as ModelUser;
+  const effectiveUser = updated ?? user;
   await addUserToCache(effectiveUser);
   const populatedUser = await buildClientUserPayload(effectiveUser);
 

@@ -14,11 +14,19 @@ import {
   parseString,
   normalizeSort,
 } from '../../utils/helpers';
-import {
-  ARTIST_POPULATE_SELECT,
-  toArtistSummary,
-  serializeDocIds,
-} from './artist.helpers';
+import { ARTIST_POPULATE_SELECT, toArtistSummary, serializeDocIds } from './artist.helpers';
+import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
+
+/** Artist self-serve uploads are disabled; submissions go through WhatsApp / admin. */
+export async function rejectArtistMediaWrite(
+  _request: FastifyRequest,
+  _reply: FastifyReply
+): Promise<void> {
+  throw new AppError(
+    'Content submissions are handled via WhatsApp. Contact the admin to publish your work.',
+    403
+  );
+}
 
 /** Returns artist or throws 403 (no artist link) / 404 (artist record missing). */
 async function getArtistForUser(userId: string) {
@@ -35,10 +43,7 @@ async function getArtistForUser(userId: string) {
   return artist;
 }
 
-export async function getArtistMe(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
+export async function getArtistMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
@@ -87,28 +92,25 @@ export async function getDashboardStats(
   const artist = await getArtistForUser(auth.userId);
   const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
 
-  const [tracksCount, videosCount, musicPlaysResult, videoViewsResult] = await Promise.all([
-    Music.countDocuments({ artist: artistId }),
-    Video.countDocuments({ artist: artistId }),
-    Music.aggregate<{ total: number }>([
-      { $match: { artist: artistId } },
-      { $group: { _id: null, total: { $sum: '$plays' } } },
-    ]),
-    Video.aggregate<{ total: number }>([
-      { $match: { artist: artistId } },
-      { $group: { _id: null, total: { $sum: '$views' } } },
-    ]),
-  ]);
+  const stats = await buildArtistDashboardStats(artistId, { includeTopLists: false });
 
-  const totalPlays = musicPlaysResult[0]?.total ?? 0;
-  const totalViews = videoViewsResult[0]?.total ?? 0;
-
-  sendResponse(reply, 200, {
-    tracksCount,
-    videosCount,
-    totalPlays,
-    totalViews,
-  }, 'Artist dashboard stats loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      tracksCount: stats.tracksCount,
+      videosCount: stats.videosCount,
+      totalPlays: stats.totalPlays,
+      totalViews: stats.totalViews,
+      totalDownloads: stats.totalDownloads,
+      music: stats.music,
+      video: stats.video,
+      devotionals: stats.devotionals,
+      tracksAddedThisMonth: stats.tracksAddedThisMonth,
+      playsDeltaPercent: stats.playsDeltaPercent,
+    },
+    'Artist dashboard stats loaded.'
+  );
 }
 
 const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
@@ -123,6 +125,7 @@ function shapeMusicItem(raw: Record<string, unknown>): Record<string, unknown> {
     description: raw.description,
     coverImage: raw.coverImage,
     audioUrl: raw.audioUrl,
+    views: raw.views ?? 0,
     plays: raw.plays ?? 0,
     downloads: raw.downloads ?? 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
@@ -171,15 +174,20 @@ export async function listMyMusic(
 
   const music = (items as Record<string, unknown>[]).map(shapeMusicItem);
 
-  sendResponse(reply, 200, {
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
+  sendResponse(
+    reply,
+    200,
+    {
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+      music,
     },
-    music,
-  }, 'Artist music list loaded.');
+    'Artist music list loaded.'
+  );
 }
 
 export async function getMusicItem(
@@ -216,6 +224,7 @@ export async function getMusicItem(
     category: doc.category,
     status: doc.status,
     isMonetizable: doc.isMonetizable,
+    views: doc.views ?? 0,
     plays: doc.plays ?? 0,
     downloads: doc.downloads ?? 0,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
@@ -247,7 +256,7 @@ export async function createMusic(
   const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
 
   const body = request.body;
-  let baseSlug = slugify(body.title);
+  const baseSlug = slugify(body.title);
   let slug = baseSlug;
   let n = 0;
   while (await Music.findOne({ artist: artistId, slug })) {
@@ -269,6 +278,7 @@ export async function createMusic(
     isMonetizable: body.isMonetizable ?? false,
     isFeatured: false,
     displayOrder: 0,
+    views: 0,
     plays: 0,
     downloads: 0,
   });
@@ -278,7 +288,12 @@ export async function createMusic(
     .lean();
 
   if (!populated) {
-    sendResponse(reply, 201, { music: shapeMusicItem(music as unknown as Record<string, unknown>) }, 'Music created.');
+    sendResponse(
+      reply,
+      201,
+      { music: shapeMusicItem(music as unknown as Record<string, unknown>) },
+      'Music created.'
+    );
     return;
   }
 
@@ -294,10 +309,13 @@ export async function createMusic(
     category: populated.category,
     status: populated.status,
     isMonetizable: populated.isMonetizable,
+    views: populated.views ?? 0,
     plays: populated.plays ?? 0,
     downloads: populated.downloads ?? 0,
-    createdAt: populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
-    updatedAt: populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
+    createdAt:
+      populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
+    updatedAt:
+      populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
     artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
   };
 
@@ -353,7 +371,12 @@ export async function updateMusic(
     .populate('artist', ARTIST_POPULATE_SELECT)
     .lean();
   if (!populated) {
-    sendResponse(reply, 200, { music: shapeMusicItem(music.toObject() as Record<string, unknown>) }, 'Music updated.');
+    sendResponse(
+      reply,
+      200,
+      { music: shapeMusicItem(music.toObject() as Record<string, unknown>) },
+      'Music updated.'
+    );
     return;
   }
 
@@ -369,10 +392,13 @@ export async function updateMusic(
     category: populated.category,
     status: populated.status,
     isMonetizable: populated.isMonetizable,
+    views: populated.views ?? 0,
     plays: populated.plays ?? 0,
     downloads: populated.downloads ?? 0,
-    createdAt: populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
-    updatedAt: populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
+    createdAt:
+      populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
+    updatedAt:
+      populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
     artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
   };
 
@@ -392,7 +418,10 @@ export async function deleteMusic(
   }
 
   const result = await Music.findOneAndUpdate(
-    { _id: new mongoose.Types.ObjectId(request.params.id), artist: (artist as { _id: mongoose.Types.ObjectId })._id },
+    {
+      _id: new mongoose.Types.ObjectId(request.params.id),
+      artist: (artist as { _id: mongoose.Types.ObjectId })._id,
+    },
     { $set: { status: 'archived' } }
   );
 
@@ -414,6 +443,8 @@ function shapeVideoItem(raw: Record<string, unknown>): Record<string, unknown> {
     thumbnail: raw.thumbnail,
     videoUrl: raw.videoUrl,
     views: raw.views ?? 0,
+    plays: raw.plays ?? 0,
+    downloads: raw.downloads ?? 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
     ...(artist && { artist }),
@@ -460,15 +491,20 @@ export async function listMyVideos(
 
   const videos = (items as Record<string, unknown>[]).map(shapeVideoItem);
 
-  sendResponse(reply, 200, {
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
+  sendResponse(
+    reply,
+    200,
+    {
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+      videos,
     },
-    videos,
-  }, 'Artist videos list loaded.');
+    'Artist videos list loaded.'
+  );
 }
 
 export async function getVideoItem(
@@ -504,6 +540,8 @@ export async function getVideoItem(
     status: doc.status,
     isMonetizable: doc.isMonetizable,
     views: doc.views ?? 0,
+    plays: doc.plays ?? 0,
+    downloads: doc.downloads ?? 0,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
     artist: toArtistSummary(doc.artist as Parameters<typeof toArtistSummary>[0]),
@@ -531,7 +569,7 @@ export async function createVideo(
   const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
 
   const body = request.body;
-  let baseSlug = slugify(body.title);
+  const baseSlug = slugify(body.title);
   let slug = baseSlug;
   let n = 0;
   while (await Video.findOne({ artist: artistId, slug })) {
@@ -552,6 +590,8 @@ export async function createVideo(
     isFeatured: false,
     displayOrder: 0,
     views: 0,
+    plays: 0,
+    downloads: 0,
   });
 
   const populated = await Video.findById(video._id)
@@ -559,7 +599,12 @@ export async function createVideo(
     .lean();
 
   if (!populated) {
-    sendResponse(reply, 201, { video: shapeVideoItem(video as unknown as Record<string, unknown>) }, 'Video created.');
+    sendResponse(
+      reply,
+      201,
+      { video: shapeVideoItem(video as unknown as Record<string, unknown>) },
+      'Video created.'
+    );
     return;
   }
 
@@ -574,8 +619,12 @@ export async function createVideo(
     status: populated.status,
     isMonetizable: populated.isMonetizable,
     views: populated.views ?? 0,
-    createdAt: populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
-    updatedAt: populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
+    plays: populated.plays ?? 0,
+    downloads: populated.downloads ?? 0,
+    createdAt:
+      populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
+    updatedAt:
+      populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
     artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
   };
 
@@ -627,7 +676,12 @@ export async function updateVideo(
     .populate('artist', ARTIST_POPULATE_SELECT)
     .lean();
   if (!populated) {
-    sendResponse(reply, 200, { video: shapeVideoItem(video.toObject() as Record<string, unknown>) }, 'Video updated.');
+    sendResponse(
+      reply,
+      200,
+      { video: shapeVideoItem(video.toObject() as Record<string, unknown>) },
+      'Video updated.'
+    );
     return;
   }
 
@@ -642,8 +696,12 @@ export async function updateVideo(
     status: populated.status,
     isMonetizable: populated.isMonetizable,
     views: populated.views ?? 0,
-    createdAt: populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
-    updatedAt: populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
+    plays: populated.plays ?? 0,
+    downloads: populated.downloads ?? 0,
+    createdAt:
+      populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
+    updatedAt:
+      populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
     artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
   };
 
@@ -663,7 +721,10 @@ export async function deleteVideo(
   }
 
   const result = await Video.findOneAndUpdate(
-    { _id: new mongoose.Types.ObjectId(request.params.id), artist: (artist as { _id: mongoose.Types.ObjectId })._id },
+    {
+      _id: new mongoose.Types.ObjectId(request.params.id),
+      artist: (artist as { _id: mongoose.Types.ObjectId })._id,
+    },
     { $set: { status: 'archived' } }
   );
 

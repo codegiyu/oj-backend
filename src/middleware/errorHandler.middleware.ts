@@ -14,21 +14,20 @@ type ErrorWithValidation = FastifyError & {
   validation?: ValidationErrorItem[];
 };
 
-function buildValidationDetails(validation: ValidationErrorItem[]): Array<{ message?: string; path?: string }> {
-  return validation.map((v) => ({
+function buildValidationDetails(
+  validation: ValidationErrorItem[]
+): Array<{ message?: string; path?: string }> {
+  return validation.map(v => ({
     message: v.message,
-    path: [v.instancePath, v.params?.missingProperty, v.params?.propertyName]
-      .find((x) => x != null) as string | undefined,
+    path: [v.instancePath, v.params?.missingProperty, v.params?.propertyName].find(
+      x => x != null
+    ) as string | undefined,
   }));
 }
 
-export function errorHandler(
-  error: Error,
-  request: FastifyRequest,
-  reply: FastifyReply
-): void {
+export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
   const err = error as ErrorWithValidation;
-  const statusCode = error instanceof AppError ? error.statusCode : err.statusCode ?? 500;
+  const statusCode = error instanceof AppError ? error.statusCode : (err.statusCode ?? 500);
   const message = error instanceof Error ? error.message : 'Internal Server Error';
 
   if (err.code === 'FST_ERR_VALIDATION') {

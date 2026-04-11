@@ -1,7 +1,4 @@
-import {
-  ModelNotification,
-  NotificationEmailDelivery,
-} from '../lib/types/constants';
+import { ModelNotification, NotificationEmailDelivery } from '../lib/types/constants';
 import mongoose, { Schema, model } from 'mongoose';
 
 const emailDeliverySchema = new Schema<NotificationEmailDelivery>(

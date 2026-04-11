@@ -72,11 +72,14 @@ export function OTPCode({
               />
             )}
             <Hr style={hr} />
-            <Text style={{ ...headerText, color: branding.primaryColor }}>Hello, {name ?? 'there'}!</Text>
+            <Text style={{ ...headerText, color: branding.primaryColor }}>
+              Hello, {name ?? 'there'}!
+            </Text>
             <Text style={paragraph}>Use the verification code below to access your account.</Text>
             <Button
               style={{ ...button, backgroundColor: branding.primaryColor }}
-              className="button">
+              className="button"
+            >
               {code}
             </Button>
             <Text style={note}>
@@ -95,7 +98,8 @@ export function OTPCode({
               . If this wasn't you, please ignore and report to{' '}
               <a
                 style={{ ...anchor, color: branding.primaryColor }}
-                href={`mailto:${branding.supportEmail}`}>
+                href={`mailto:${branding.supportEmail}`}
+              >
                 {branding.supportEmail}
               </a>
               .

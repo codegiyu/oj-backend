@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   listDocuments,
@@ -36,7 +36,7 @@ export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise
   }>(
     '/',
     {
-      preHandler: authenticate,
+      preHandler: [authenticate, requireConsoleAccess],
       schema: listDocumentsQuerystringSchema,
     },
     catchAsync(listDocuments)
@@ -44,7 +44,7 @@ export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise
   app.get<{ Params: { documentId: string } }>(
     '/:documentId',
     {
-      preHandler: authenticate,
+      preHandler: [authenticate, requireConsoleAccess],
       schema: getDocumentDetailsParamsSchema,
     },
     catchAsync(getDocumentDetails)
@@ -52,7 +52,7 @@ export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise
   app.post<{ Params: { documentId: string } }>(
     '/verify/:documentId',
     {
-      preHandler: authenticate,
+      preHandler: [authenticate, requireConsoleAccess],
       schema: verifyDocumentAdminParamsSchema,
     },
     catchAsync(verifyDocumentAdmin)

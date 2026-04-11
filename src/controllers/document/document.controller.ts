@@ -4,8 +4,9 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { Document } from '../../models/document';
 import { headObjectInR2 } from '../../services/r2.service';
-import { getAuthUser } from '../../utils/getAuthUser';
 import { DOCUMENT_STATUSES } from '../../lib/types/constants';
+
+const MAX_VENDOR_PRODUCT_IMAGE_BYTES = 3 * 1024 * 1024;
 
 function parsePositiveInteger(value: unknown, fallback: number, maxVal: number): number {
   if (typeof value !== 'string') return fallback;
@@ -35,11 +36,6 @@ export async function listDocuments(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Access denied: only admins may list documents', 403);
-  }
-
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -50,7 +46,8 @@ export async function listDocuments(
   if (status) filter.status = status;
   if (typeof request.query.entityType === 'string') filter.entityType = request.query.entityType;
   const entityId =
-    typeof request.query.entityId === 'string' && mongoose.Types.ObjectId.isValid(request.query.entityId)
+    typeof request.query.entityId === 'string' &&
+    mongoose.Types.ObjectId.isValid(request.query.entityId)
       ? new mongoose.Types.ObjectId(request.query.entityId)
       : undefined;
   if (entityId) filter.entityId = entityId;
@@ -72,29 +69,30 @@ export async function listDocuments(
     Document.countDocuments(filter),
   ]);
 
-  sendResponse(reply, 200, {
-    documents,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit) || 1,
+  sendResponse(
+    reply,
+    200,
+    {
+      documents,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
     },
-  }, 'Documents loaded.');
+    'Documents loaded.'
+  );
 }
 
 export async function getDocumentDetails(
   request: FastifyRequest<{ Params: { documentId: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Access denied: only admins may view document details', 403);
-  }
-
   const { documentId } = request.params;
   if (!documentId) throw new AppError('Document ID is required', 400);
-  if (!mongoose.Types.ObjectId.isValid(documentId)) throw new AppError('Invalid document ID format', 400);
+  if (!mongoose.Types.ObjectId.isValid(documentId))
+    throw new AppError('Invalid document ID format', 400);
 
   const document = await Document.findById(documentId)
     .populate({
@@ -126,15 +124,20 @@ export async function verifyDocument(
   if (!doc) throw new AppError('Document not found', 404);
 
   if (doc.status === 'verified') {
-    sendResponse(reply, 200, {
-      document: {
-        _id: doc._id,
-        key: doc.key,
-        status: doc.status,
-        publicUrl: doc.publicUrl,
-        filename: doc.filename,
+    sendResponse(
+      reply,
+      200,
+      {
+        document: {
+          _id: doc._id,
+          key: doc.key,
+          status: doc.status,
+          publicUrl: doc.publicUrl,
+          filename: doc.filename,
+        },
       },
-    }, 'Document verified.');
+      'Document verified.'
+    );
     return;
   }
   if (doc.status === 'expired' || (doc.expiresAt && new Date() > doc.expiresAt)) {
@@ -145,6 +148,21 @@ export async function verifyDocument(
   const { exists, size } = await headObjectInR2(doc.key);
   const now = new Date();
   if (exists) {
+    if (
+      (doc.entityType === 'vendor' || doc.entityType === 'product') &&
+      doc.intent === 'image' &&
+      size != null &&
+      size > MAX_VENDOR_PRODUCT_IMAGE_BYTES
+    ) {
+      await Document.updateOne(
+        { _id: doc._id },
+        {
+          status: 'failed',
+          errorMessage: 'File exceeds maximum size of 3MB for marketplace product images',
+        }
+      );
+      throw new AppError('File exceeds maximum size of 3MB for marketplace product images', 400);
+    }
     await Document.updateOne(
       { _id: doc._id },
       {
@@ -170,8 +188,6 @@ export async function verifyDocumentAdmin(
   request: FastifyRequest<{ Params: { documentId: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') throw new AppError('Unauthorized', 401);
   const { documentId } = request.params;
   if (!mongoose.Types.ObjectId.isValid(documentId)) throw new AppError('Invalid documentId', 400);
 
@@ -179,15 +195,20 @@ export async function verifyDocumentAdmin(
   if (!doc) throw new AppError('Document not found', 404);
 
   if (doc.status === 'verified') {
-    sendResponse(reply, 200, {
-      document: {
-        _id: doc._id,
-        key: doc.key,
-        status: doc.status,
-        publicUrl: doc.publicUrl,
-        filename: doc.filename,
+    sendResponse(
+      reply,
+      200,
+      {
+        document: {
+          _id: doc._id,
+          key: doc.key,
+          status: doc.status,
+          publicUrl: doc.publicUrl,
+          filename: doc.filename,
+        },
       },
-    }, 'Document verified.');
+      'Document verified.'
+    );
     return;
   }
   if (doc.status === 'expired' || (doc.expiresAt && new Date() > doc.expiresAt)) {
@@ -198,6 +219,21 @@ export async function verifyDocumentAdmin(
   const { exists, size } = await headObjectInR2(doc.key);
   const now = new Date();
   if (exists) {
+    if (
+      (doc.entityType === 'vendor' || doc.entityType === 'product') &&
+      doc.intent === 'image' &&
+      size != null &&
+      size > MAX_VENDOR_PRODUCT_IMAGE_BYTES
+    ) {
+      await Document.updateOne(
+        { _id: doc._id },
+        {
+          status: 'failed',
+          errorMessage: 'File exceeds maximum size of 3MB for marketplace product images',
+        }
+      );
+      throw new AppError('File exceeds maximum size of 3MB for marketplace product images', 400);
+    }
     await Document.updateOne(
       { _id: doc._id },
       {

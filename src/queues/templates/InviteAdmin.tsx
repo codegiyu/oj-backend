@@ -26,8 +26,7 @@ export function InviteAdminTemplate({
   avatar,
   branding,
 }: InviteAdminJobData & { branding: AppBranding }) {
-  const displayName =
-    firstName && lastName ? `${firstName} ${lastName}` : name ?? 'Admin';
+  const displayName = firstName && lastName ? `${firstName} ${lastName}` : (name ?? 'Admin');
 
   const groupPermissions = (perms: string[]): Record<string, number> => {
     const groups: Record<string, number> = {};
@@ -102,7 +101,8 @@ export function InviteAdminTemplate({
                     padding: '16px',
                     margin: '16px 0',
                     textAlign: 'left' as const,
-                  }}>
+                  }}
+                >
                   {groupNames.map((groupName, index) => (
                     <Text
                       key={groupName}
@@ -111,7 +111,8 @@ export function InviteAdminTemplate({
                         fontSize: '14px',
                         lineHeight: '1.6',
                         margin: index > 0 ? '8px 0 0' : '0',
-                      }}>
+                      }}
+                    >
                       • <strong>{groupName}</strong> ({permissionGroups[groupName]} permission
                       {permissionGroups[groupName] !== 1 ? 's' : ''})
                     </Text>
@@ -137,7 +138,8 @@ export function InviteAdminTemplate({
               . If this wasn't you, please ignore and report to{' '}
               <a
                 style={{ ...anchor, color: branding.primaryColor }}
-                href={`mailto:${branding.supportEmail}`}>
+                href={`mailto:${branding.supportEmail}`}
+              >
                 {branding.supportEmail}
               </a>
               .

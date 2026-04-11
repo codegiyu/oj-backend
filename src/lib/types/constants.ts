@@ -344,6 +344,34 @@ export const ENTITY_TYPES = [
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
+export const CONTENT_CATEGORY_SCOPES = ['music', 'video', 'news', 'devotional'] as const;
+export type ContentCategoryScope = (typeof CONTENT_CATEGORY_SCOPES)[number];
+
+export const HOME_ADVERT_SLOTS = ['after_hero', 'before_cta'] as const;
+export type HomeAdvertSlot = (typeof HOME_ADVERT_SLOTS)[number];
+
+export interface IContentCategory {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  slug: string;
+  scope: ContentCategoryScope;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IHomeAdvert {
+  _id: mongoose.Types.ObjectId;
+  slot: HomeAdvertSlot;
+  imageUrl: string;
+  linkUrl: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Content types (abbreviated for models)
 export interface IGospelVerse {
   _id: mongoose.Types.ObjectId;
@@ -404,17 +432,20 @@ export interface IMusic {
   _id: mongoose.Types.ObjectId;
   title: string;
   slug: string;
-  artist: mongoose.Types.ObjectId;
+  artist?: mongoose.Types.ObjectId | null;
   description?: string;
   lyrics?: string;
   coverImage?: string;
   audioUrl?: string;
   videoUrl?: string;
+  downloadUrl?: string;
+  excerpt?: string;
   category?: string;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   isMonetizable?: boolean;
   displayOrder: number;
+  views?: number;
   plays?: number;
   downloads?: number;
   approvedAt?: Date | null;
@@ -430,16 +461,20 @@ export interface IVideo {
   _id: mongoose.Types.ObjectId;
   title: string;
   slug: string;
-  artist: mongoose.Types.ObjectId;
+  artist?: mongoose.Types.ObjectId | null;
   description?: string;
   thumbnail?: string;
   videoUrl?: string;
+  videoFileUrl?: string;
+  embedUrl?: string;
   category?: string;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   isMonetizable?: boolean;
   displayOrder: number;
   views?: number;
+  plays?: number;
+  downloads?: number;
   approvedAt?: Date | null;
   approvedBy?: mongoose.Types.ObjectId | null;
   rejectionReason?: string;
@@ -484,17 +519,20 @@ export interface IDevotional {
   _id: mongoose.Types.ObjectId;
   title: string;
   slug: string;
+  artist?: mongoose.Types.ObjectId | null;
   excerpt?: string;
   content: string;
   type?: DevotionalType;
   category?: string;
   author?: mongoose.Types.ObjectId | string;
   verse?: string;
+  coverImage?: string;
   date?: Date;
   readingTime?: number;
   lessons?: string[];
   duration?: number;
   views?: number;
+  plays?: number;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   displayOrder: number;
@@ -515,6 +553,10 @@ export interface INewsArticle {
   excerpt?: string;
   coverImage?: string;
   images: string[];
+  audioUrl?: string;
+  videoFileUrl?: string;
+  embedUrl?: string;
+  downloadUrl?: string;
   category?: string;
   author?: string;
   status: 'draft' | 'published' | 'archived';
@@ -873,6 +915,8 @@ export type ModelVideo = IVideo & IModelIndex & Document;
 export type ModelPastor = IPastor & IModelIndex & Document;
 export type ModelDevotional = IDevotional & IModelIndex & Document;
 export type ModelNewsArticle = INewsArticle & IModelIndex & Document;
+export type ModelContentCategory = IContentCategory & IModelIndex & Document;
+export type ModelHomeAdvert = IHomeAdvert & IModelIndex & Document;
 export type ModelResource = IResource & IModelIndex & Document;
 export type ModelFeaturedOption = IFeaturedOption & IModelIndex & Document;
 export type ModelPromotionPricingOption = IPromotionPricingOption & IModelIndex & Document;

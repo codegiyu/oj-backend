@@ -58,17 +58,9 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
   app.post<{
     Body: { scopeToken: string; email: string; password: string; confirmPassword: string };
-  }>(
-    '/reset-password',
-    { schema: resetPasswordBodySchema },
-    catchAsync(resetPassword)
-  );
+  }>('/reset-password', { schema: resetPasswordBodySchema }, catchAsync(resetPassword));
 
-  app.get(
-    '/session',
-    { preHandler: optionalAuthenticate },
-    catchAsync(session)
-  );
+  app.get('/session', { preHandler: optionalAuthenticate }, catchAsync(session));
 
   app.patch<{
     Body: { currentPassword: string; password: string; confirmPassword: string };
@@ -78,9 +70,5 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     catchAsync(changePassword)
   );
 
-  app.post(
-    '/logout',
-    { preHandler: authenticate },
-    catchAsync(logout)
-  );
+  app.post('/logout', { preHandler: authenticate }, catchAsync(logout));
 }

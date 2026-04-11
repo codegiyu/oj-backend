@@ -14,29 +14,15 @@ export async function sendPasswordResetLink(options: {
   accessType: AccessType;
   expirationTime?: number;
 }): Promise<void> {
-  const {
-    email,
-    name,
-    accessType,
-    expirationTime = RESET_LINK_EXPIRATION_SECONDS,
-  } = options;
+  const { email, name, accessType, expirationTime = RESET_LINK_EXPIRATION_SECONDS } = options;
 
   const baseUrl =
-    accessType === 'console'
-      ? ENVIRONMENT.appUrls.adminAppUrl
-      : ENVIRONMENT.appUrls.clientAppUrl;
+    accessType === 'console' ? ENVIRONMENT.appUrls.adminAppUrl : ENVIRONMENT.appUrls.clientAppUrl;
   const resetToken = generateRandomString(10);
   const resetLink = `${baseUrl.replace(/\/$/, '')}/auth/reset-password?email=${encodeURIComponent(email)}&scopeToken=${encodeURIComponent(resetToken)}`;
 
-  const token = createOtpToken(
-    { code: resetToken, scope: 'reset-password' },
-    expirationTime
-  );
-  await addToCache(
-    `pers:${email}:reset-password` as `pers:${string}`,
-    token,
-    expirationTime
-  );
+  const token = createOtpToken({ code: resetToken, scope: 'reset-password' }, expirationTime);
+  await addToCache(`pers:${email}:reset-password` as `pers:${string}`, token, expirationTime);
   await addJobToQueue({
     type: 'resetPassword',
     to: email,

@@ -3,7 +3,13 @@ import mongoose from 'mongoose';
 import { Testimony } from '../../models/testimony';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'author', 'status'];
@@ -32,10 +38,11 @@ function shapeTestimonyItem(raw: Record<string, unknown>): Record<string, unknow
 }
 
 export async function listAdminTestimonies(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -61,21 +68,30 @@ export async function listAdminTestimonies(
 
   const testimonies = (items as Record<string, unknown>[]).map(shapeTestimonyItem);
 
-  sendResponse(reply, 200, {
-    testimonies,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Testimonies list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      testimonies,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Testimonies list loaded.'
+  );
 }
 
 export async function getAdminTestimony(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await Testimony.findById(id).lean();
   if (!doc) throw new AppError('Testimony not found', 404);
-  sendResponse(reply, 200, { testimony: shapeTestimonyItem(doc as unknown as Record<string, unknown>) }, 'Testimony loaded.');
+  sendResponse(
+    reply,
+    200,
+    { testimony: shapeTestimonyItem(doc as unknown as Record<string, unknown>) },
+    'Testimony loaded.'
+  );
 }
 
 export async function createAdminTestimony(
@@ -92,7 +108,6 @@ export async function createAdminTestimony(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.author || typeof body.author !== 'string' || !body.author.trim()) {
     throw new AppError('Author is required', 400);
@@ -116,7 +131,14 @@ export async function createAdminTestimony(
   });
 
   const populated = await Testimony.findById(testimony._id).lean();
-  sendResponse(reply, 201, { testimony: shapeTestimonyItem((populated ?? testimony) as unknown as Record<string, unknown>) }, 'Testimony created.');
+  sendResponse(
+    reply,
+    201,
+    {
+      testimony: shapeTestimonyItem((populated ?? testimony) as unknown as Record<string, unknown>),
+    },
+    'Testimony created.'
+  );
 }
 
 export async function updateAdminTestimony(
@@ -134,7 +156,6 @@ export async function updateAdminTestimony(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const testimony = await Testimony.findById(id);
   if (!testimony) throw new AppError('Testimony not found', 404);
@@ -151,14 +172,20 @@ export async function updateAdminTestimony(
   await testimony.save();
 
   const populated = await Testimony.findById(testimony._id).lean();
-  sendResponse(reply, 200, { testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>) }, 'Testimony updated.');
+  sendResponse(
+    reply,
+    200,
+    {
+      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>),
+    },
+    'Testimony updated.'
+  );
 }
 
 export async function deleteAdminTestimony(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await Testimony.findByIdAndDelete(id);
   if (!result) throw new AppError('Testimony not found', 404);
@@ -183,7 +210,14 @@ export async function approveAdminTestimony(
   await testimony.save();
 
   const populated = await Testimony.findById(testimony._id).lean();
-  sendResponse(reply, 200, { testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>) }, 'Testimony approved.');
+  sendResponse(
+    reply,
+    200,
+    {
+      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>),
+    },
+    'Testimony approved.'
+  );
 }
 
 export async function rejectAdminTestimony(
@@ -205,5 +239,12 @@ export async function rejectAdminTestimony(
   await testimony.save();
 
   const populated = await Testimony.findById(testimony._id).lean();
-  sendResponse(reply, 200, { testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>) }, 'Testimony rejected.');
+  sendResponse(
+    reply,
+    200,
+    {
+      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>),
+    },
+    'Testimony rejected.'
+  );
 }

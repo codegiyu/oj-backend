@@ -1,14 +1,11 @@
 import type { FastifyRequest } from 'fastify';
 import { AppError } from '../../utils/AppError';
-import { getAuthUser } from '../../utils/getAuthUser';
+import { assertConsoleAccess } from '../../utils/consoleAccess';
 import mongoose from 'mongoose';
 
+/** Same as route-level requireConsoleAccess after authenticate; use for userId or defense in depth. */
 export function requireAdmin(request: FastifyRequest): { userId: string } {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Access denied: admin access required', 403);
-  }
-  return { userId: user.userId };
+  return assertConsoleAccess(request);
 }
 
 export function parseObjectId(id: string | undefined, field = 'id'): mongoose.Types.ObjectId {

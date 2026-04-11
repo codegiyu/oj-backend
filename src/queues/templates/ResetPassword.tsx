@@ -1,15 +1,6 @@
 import type { AppBranding } from '../../utils/branding';
 import type { ResetPasswordJobData } from '../../lib/types/queues';
-import {
-  Body,
-  Container,
-  Head,
-  Hr,
-  Html,
-  Img,
-  Section,
-  Text,
-} from '@react-email/components';
+import { Body, Container, Head, Hr, Html, Img, Section, Text } from '@react-email/components';
 import { CodeOrLinkDisplay } from './components/CodeOrLinkDisplay';
 import {
   anchor,
@@ -85,7 +76,8 @@ export function ResetPasswordLink({
               . If this wasn't you, please ignore and report to{' '}
               <a
                 style={{ ...anchor, color: branding.primaryColor }}
-                href={`mailto:${branding.supportEmail}`}>
+                href={`mailto:${branding.supportEmail}`}
+              >
                 {branding.supportEmail}
               </a>
               .

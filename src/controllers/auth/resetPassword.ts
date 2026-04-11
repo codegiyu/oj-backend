@@ -26,9 +26,7 @@ export async function resetPassword(
     throw new AppError('Password and confirm password do not match', 400);
   }
 
-  const token = (await getFromCache<string>(
-    `pers:${email}:reset-password` as `pers:${string}`
-  )) as string | null;
+  const token = await getFromCache<string>(`pers:${email}:reset-password` as `pers:${string}`);
   if (!token) throw new AppError('Invalid or expired password reset token', 400);
 
   const decoded = verifyOtpToken(token);
@@ -36,7 +34,7 @@ export async function resetPassword(
   if (decoded.code !== scopeToken) throw new AppError('Invalid or expired reset token', 400);
   if (decoded.scope !== 'reset-password') throw new AppError('Invalid reset scope', 400);
 
-  const emailLower = (email as string).toLowerCase();
+  const emailLower = email.toLowerCase();
   const admin = await Admin.findOne({ email: emailLower }).lean();
   const user = await User.findOne({ email: emailLower }).lean();
 
@@ -47,7 +45,7 @@ export async function resetPassword(
     await processPasswordChange({
       reply,
       user: admin,
-      password: password as string,
+      password: password,
       accessType: 'console',
     });
   } else if (user) {
@@ -57,7 +55,7 @@ export async function resetPassword(
     await processPasswordChange({
       reply,
       user,
-      password: password as string,
+      password: password,
       accessType: 'client',
     });
   } else {

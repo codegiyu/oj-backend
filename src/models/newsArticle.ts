@@ -9,6 +9,10 @@ const newsArticleSchema = new Schema<ModelNewsArticle>(
     excerpt: { type: String, default: '' },
     coverImage: { type: String, default: '' },
     images: { type: [String], default: [] },
+    audioUrl: { type: String, default: '' },
+    videoFileUrl: { type: String, default: '' },
+    embedUrl: { type: String, default: '' },
+    downloadUrl: { type: String, default: '' },
     category: { type: String, default: '', index: true },
     author: { type: String, default: '' },
     status: {

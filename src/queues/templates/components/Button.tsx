@@ -21,7 +21,8 @@ export const Button = ({ text, href, short = false }: ButtonProps) => {
           fontWeight: '500',
           color: '#fff',
           fontFamily: "'Inter', sans-serif",
-        }}>
+        }}
+      >
         {text}
       </button>
     </Link>

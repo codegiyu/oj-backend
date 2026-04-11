@@ -54,10 +54,7 @@ export async function findUserByEmail(email: string): Promise<ModelUser | null> 
 /**
  * Invalidate cached admin or user by email. Call on logout.
  */
-export async function invalidateAuthCache(
-  email: string,
-  type: 'admin' | 'user'
-): Promise<void> {
+export async function invalidateAuthCache(email: string, type: 'admin' | 'user'): Promise<void> {
   const key = type === 'admin' ? adminCacheKey(email) : userCacheKey(email);
   await removeFromCache(key);
 }

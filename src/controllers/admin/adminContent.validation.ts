@@ -82,3 +82,14 @@ export const createUpdateBodySchema: FastifySchema = {
     minProperties: 0,
   },
 };
+
+/** GET /admin/users — search platform users for content owner linking */
+export const adminUsersSearchQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      search: { type: 'string' },
+      limit: { type: 'string', pattern: '^[0-9]+$' },
+    },
+  },
+};

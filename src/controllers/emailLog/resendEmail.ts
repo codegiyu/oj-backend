@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { EmailLog } from '../../models/emailLog';
-import { getAuthUser } from '../../utils/getAuthUser';
 import { addJobToQueue } from '../../queues/main.queue';
 import type { JobData } from '../../lib/types/queues';
 
@@ -11,11 +10,6 @@ export async function resendEmail(
   request: FastifyRequest<{ Params: { emailLogId: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Access denied: only admins may resend emails', 403);
-  }
-
   const { emailLogId } = request.params;
   if (!emailLogId) throw new AppError('Email log ID is required', 400);
   if (!mongoose.Types.ObjectId.isValid(emailLogId)) {
@@ -49,16 +43,21 @@ export async function resendEmail(
 
     const updatedEmailLog = await EmailLog.findById(emailLogId);
 
-    sendResponse(reply, 200, {
-      emailLog: {
-        _id: emailLog._id,
-        status: 'pending',
-        jobId: newJobId,
-        to: emailLog.to,
-        type: emailLog.type,
-        retryCount: updatedEmailLog?.retryCount ?? (emailLog.retryCount || 0) + 1,
+    sendResponse(
+      reply,
+      200,
+      {
+        emailLog: {
+          _id: emailLog._id,
+          status: 'pending',
+          jobId: newJobId,
+          to: emailLog.to,
+          type: emailLog.type,
+          retryCount: updatedEmailLog?.retryCount ?? (emailLog.retryCount || 0) + 1,
+        },
       },
-    }, 'Email queued for resend.');
+      'Email queued for resend.'
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     if (error instanceof AppError) throw error;

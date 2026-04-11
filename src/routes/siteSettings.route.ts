@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { catchAsync } from '../utils/catchAsync';
 import { getSiteSettings } from '../controllers/siteSettings/siteSettings.controller';
 import { updateSiteSettings } from '../controllers/siteSettings/siteSettings.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import {
   getSiteSettingsParamsSchema,
   updateSiteSettingsBodySchema,
@@ -28,7 +28,7 @@ export async function registerAdminSiteSettingsRoutes(app: FastifyInstance): Pro
   }>(
     '/',
     {
-      preHandler: authenticate,
+      preHandler: [authenticate, requireConsoleAccess],
       schema: updateSiteSettingsBodySchema,
     },
     catchAsync(updateSiteSettings)

@@ -12,7 +12,8 @@ export const Greeting = ({ name, avatar }: GreetingProps) => {
     <Box
       style={{
         ...greetingWrapperStyle,
-      }}>
+      }}
+    >
       <div style={{ padding: '20px 32px 0' }}>
         <Img src={avatar} alt={name} width={60} height={60} style={avatarStyle} />
       </div>

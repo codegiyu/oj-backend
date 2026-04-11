@@ -20,6 +20,7 @@ import {
   Resource,
 } from '../../models';
 import { Artist } from '../../models/artist';
+import { ARTIST_POPULATE_SELECT } from '../artist/artist.helpers';
 import {
   findByIdOrSlug,
   shapeDevotionalListItem,
@@ -60,19 +61,22 @@ function getVoterIdentifier(request: FastifyRequest): string {
 }
 
 // ----- GET /public/community -----
-export async function getCommunity(
-  _request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
-  const [devotionalsCount, testimoniesCount, prayerRequestsCount, questionsCount, pollsCount, resourcesCount] =
-    await Promise.all([
-      Devotional.countDocuments({ status: 'published' }),
-      Testimony.countDocuments({ status: 'published' }),
-      PrayerRequest.countDocuments({}),
-      AskPastorQuestion.countDocuments({}),
-      Poll.countDocuments({}),
-      Resource.countDocuments({ status: 'published' }),
-    ]);
+export async function getCommunity(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const [
+    devotionalsCount,
+    testimoniesCount,
+    prayerRequestsCount,
+    questionsCount,
+    pollsCount,
+    resourcesCount,
+  ] = await Promise.all([
+    Devotional.countDocuments({ status: 'published' }),
+    Testimony.countDocuments({ status: 'published' }),
+    PrayerRequest.countDocuments({}),
+    AskPastorQuestion.countDocuments({}),
+    Poll.countDocuments({}),
+    Resource.countDocuments({ status: 'published' }),
+  ]);
 
   const [featuredTestimonies, trendingDevotionals] = await Promise.all([
     Testimony.find({ status: 'published', isFeatured: true })
@@ -82,6 +86,7 @@ export async function getCommunity(
     Devotional.find({ status: 'published' })
       .sort({ views: -1, createdAt: -1 })
       .limit(TRENDING_DEVOTIONALS_LIMIT)
+      .populate('artist', ARTIST_POPULATE_SELECT)
       .lean(),
   ]);
 
@@ -98,8 +103,12 @@ export async function getCommunity(
         resources: resourcesCount,
         promoteYourContent: 0,
       },
-      featuredTestimonies: (featuredTestimonies as Record<string, unknown>[]).map(shapeTestimonyListItem),
-      trendingDevotionals: (trendingDevotionals as Record<string, unknown>[]).map(shapeDevotionalListItem),
+      featuredTestimonies: (featuredTestimonies as Record<string, unknown>[]).map(
+        shapeTestimonyListItem
+      ),
+      trendingDevotionals: (trendingDevotionals as Record<string, unknown>[]).map(
+        shapeDevotionalListItem
+      ),
       activeDiscussions: [],
     },
     'Community data loaded.'
@@ -109,7 +118,13 @@ export async function getCommunity(
 // ----- GET /public/devotionals -----
 export async function listDevotionals(
   request: FastifyRequest<{
-    Querystring: { type?: string; category?: string; page?: string; limit?: string; status?: string };
+    Querystring: {
+      type?: string;
+      category?: string;
+      page?: string;
+      limit?: string;
+      status?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -129,12 +144,22 @@ export async function listDevotionals(
   else if (type) sort = { type: 1, createdAt: -1 };
 
   const [items, total] = await Promise.all([
-    Devotional.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+    Devotional.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .populate('artist', ARTIST_POPULATE_SELECT)
+      .lean(),
     Devotional.countDocuments(filter),
   ]);
 
   const devotionals = (items as Record<string, unknown>[]).map(shapeDevotionalListItem);
-  sendResponse(reply, 200, { devotionals, pagination: pagination(page, limit, total) }, 'Devotionals list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { devotionals, pagination: pagination(page, limit, total) },
+    'Devotionals list loaded.'
+  );
 }
 
 // ----- GET /public/devotionals/:idOrSlug -----
@@ -145,20 +170,25 @@ export async function getDevotionalByIdOrSlug(
   const doc = await findByIdOrSlug(Devotional, request.params.idOrSlug, { status: 'published' });
   if (!doc) throw new AppError('Devotional not found', 404);
 
+  const populated = await Devotional.findById(doc._id)
+    .populate('artist', ARTIST_POPULATE_SELECT)
+    .lean();
+  const detailRaw = (populated ?? doc) as Record<string, unknown>;
+
   const category = doc.category as string | undefined;
-  const related =
-    category
-      ? await Devotional.find({ status: 'published', category, _id: { $ne: doc._id } })
-          .sort({ createdAt: -1 })
-          .limit(RELATED_DEVOTIONALS_LIMIT)
-          .lean()
-      : [];
+  const related = category
+    ? await Devotional.find({ status: 'published', category, _id: { $ne: doc._id } })
+        .sort({ createdAt: -1 })
+        .limit(RELATED_DEVOTIONALS_LIMIT)
+        .populate('artist', ARTIST_POPULATE_SELECT)
+        .lean()
+    : [];
 
   sendResponse(
     reply,
     200,
     {
-      devotional: shapeDevotionalDetail(doc as Record<string, unknown>),
+      devotional: shapeDevotionalDetail(detailRaw),
       relatedDevotionals: (related as Record<string, unknown>[]).map(shapeDevotionalListItem),
     },
     'Devotional loaded.'
@@ -168,7 +198,13 @@ export async function getDevotionalByIdOrSlug(
 // ----- GET /public/testimonies -----
 export async function listTestimonies(
   request: FastifyRequest<{
-    Querystring: { type?: string; category?: string; page?: string; limit?: string; status?: string };
+    Querystring: {
+      type?: string;
+      category?: string;
+      page?: string;
+      limit?: string;
+      status?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -191,7 +227,12 @@ export async function listTestimonies(
   ]);
 
   const testimonies = (items as Record<string, unknown>[]).map(shapeTestimonyListItem);
-  sendResponse(reply, 200, { testimonies, pagination: pagination(page, limit, total) }, 'Testimonies list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { testimonies, pagination: pagination(page, limit, total) },
+    'Testimonies list loaded.'
+  );
 }
 
 // ----- GET /public/testimonies/:idOrSlug -----
@@ -201,7 +242,7 @@ export async function getTestimonyByIdOrSlug(
 ): Promise<void> {
   const doc = await findByIdOrSlug(Testimony, request.params.idOrSlug, { status: 'published' });
   if (!doc) throw new AppError('Testimony not found', 404);
-  sendResponse(reply, 200, { testimony: shapeTestimonyDetail(doc as Record<string, unknown>) }, 'Testimony loaded.');
+  sendResponse(reply, 200, { testimony: shapeTestimonyDetail(doc) }, 'Testimony loaded.');
 }
 
 // ----- GET /public/prayer-requests -----
@@ -245,7 +286,7 @@ export async function getPrayerRequestByIdOrSlug(
   sendResponse(
     reply,
     200,
-    { prayerRequest: shapePrayerRequestDetail(doc as Record<string, unknown>) },
+    { prayerRequest: shapePrayerRequestDetail(doc) },
     'Prayer request loaded.'
   );
 }
@@ -268,15 +309,25 @@ export async function listAskAPastorQuestions(
   if (category && category !== 'all') filter.category = category;
 
   const [items, total] = await Promise.all([
-    AskPastorQuestion.find(filter).sort({ createdAt: -1 }).populate('pastor').skip(skip).limit(limit).lean(),
+    AskPastorQuestion.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('pastor')
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     AskPastorQuestion.countDocuments(filter),
   ]);
 
-  const questions = (items as Record<string, unknown>[]).map((raw) => {
+  const questions = (items as Record<string, unknown>[]).map(raw => {
     const pastor = raw.pastor as Record<string, unknown> | null | undefined;
-    return shapeQuestionListItem(raw as Record<string, unknown>, pastor ?? null);
+    return shapeQuestionListItem(raw, pastor ?? null);
   });
-  sendResponse(reply, 200, { questions, pagination: pagination(page, limit, total) }, 'Questions list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { questions, pagination: pagination(page, limit, total) },
+    'Questions list loaded.'
+  );
 }
 
 // ----- GET /public/ask-a-pastor/questions/:idOrSlug -----
@@ -286,9 +337,7 @@ export async function getAskAPastorQuestionByIdOrSlug(
 ): Promise<void> {
   const doc = await findByIdOrSlug(AskPastorQuestion, request.params.idOrSlug, {});
   if (!doc) throw new AppError('Question not found', 404);
-  const populated = await AskPastorQuestion.findById((doc as Record<string, unknown>)._id)
-    .populate('pastor')
-    .lean();
+  const populated = await AskPastorQuestion.findById(doc._id).populate('pastor').lean();
   if (!populated) throw new AppError('Question not found', 404);
   const raw = populated as unknown as Record<string, unknown>;
   const pastor = raw.pastor as Record<string, unknown> | null | undefined;
@@ -310,12 +359,21 @@ export async function listAskAPastorPastors(
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
-    Pastor.find({ isActive: true }).sort({ displayOrder: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Pastor.find({ isActive: true })
+      .sort({ displayOrder: 1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Pastor.countDocuments({ isActive: true }),
   ]);
 
   const pastors = (items as Record<string, unknown>[]).map(shapePastorListItem);
-  sendResponse(reply, 200, { pastors, pagination: pagination(page, limit, total) }, 'Pastors list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { pastors, pagination: pagination(page, limit, total) },
+    'Pastors list loaded.'
+  );
 }
 
 // ----- GET /public/polls -----
@@ -339,7 +397,12 @@ export async function listPolls(
   ]);
 
   const polls = (items as Record<string, unknown>[]).map(shapePollListItem);
-  sendResponse(reply, 200, { polls, pagination: pagination(page, limit, total) }, 'Polls list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { polls, pagination: pagination(page, limit, total) },
+    'Polls list loaded.'
+  );
 }
 
 // ----- GET /public/polls/:idOrSlug -----
@@ -349,7 +412,7 @@ export async function getPollByIdOrSlug(
 ): Promise<void> {
   const doc = await findByIdOrSlug(Poll, request.params.idOrSlug, {});
   if (!doc) throw new AppError('Poll not found', 404);
-  sendResponse(reply, 200, { poll: shapePollDetail(doc as Record<string, unknown>) }, 'Poll loaded.');
+  sendResponse(reply, 200, { poll: shapePollDetail(doc) }, 'Poll loaded.');
 }
 
 // ----- GET /public/artists -----
@@ -362,12 +425,21 @@ export async function listCommunityArtists(
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
-    Artist.find({ isActive: true }).sort({ displayOrder: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Artist.find({ isActive: true })
+      .sort({ displayOrder: 1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Artist.countDocuments({ isActive: true }),
   ]);
 
   const artists = (items as Record<string, unknown>[]).map(shapeArtistListItem);
-  sendResponse(reply, 200, { artists, pagination: pagination(page, limit, total) }, 'Artists list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { artists, pagination: pagination(page, limit, total) },
+    'Artists list loaded.'
+  );
 }
 
 // ----- GET /public/artists/:idOrSlug -----
@@ -377,7 +449,7 @@ export async function getCommunityArtistByIdOrSlug(
 ): Promise<void> {
   const doc = await findByIdOrSlug(Artist, request.params.idOrSlug, { isActive: true });
   if (!doc) throw new AppError('Artist not found', 404);
-  sendResponse(reply, 200, { artist: shapeArtistDetail(doc as Record<string, unknown>) }, 'Artist loaded.');
+  sendResponse(reply, 200, { artist: shapeArtistDetail(doc) }, 'Artist loaded.');
 }
 
 // ----- GET /public/resources -----
@@ -401,18 +473,30 @@ export async function listResources(
   ]);
 
   const resources = (items as Record<string, unknown>[]).map(shapeResourceListItem);
-  sendResponse(reply, 200, { resources, pagination: pagination(page, limit, total) }, 'Resources list loaded.');
+  sendResponse(
+    reply,
+    200,
+    { resources, pagination: pagination(page, limit, total) },
+    'Resources list loaded.'
+  );
 }
 
 // ----- POST /public/prayer-requests -----
 export async function submitPrayerRequest(
   request: FastifyRequest<{
-    Body: { name?: string; email?: string; title: string; content: string; category?: string; urgent?: boolean };
+    Body: {
+      name?: string;
+      email?: string;
+      title: string;
+      content: string;
+      category?: string;
+      urgent?: boolean;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body ?? {};
-  const slug = await generateUniqueSlug(PrayerRequest, (body.title as string).trim().slice(0, 50) || 'prayer');
+  const slug = await generateUniqueSlug(PrayerRequest, body.title.trim().slice(0, 50) || 'prayer');
   const doc = await PrayerRequest.create({
     title: body.title,
     slug,
@@ -426,7 +510,12 @@ export async function submitPrayerRequest(
     status: 'active',
   });
   const raw = doc.toObject ? doc.toObject() : (doc as unknown as Record<string, unknown>);
-  sendResponse(reply, 201, { prayerRequest: shapePrayerRequestDetail(raw) }, 'Prayer request submitted.');
+  sendResponse(
+    reply,
+    201,
+    { prayerRequest: shapePrayerRequestDetail(raw) },
+    'Prayer request submitted.'
+  );
 }
 
 // ----- POST /public/ask-a-pastor/questions -----
@@ -437,7 +526,7 @@ export async function submitQuestion(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body ?? {};
-  const baseSlug = (body.question as string).trim().slice(0, 40) || 'question';
+  const baseSlug = body.question.trim().slice(0, 40) || 'question';
   const slug = await generateUniqueSlug(AskPastorQuestion, baseSlug);
   const doc = await AskPastorQuestion.create({
     question: body.question,
@@ -462,7 +551,7 @@ export async function submitTestimony(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body ?? {};
-  const baseSlug = (body.content as string).trim().slice(0, 30) || (body.name as string) || 'testimony';
+  const baseSlug = body.content.trim().slice(0, 30) || (body.name as string) || 'testimony';
   const slug = await generateUniqueSlug(Testimony, baseSlug);
   const doc = await Testimony.create({
     slug,
@@ -487,11 +576,11 @@ export async function createPoll(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body ?? {};
-  const slug = await generateUniqueSlug(Poll, (body.question as string).trim().slice(0, 40) || 'poll');
-  const optionTexts = (body.options as string[]).slice(0, 6).filter(Boolean);
+  const slug = await generateUniqueSlug(Poll, body.question.trim().slice(0, 40) || 'poll');
+  const optionTexts = body.options.slice(0, 6).filter(Boolean);
   if (optionTexts.length < 2) throw new AppError('At least 2 options are required', 400);
 
-  const options = optionTexts.map((text) => ({ _id: new mongoose.Types.ObjectId(), text, votes: 0 }));
+  const options = optionTexts.map(text => ({ _id: new mongoose.Types.ObjectId(), text, votes: 0 }));
   const doc = await Poll.create({
     question: body.question,
     slug,
@@ -524,15 +613,14 @@ export async function votePoll(
   if (status !== 'active') throw new AppError('Poll is closed', 400);
 
   const optionIdObj = new mongoose.Types.ObjectId(optionId);
-  const options = (pollDoc.options as { _id: mongoose.Types.ObjectId; text: string; votes: number }[]) ?? [];
-  const optionIndex = options.findIndex(
-    (o) => o._id != null && String(o._id) === String(optionId)
-  );
+  const options =
+    (pollDoc.options as { _id: mongoose.Types.ObjectId; text: string; votes: number }[]) ?? [];
+  const optionIndex = options.findIndex(o => o._id != null && String(o._id) === String(optionId));
   if (optionIndex === -1) throw new AppError('Invalid option', 400);
 
   const voterIdentifier = getVoterIdentifier(request);
   const existingVote = await PollVote.findOne({
-    poll: (pollDoc as Record<string, unknown>)._id,
+    poll: pollDoc._id,
     voterIdentifier,
   });
   if (existingVote) {
@@ -540,12 +628,12 @@ export async function votePoll(
   }
 
   await PollVote.create({
-    poll: (pollDoc as Record<string, unknown>)._id,
+    poll: pollDoc._id,
     optionId: optionIdObj,
     voterIdentifier,
   });
 
-  const pollId = (pollDoc as Record<string, unknown>)._id as mongoose.Types.ObjectId;
+  const pollId = pollDoc._id as mongoose.Types.ObjectId;
   await Poll.updateOne(
     { _id: pollId },
     {
@@ -556,5 +644,10 @@ export async function votePoll(
   const updated = await Poll.findById(pollId).lean();
   if (!updated) throw new AppError('Poll not found', 404);
 
-  sendResponse(reply, 200, { poll: shapePollDetail(updated as Record<string, unknown>) }, 'Vote recorded.');
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollDetail(updated as Record<string, unknown>) },
+    'Vote recorded.'
+  );
 }

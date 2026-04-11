@@ -25,7 +25,16 @@ export async function listNotificationsForUser(
   userId: string,
   userModel: 'User' | 'Admin',
   options: { page?: number; limit?: number; isRead?: boolean } = {}
-): Promise<{ notifications: unknown[]; meta: { page: number; limit: number; total: number; totalPages: number; expiredProcessed?: { matchedCount: number; modifiedCount: number } } }> {
+): Promise<{
+  notifications: unknown[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    expiredProcessed?: { matchedCount: number; modifiedCount: number };
+  };
+}> {
   const expired = await expireNotificationsForUser(userId, userModel);
   const page = Math.max(1, options.page ?? 1);
   const limit = Math.min(100, Math.max(1, options.limit ?? 20));
@@ -78,20 +87,16 @@ export async function createAndSendNotification(
   });
   const notification = doc.toObject();
   if (sendRealTime) {
-    sendRealTimeNotification(
-      String(notification.user),
-      notification.userModel,
-      {
-        _id: notification._id,
-        title: notification.title,
-        message: notification.message,
-        eventType: notification.eventType,
-        isRead: notification.isRead,
-        createdAt: notification.createdAt,
-        status: notification.status,
-        context: notification.context,
-      }
-    );
+    sendRealTimeNotification(String(notification.user), notification.userModel, {
+      _id: notification._id,
+      title: notification.title,
+      message: notification.message,
+      eventType: notification.eventType,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+      status: notification.status,
+      context: notification.context,
+    });
   }
   return notification;
 }
@@ -110,7 +115,9 @@ export interface DispatchNotificationOptions {
   context?: Record<string, unknown>;
 }
 
-export async function dispatchNotification(options: DispatchNotificationOptions): Promise<unknown | null> {
+export async function dispatchNotification(
+  options: DispatchNotificationOptions
+): Promise<unknown | null> {
   const {
     userId,
     userModel,

@@ -11,7 +11,8 @@ export const PairTable = ({ pairs }: PairTableProps) => {
         borderRadius: '12px',
         overflow: 'hidden',
         background: 'rgba(0, 0, 0, 0.03)',
-      }}>
+      }}
+    >
       {pairs.map(([title, value], idx, arr) => (
         <table key={idx} style={{ width: '100%', maxWidth: '600px' }}>
           <tbody style={{ width: '100%' }}>
@@ -21,7 +22,8 @@ export const PairTable = ({ pairs }: PairTableProps) => {
                 ...(idx < arr.length - 1 && {
                   borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
                 }),
-              }}>
+              }}
+            >
               <td style={{ textAlign: 'left', padding: '16px' }}>
                 <p className="text-d-100" style={{ ...textStyle }}>
                   {title}

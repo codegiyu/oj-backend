@@ -89,10 +89,7 @@ export const ENVIRONMENT: Environment = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     refreshSecret: process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key',
     refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '30d',
-    accessCookieMaxAge: parseInt(
-      process.env.ACCESS_COOKIE_MAX_AGE || String(7 * 24 * 60 * 60),
-      10
-    ),
+    accessCookieMaxAge: parseInt(process.env.ACCESS_COOKIE_MAX_AGE || String(7 * 24 * 60 * 60), 10),
     refreshCookieMaxAge: parseInt(
       process.env.REFRESH_COOKIE_MAX_AGE || String(30 * 24 * 60 * 60),
       10

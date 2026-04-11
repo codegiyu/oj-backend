@@ -18,7 +18,7 @@ const start = async (): Promise<void> => {
 
     getRedisClient();
     logger.info('Redis client initialized');
-    
+
     await seedDb();
     logger.info('Seed completed');
 

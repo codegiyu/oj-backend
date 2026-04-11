@@ -2,8 +2,15 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Artist } from '../../models/artist';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
+import { parseObjectId } from './admin.helpers';
+import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name'];
 
@@ -26,10 +33,11 @@ function shapeArtistItem(raw: Record<string, unknown>): Record<string, unknown> 
 }
 
 export async function listAdminArtists(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -56,21 +64,30 @@ export async function listAdminArtists(
 
   const artists = (items as Record<string, unknown>[]).map(shapeArtistItem);
 
-  sendResponse(reply, 200, {
-    artists,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Artists list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      artists,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Artists list loaded.'
+  );
 }
 
 export async function getAdminArtist(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await Artist.findById(id).lean();
   if (!doc) throw new AppError('Artist not found', 404);
-  sendResponse(reply, 200, { artist: shapeArtistItem(doc as unknown as Record<string, unknown>) }, 'Artist loaded.');
+  sendResponse(
+    reply,
+    200,
+    { artist: shapeArtistItem(doc as unknown as Record<string, unknown>) },
+    'Artist loaded.'
+  );
 }
 
 export async function createAdminArtist(
@@ -95,7 +112,6 @@ export async function createAdminArtist(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.name || typeof body.name !== 'string' || !body.name.trim()) {
     throw new AppError('Name is required', 400);
@@ -117,7 +133,12 @@ export async function createAdminArtist(
   });
 
   const populated = await Artist.findById(artist._id).lean();
-  sendResponse(reply, 201, { artist: shapeArtistItem((populated ?? artist) as unknown as Record<string, unknown>) }, 'Artist created.');
+  sendResponse(
+    reply,
+    201,
+    { artist: shapeArtistItem((populated ?? artist) as unknown as Record<string, unknown>) },
+    'Artist created.'
+  );
 }
 
 export async function updateAdminArtist(
@@ -143,7 +164,6 @@ export async function updateAdminArtist(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const artist = await Artist.findById(id);
   if (!artist) throw new AppError('Artist not found', 404);
@@ -162,16 +182,36 @@ export async function updateAdminArtist(
   await artist.save();
 
   const populated = await Artist.findById(artist._id).lean();
-  sendResponse(reply, 200, { artist: shapeArtistItem((populated ?? artist.toObject()) as Record<string, unknown>) }, 'Artist updated.');
+  sendResponse(
+    reply,
+    200,
+    { artist: shapeArtistItem((populated ?? artist.toObject()) as Record<string, unknown>) },
+    'Artist updated.'
+  );
 }
 
 export async function deleteAdminArtist(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const result = await Artist.findByIdAndDelete(id);
   if (!result) throw new AppError('Artist not found', 404);
   sendResponse(reply, 200, { success: true }, 'Artist deleted.');
+}
+
+export async function getAdminArtistDashboardStats(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const id = parseObjectId(request.params.id);
+  const artist = await Artist.findById(id).select('_id').lean();
+  if (!artist) throw new AppError('Artist not found', 404);
+  const stats = await buildArtistDashboardStats(artist._id, { includeTopLists: true });
+  sendResponse(
+    reply,
+    200,
+    { ...stats } as Record<string, unknown>,
+    'Artist dashboard stats loaded.'
+  );
 }

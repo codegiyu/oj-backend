@@ -7,14 +7,9 @@ import {
   getDashboardStats,
   listMyMusic,
   getMusicItem,
-  createMusic,
-  updateMusic,
-  deleteMusic,
+  rejectArtistMediaWrite,
   listMyVideos,
   getVideoItem,
-  createVideo,
-  updateVideo,
-  deleteVideo,
 } from '../controllers/artist/artist.controller';
 import {
   updateArtistMeBodySchema,
@@ -39,13 +34,21 @@ export async function registerArtistRoutes(app: FastifyInstance): Promise<void> 
       genre?: string;
       socials?: Record<string, string>;
     };
-  }>('/me', { preHandler: authenticate, schema: updateArtistMeBodySchema }, catchAsync(updateArtistMe));
+  }>(
+    '/me',
+    { preHandler: authenticate, schema: updateArtistMeBodySchema },
+    catchAsync(updateArtistMe)
+  );
 
   app.get('/dashboard-stats', { preHandler: authenticate }, catchAsync(getDashboardStats));
 
   app.get<{
     Querystring: { page?: string; limit?: string; status?: string; search?: string; sort?: string };
-  }>('/music', { preHandler: authenticate, schema: listMusicQuerystringSchema }, catchAsync(listMyMusic));
+  }>(
+    '/music',
+    { preHandler: authenticate, schema: listMusicQuerystringSchema },
+    catchAsync(listMyMusic)
+  );
 
   app.get<{ Params: { id: string } }>(
     '/music/:id',
@@ -64,7 +67,11 @@ export async function registerArtistRoutes(app: FastifyInstance): Promise<void> 
       category?: string;
       isMonetizable?: boolean;
     };
-  }>('/music', { preHandler: authenticate, schema: createMusicBodySchema }, catchAsync(createMusic));
+  }>(
+    '/music',
+    { preHandler: authenticate, schema: createMusicBodySchema },
+    catchAsync(rejectArtistMediaWrite)
+  );
 
   app.patch<{
     Params: { id: string };
@@ -79,17 +86,25 @@ export async function registerArtistRoutes(app: FastifyInstance): Promise<void> 
       status?: string;
       isMonetizable?: boolean;
     };
-  }>('/music/:id', { preHandler: authenticate, schema: updateMusicSchema }, catchAsync(updateMusic));
+  }>(
+    '/music/:id',
+    { preHandler: authenticate, schema: updateMusicSchema },
+    catchAsync(rejectArtistMediaWrite)
+  );
 
   app.delete<{ Params: { id: string } }>(
     '/music/:id',
     { preHandler: authenticate, schema: resourceIdParamSchema },
-    catchAsync(deleteMusic)
+    catchAsync(rejectArtistMediaWrite)
   );
 
   app.get<{
     Querystring: { page?: string; limit?: string; status?: string; search?: string; sort?: string };
-  }>('/videos', { preHandler: authenticate, schema: listVideosQuerystringSchema }, catchAsync(listMyVideos));
+  }>(
+    '/videos',
+    { preHandler: authenticate, schema: listVideosQuerystringSchema },
+    catchAsync(listMyVideos)
+  );
 
   app.get<{ Params: { id: string } }>(
     '/videos/:id',
@@ -106,7 +121,11 @@ export async function registerArtistRoutes(app: FastifyInstance): Promise<void> 
       category?: string;
       isMonetizable?: boolean;
     };
-  }>('/videos', { preHandler: authenticate, schema: createVideoBodySchema }, catchAsync(createVideo));
+  }>(
+    '/videos',
+    { preHandler: authenticate, schema: createVideoBodySchema },
+    catchAsync(rejectArtistMediaWrite)
+  );
 
   app.patch<{
     Params: { id: string };
@@ -119,12 +138,15 @@ export async function registerArtistRoutes(app: FastifyInstance): Promise<void> 
       status?: string;
       isMonetizable?: boolean;
     };
-  }>('/videos/:id', { preHandler: authenticate, schema: updateVideoSchema }, catchAsync(updateVideo));
+  }>(
+    '/videos/:id',
+    { preHandler: authenticate, schema: updateVideoSchema },
+    catchAsync(rejectArtistMediaWrite)
+  );
 
   app.delete<{ Params: { id: string } }>(
     '/videos/:id',
     { preHandler: authenticate, schema: resourceIdParamSchema },
-    catchAsync(deleteVideo)
+    catchAsync(rejectArtistMediaWrite)
   );
 }
-

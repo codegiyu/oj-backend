@@ -3,11 +3,16 @@ import { catchAsync } from '../utils/catchAsync';
 import {
   listPublicMusic,
   getPublicMusicByIdOrSlug,
+  downloadPublicMusic,
   listPublicVideos,
   getPublicVideoByIdOrSlug,
+  downloadPublicVideo,
   listPublicNews,
   getPublicNewsByIdOrSlug,
+  listPublicContentCategories,
+  listPublicHomeAdverts,
 } from '../controllers/public/public.controller';
+import { postPublicContentAnalyticsEvent } from '../controllers/public/contentAnalytics.controller';
 import {
   getCommunity,
   listDevotionals,
@@ -39,6 +44,8 @@ import {
   listPublicVideosQuerystringSchema,
   listPublicNewsQuerystringSchema,
   idOrSlugParamSchema,
+  listPublicContentCategoriesQuerystringSchema,
+  contentAnalyticsEventBodySchema,
 } from '../controllers/public/public.validation';
 import {
   listFeaturedOptions,
@@ -65,7 +72,25 @@ import {
 } from '../controllers/public/community.validation';
 
 export async function registerPublicRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/featured-options', { schema: promotionPublicListQuerystringSchema }, catchAsync(listFeaturedOptions));
+  app.post<{ Body: Record<string, unknown> }>(
+    '/analytics/content-event',
+    {
+      schema: contentAnalyticsEventBodySchema,
+      config: {
+        rateLimit: {
+          max: 120,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    catchAsync(postPublicContentAnalyticsEvent)
+  );
+
+  app.get(
+    '/featured-options',
+    { schema: promotionPublicListQuerystringSchema },
+    catchAsync(listFeaturedOptions)
+  );
   app.get(
     '/promotion-pricing-options',
     { schema: promotionPublicListQuerystringSchema },
@@ -95,6 +120,12 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   }>('/music', { schema: listPublicMusicQuerystringSchema }, catchAsync(listPublicMusic));
 
   app.get<{ Params: { idOrSlug: string } }>(
+    '/music/:idOrSlug/download',
+    { schema: idOrSlugParamSchema },
+    catchAsync(downloadPublicMusic)
+  );
+
+  app.get<{ Params: { idOrSlug: string } }>(
     '/music/:idOrSlug',
     { schema: idOrSlugParamSchema },
     catchAsync(getPublicMusicByIdOrSlug)
@@ -110,6 +141,12 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
       type?: string;
     };
   }>('/videos', { schema: listPublicVideosQuerystringSchema }, catchAsync(listPublicVideos));
+
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/videos/:idOrSlug/download',
+    { schema: idOrSlugParamSchema },
+    catchAsync(downloadPublicVideo)
+  );
 
   app.get<{ Params: { idOrSlug: string } }>(
     '/videos/:idOrSlug',
@@ -134,24 +171,44 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     catchAsync(getPublicNewsByIdOrSlug)
   );
 
+  app.get<{ Querystring: { scope?: string } }>(
+    '/content-categories',
+    { schema: listPublicContentCategoriesQuerystringSchema },
+    catchAsync(listPublicContentCategories)
+  );
+
+  app.get('/home-adverts', catchAsync(listPublicHomeAdverts));
+
   // Community
   app.get('/community', catchAsync(getCommunity));
 
-  app.get('/devotionals', { schema: listDevotionalsQuerystringSchema }, catchAsync(listDevotionals));
+  app.get(
+    '/devotionals',
+    { schema: listDevotionalsQuerystringSchema },
+    catchAsync(listDevotionals)
+  );
   app.get<{ Params: { idOrSlug: string } }>(
     '/devotionals/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getDevotionalByIdOrSlug)
   );
 
-  app.get('/testimonies', { schema: listTestimoniesQuerystringSchema }, catchAsync(listTestimonies));
+  app.get(
+    '/testimonies',
+    { schema: listTestimoniesQuerystringSchema },
+    catchAsync(listTestimonies)
+  );
   app.get<{ Params: { idOrSlug: string } }>(
     '/testimonies/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getTestimonyByIdOrSlug)
   );
 
-  app.get('/prayer-requests', { schema: listPrayerRequestsQuerystringSchema }, catchAsync(listPrayerRequests));
+  app.get(
+    '/prayer-requests',
+    { schema: listPrayerRequestsQuerystringSchema },
+    catchAsync(listPrayerRequests)
+  );
   app.get<{ Params: { idOrSlug: string } }>(
     '/prayer-requests/:idOrSlug',
     { schema: communityIdOrSlugParamSchema },
@@ -168,7 +225,11 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     { schema: communityIdOrSlugParamSchema },
     catchAsync(getAskAPastorQuestionByIdOrSlug)
   );
-  app.get('/ask-a-pastor/pastors', { schema: listPastorsQuerystringSchema }, catchAsync(listAskAPastorPastors));
+  app.get(
+    '/ask-a-pastor/pastors',
+    { schema: listPastorsQuerystringSchema },
+    catchAsync(listAskAPastorPastors)
+  );
 
   app.get<{ Querystring: { status?: string; page?: string; limit?: string } }>(
     '/polls',
@@ -185,11 +246,9 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     { schema: votePollBodySchema },
     catchAsync(votePoll)
   );
-  app.post<{ Body: { question: string; description?: string; category?: string; options: string[] } }>(
-    '/polls',
-    { schema: createPollBodySchema },
-    catchAsync(createPoll)
-  );
+  app.post<{
+    Body: { question: string; description?: string; category?: string; options: string[] };
+  }>('/polls', { schema: createPollBodySchema }, catchAsync(createPoll));
 
   app.get('/artists', { schema: listArtistsQuerystringSchema }, catchAsync(listCommunityArtists));
   app.get<{ Params: { idOrSlug: string } }>(
@@ -200,11 +259,9 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
 
   app.get('/resources', { schema: listResourcesQuerystringSchema }, catchAsync(listResources));
 
-  app.post<{ Body: { name: string; phone: string; email?: string; subject: string; message: string } }>(
-    '/contact',
-    { schema: submitContactBodySchema },
-    catchAsync(submitContact)
-  );
+  app.post<{
+    Body: { name: string; phone: string; email?: string; subject: string; message: string };
+  }>('/contact', { schema: submitContactBodySchema }, catchAsync(submitContact));
 
   app.get<{ Querystring: { q?: string; type?: string; page?: string; limit?: string } }>(
     '/search',
@@ -212,7 +269,16 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     catchAsync(search)
   );
 
-  app.post<{ Body: { name?: string; email?: string; title: string; content: string; category?: string; urgent?: boolean } }>(
+  app.post<{
+    Body: {
+      name?: string;
+      email?: string;
+      title: string;
+      content: string;
+      category?: string;
+      urgent?: boolean;
+    };
+  }>(
     '/prayer-requests',
     { schema: submitPrayerRequestBodySchema },
     catchAsync(submitPrayerRequest)

@@ -34,6 +34,4 @@ categorySchema.pre('save', async function (this: ICategory & mongoose.Document) 
   this.slug = slug;
 });
 
-export const Category =
-  mongoose.models.Category || model<ICategory>('Category', categorySchema);
-
+export const Category = mongoose.models.Category || model<ICategory>('Category', categorySchema);

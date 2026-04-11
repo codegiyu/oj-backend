@@ -53,7 +53,11 @@ function initializeEventListeners(_io: Server, socket: Socket & { user: SocketUs
       socket.join(roomId);
       sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
     } else {
-      sendSocketResponse(socket, ack, { success: false, message: 'roomId required', responseCode: 400 });
+      sendSocketResponse(socket, ack, {
+        success: false,
+        message: 'roomId required',
+        responseCode: 400,
+      });
     }
   });
 
@@ -62,7 +66,11 @@ function initializeEventListeners(_io: Server, socket: Socket & { user: SocketUs
       socket.leave(roomId);
       sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
     } else {
-      sendSocketResponse(socket, ack, { success: false, message: 'roomId required', responseCode: 400 });
+      sendSocketResponse(socket, ack, {
+        success: false,
+        message: 'roomId required',
+        responseCode: 400,
+      });
     }
   });
 
@@ -110,7 +118,11 @@ export function attachSocketServer(httpServer: HttpServer): Server {
   io.use(async (socket, next) => {
     const user = await authenticateSocket(socket);
     if (!user) {
-      socket.emit(SOCKET_EVENTS.ERROR, { success: false, message: 'Unauthorized', responseCode: 401 });
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        success: false,
+        message: 'Unauthorized',
+        responseCode: 401,
+      });
       socket.disconnect(true);
       return;
     }
@@ -118,7 +130,7 @@ export function attachSocketServer(httpServer: HttpServer): Server {
     next();
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', socket => {
     const s = socket as Socket & { user: SocketUser };
     const userId = s.user._id;
     const userModel = s.user.userModel;
@@ -127,7 +139,7 @@ export function attachSocketServer(httpServer: HttpServer): Server {
     socket.join(userId);
     initializeEventListeners(io, s);
     logger.info('Socket connected', { socketId: socket.id, userId, userModel });
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', reason => {
       logger.info('Socket disconnected', { socketId: socket.id, reason });
     });
   });

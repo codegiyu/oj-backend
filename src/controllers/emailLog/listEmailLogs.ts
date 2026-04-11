@@ -1,8 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { EmailLog } from '../../models/emailLog';
-import { getAuthUser } from '../../utils/getAuthUser';
 import { EMAIL_STATUSES } from '../../lib/types/constants';
 import type { EmailStatus } from '../../lib/types/constants';
 
@@ -39,11 +37,6 @@ export async function listEmailLogs(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'console-access') {
-    throw new AppError('Access denied: only admins may list email logs', 403);
-  }
-
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -70,13 +63,18 @@ export async function listEmailLogs(
     EmailLog.countDocuments(filter),
   ]);
 
-  sendResponse(reply, 200, {
-    emailLogs,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit) || 1,
+  sendResponse(
+    reply,
+    200,
+    {
+      emailLogs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
     },
-  }, 'Email logs loaded.');
+    'Email logs loaded.'
+  );
 }

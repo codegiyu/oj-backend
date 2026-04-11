@@ -4,7 +4,13 @@ import { Vendor } from '../../models/vendor';
 import { User } from '../../models/user';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug, parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
+import {
+  generateUniqueSlug,
+  parsePositiveInteger,
+  parseSearch,
+  parseString,
+  normalizeSort,
+} from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
@@ -33,10 +39,11 @@ function shapeVendorItem(raw: Record<string, unknown>): Record<string, unknown> 
 }
 
 export async function listAdminVendors(
-  request: FastifyRequest<{ Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string } }>,
+  request: FastifyRequest<{
+    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+  }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
   const limit = parsePositiveInteger(request.query.limit, 25, 100);
   const skip = (page - 1) * limit;
@@ -63,17 +70,21 @@ export async function listAdminVendors(
 
   const vendors = (items as Record<string, unknown>[]).map(shapeVendorItem);
 
-  sendResponse(reply, 200, {
-    vendors,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-  }, 'Vendors list loaded.');
+  sendResponse(
+    reply,
+    200,
+    {
+      vendors,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    },
+    'Vendors list loaded.'
+  );
 }
 
 export async function getAdminVendor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const doc = await Vendor.findById(id).lean();
   if (!doc) throw new AppError('Vendor not found', 404);
@@ -112,7 +123,6 @@ export async function createAdminVendor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const body = request.body;
   if (!body?.name?.trim()) throw new AppError('Name is required', 400);
   if (!body?.email?.trim()) throw new AppError('Email is required', 400);
@@ -139,7 +149,12 @@ export async function createAdminVendor(
   });
 
   const populated = await Vendor.findById(vendor._id).lean();
-  sendResponse(reply, 201, { vendor: shapeVendorItem((populated ?? vendor) as unknown as Record<string, unknown>) }, 'Vendor created.');
+  sendResponse(
+    reply,
+    201,
+    { vendor: shapeVendorItem((populated ?? vendor) as unknown as Record<string, unknown>) },
+    'Vendor created.'
+  );
 }
 
 export async function updateAdminVendor(
@@ -164,7 +179,6 @@ export async function updateAdminVendor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  requireAdmin(request);
   const id = parseObjectId(request.params.id);
   const vendor = await Vendor.findById(id);
   if (!vendor) throw new AppError('Vendor not found', 404);
@@ -188,7 +202,12 @@ export async function updateAdminVendor(
   await vendor.save();
 
   const populated = await Vendor.findById(vendor._id).lean();
-  sendResponse(reply, 200, { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) }, 'Vendor updated.');
+  sendResponse(
+    reply,
+    200,
+    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) },
+    'Vendor updated.'
+  );
 }
 
 export async function approveAdminVendor(
@@ -209,7 +228,12 @@ export async function approveAdminVendor(
   await vendor.save();
 
   const populated = await Vendor.findById(vendor._id).lean();
-  sendResponse(reply, 200, { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) }, 'Vendor approved.');
+  sendResponse(
+    reply,
+    200,
+    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) },
+    'Vendor approved.'
+  );
 }
 
 export async function rejectAdminVendor(
@@ -231,5 +255,10 @@ export async function rejectAdminVendor(
   await vendor.save();
 
   const populated = await Vendor.findById(vendor._id).lean();
-  sendResponse(reply, 200, { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) }, 'Vendor rejected.');
+  sendResponse(
+    reply,
+    200,
+    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) },
+    'Vendor rejected.'
+  );
 }

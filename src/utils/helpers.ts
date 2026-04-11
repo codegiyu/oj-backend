@@ -17,13 +17,15 @@ export function generateRandomString(length: number, prefix?: string): string {
 
 /** Create a URL-safe slug from a string (e.g. "Store Name" -> "store-name"). */
 export function slugify(text: string): string {
-  return text
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '') || 'item';
+  return (
+    text
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'item'
+  );
 }
 
 type WithSlug = { slug: string };
@@ -38,9 +40,12 @@ export async function generateUniqueSlug<T extends WithSlug>(
   let n = 0;
 
   // Ensure uniqueness with optional extra filter (e.g. vendor, category)
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
-    const existing = await model.findOne({ ...filter, slug }).select('_id').lean();
+    const existing = await model
+      .findOne({ ...filter, slug })
+      .select('_id')
+      .lean();
     if (!existing) break;
     n += 1;
     slug = `${baseSlug}-${n}`;
@@ -66,7 +71,7 @@ export async function generateCategorySlug<T extends WithSlug>(
 
 export async function generateSubCategorySlug<
   TCategory extends { slug: string },
-  TSub extends WithSlug & { category: mongoose.Types.ObjectId }
+  TSub extends WithSlug & { category: mongoose.Types.ObjectId },
 >(
   categoryModel: mongoose.Model<TCategory>,
   subCategoryModel: mongoose.Model<TSub>,
@@ -80,10 +85,7 @@ export async function generateSubCategorySlug<
   return generateUniqueSlug(subCategoryModel, base, { category: categoryId });
 }
 
-export function deleteFields<T extends Record<string, unknown>>(
-  obj: T,
-  fields: string[]
-): T {
+export function deleteFields<T extends Record<string, unknown>>(obj: T, fields: string[]): T {
   const result = JSON.parse(JSON.stringify(obj)) as T;
   for (const field of fields) {
     const parts = field.replace('+', '').split('.');
@@ -103,11 +105,7 @@ export function deleteFields<T extends Record<string, unknown>>(
 }
 
 /** Parse query param as positive integer; clamp to max; return fallback if invalid. */
-export function parsePositiveInteger(
-  value: unknown,
-  fallback: number,
-  maxValue: number
-): number {
+export function parsePositiveInteger(value: unknown, fallback: number, maxValue: number): number {
   if (typeof value !== 'string') return fallback;
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;

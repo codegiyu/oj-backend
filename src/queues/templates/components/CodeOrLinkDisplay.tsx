@@ -15,12 +15,14 @@ export const CodeOrLinkDisplay = ({ type, content, expiresIn }: CodeOrLinkDispla
         borderRadius: '12px',
         background: 'rgba(0, 0, 0, 0.03)',
         overflow: 'hidden',
-      }}>
+      }}
+    >
       <div
         style={{
           background: 'rgba(0, 0, 0, 0.05)',
           borderBottom: '1px solid rgba(0, 0, 0, 0.03)',
-        }}>
+        }}
+      >
         <table style={{ width: '100%', maxWidth: '600px' }}>
           <tbody style={{ width: '100%' }}>
             <tr style={{ width: '100%' }}>
@@ -30,12 +32,14 @@ export const CodeOrLinkDisplay = ({ type, content, expiresIn }: CodeOrLinkDispla
                 </Heading>
                 <p
                   style={{ ...textStyle, marginTop: '6px' }}
-                  className="text-d-50 mobile-only">{`This ${type} will expire in ${expiresIn} mins`}</p>
+                  className="text-d-50 mobile-only"
+                >{`This ${type} will expire in ${expiresIn} mins`}</p>
               </td>
               <td style={{ textAlign: 'right', padding: '16px' }} className="desktop-only">
                 <p
                   style={{ ...textStyle }}
-                  className="text-d-50">{`This ${type} will expire in ${expiresIn} mins`}</p>
+                  className="text-d-50"
+                >{`This ${type} will expire in ${expiresIn} mins`}</p>
               </td>
             </tr>
           </tbody>
@@ -49,7 +53,8 @@ export const CodeOrLinkDisplay = ({ type, content, expiresIn }: CodeOrLinkDispla
               ...textStyle,
               ...codeTextStyle,
             }}
-            className="text-d-100">
+            className="text-d-100"
+          >
             {content.slice(0, 6)}
           </p>
         ) : (
@@ -61,7 +66,8 @@ export const CodeOrLinkDisplay = ({ type, content, expiresIn }: CodeOrLinkDispla
               color: 'inherit',
               textDecoration: 'none',
             }}
-            className="text-d-100">
+            className="text-d-100"
+          >
             {content}
           </Link>
         )}

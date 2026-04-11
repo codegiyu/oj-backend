@@ -5,12 +5,14 @@ const musicSchema = new Schema<ModelMusic>(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
-    artist: { type: Schema.Types.ObjectId, ref: 'Artist', required: true, index: true },
+    artist: { type: Schema.Types.ObjectId, ref: 'Artist', default: null, index: true },
     description: { type: String, default: '' },
     lyrics: { type: String, default: '' },
     coverImage: { type: String, default: '' },
     audioUrl: { type: String, default: '' },
     videoUrl: { type: String, default: '' },
+    downloadUrl: { type: String, default: '' },
+    excerpt: { type: String, default: '' },
     category: { type: String, default: '', index: true },
     status: {
       type: String,
@@ -21,6 +23,7 @@ const musicSchema = new Schema<ModelMusic>(
     isFeatured: { type: Boolean, default: false, index: true },
     isMonetizable: { type: Boolean, default: false },
     displayOrder: { type: Number, default: 0, index: true },
+    views: { type: Number, default: 0 },
     plays: { type: Number, default: 0 },
     downloads: { type: Number, default: 0 },
     // Moderation
@@ -35,6 +38,4 @@ const musicSchema = new Schema<ModelMusic>(
 
 musicSchema.index({ artist: 1, status: 1, createdAt: -1 });
 
-export const Music =
-  mongoose.models.Music || model<ModelMusic>('Music', musicSchema);
-
+export const Music = mongoose.models.Music || model<ModelMusic>('Music', musicSchema);

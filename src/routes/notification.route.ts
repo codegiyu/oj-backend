@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   list,
@@ -48,7 +48,7 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
   }>(
     '/create',
     {
-      preHandler: authenticate,
+      preHandler: [authenticate, requireConsoleAccess],
       schema: createNotificationBodySchema,
     },
     catchAsync(create)
@@ -75,11 +75,7 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
     catchAsync(readAll)
   );
 
-  app.get(
-    '/preferences',
-    { preHandler: authenticate },
-    catchAsync(getPreferences)
-  );
+  app.get('/preferences', { preHandler: authenticate }, catchAsync(getPreferences));
 
   app.patch<{
     Body: { realtime?: boolean; email?: boolean; sms?: boolean; marketingEmails?: boolean };

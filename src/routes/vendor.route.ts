@@ -42,7 +42,14 @@ export async function registerVendorRoutes(app: FastifyInstance): Promise<void> 
       inStock?: boolean;
       isFeatured?: boolean;
       variationOptions?: Array<{ name: string; values: string[] }>;
-      variants?: Array<{ options: Record<string, string>; price: number; inStock: boolean; isDefault?: boolean; sku?: string; image?: string }>;
+      variants?: Array<{
+        options: Record<string, string>;
+        price: number;
+        inStock: boolean;
+        isDefault?: boolean;
+        sku?: string;
+        image?: string;
+      }>;
     };
   }>(
     '/products',
@@ -63,7 +70,14 @@ export async function registerVendorRoutes(app: FastifyInstance): Promise<void> 
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
       variationOptions?: Array<{ name: string; values: string[] }>;
-      variants?: Array<{ options: Record<string, string>; price: number; inStock: boolean; isDefault?: boolean; sku?: string; image?: string }>;
+      variants?: Array<{
+        options: Record<string, string>;
+        price: number;
+        inStock: boolean;
+        isDefault?: boolean;
+        sku?: string;
+        image?: string;
+      }>;
     };
   }>(
     '/products/:productId',

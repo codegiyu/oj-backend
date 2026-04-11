@@ -11,9 +11,9 @@ export const MARKETPLACE_CATEGORIES: SeedCategory[] = [
   {
     name: 'Fashion',
     subCategories: [
-      { name: 'Men\'s Clothing' },
-      { name: 'Women\'s Clothing' },
-      { name: 'Kids\' Clothing' },
+      { name: "Men's Clothing" },
+      { name: "Women's Clothing" },
+      { name: "Kids' Clothing" },
       { name: 'Shoes' },
       { name: 'Bags' },
       { name: 'Watches' },
@@ -60,7 +60,7 @@ export const MARKETPLACE_CATEGORIES: SeedCategory[] = [
       { name: 'Fragrances' },
       { name: 'Personal Care' },
       { name: 'Wellness & Supplements' },
-      { name: 'Men\'s Grooming' },
+      { name: "Men's Grooming" },
     ],
   },
   {
@@ -80,8 +80,8 @@ export const MARKETPLACE_CATEGORIES: SeedCategory[] = [
     subCategories: [
       { name: 'Baby Essentials' },
       { name: 'Diapers & Wipes' },
-      { name: 'Kids\' Clothing' },
-      { name: 'Kids\' Shoes' },
+      { name: "Kids' Clothing" },
+      { name: "Kids' Shoes" },
       { name: 'Toys & Games' },
       { name: 'Books for Kids' },
       { name: 'Educational Toys' },
@@ -115,7 +115,7 @@ export const MARKETPLACE_CATEGORIES: SeedCategory[] = [
       { name: 'Non-Fiction' },
       { name: 'Religious & Inspirational' },
       { name: 'Educational & Academic' },
-      { name: 'Children\'s Books' },
+      { name: "Children's Books" },
       { name: 'Notebooks & Journals' },
       { name: 'Office Supplies' },
       { name: 'Art & Craft Supplies' },
@@ -142,4 +142,3 @@ export const MARKETPLACE_CATEGORIES: SeedCategory[] = [
     ],
   },
 ];
-

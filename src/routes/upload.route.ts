@@ -1,10 +1,7 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
-import {
-  presignedUrlClient,
-  presignedUrlAdmin,
-} from '../controllers/upload/upload.controller';
+import { presignedUrlClient, presignedUrlAdmin } from '../controllers/upload/upload.controller';
 import type { PresignedBody } from '../controllers/upload/upload.controller';
 import { presignedUrlBodySchema } from '../controllers/upload/upload.validation';
 
@@ -23,7 +20,7 @@ export async function registerAdminUploadRoutes(app: FastifyInstance): Promise<v
   app.post<{ Body: PresignedBody }>(
     '/presigned-url',
     {
-      preHandler: authenticate,
+      preHandler: [authenticate, requireConsoleAccess],
       schema: presignedUrlBodySchema,
     },
     catchAsync(presignedUrlAdmin)
