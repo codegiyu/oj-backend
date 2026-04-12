@@ -25,6 +25,31 @@ export const updateArtistMeBodySchema: FastifySchema = {
   },
 };
 
+/** Self-service first-time artist profile (`POST /artist/me`). */
+export const createArtistMeBodySchema: FastifySchema = {
+  body: {
+    type: 'object',
+    required: ['name'],
+    properties: {
+      name: { type: 'string', minLength: 1 },
+      bio: { type: 'string' },
+      image: { type: 'string' },
+      coverImage: { type: 'string' },
+      genre: { type: 'string' },
+      socials: {
+        type: 'object',
+        properties: {
+          facebook: { type: 'string' },
+          instagram: { type: 'string' },
+          twitter: { type: 'string' },
+          youtube: { type: 'string' },
+          website: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
 export const listMusicQuerystringSchema: FastifySchema = {
   querystring: {
     type: 'object',

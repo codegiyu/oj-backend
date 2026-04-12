@@ -22,6 +22,7 @@ import { registerArtistRoutes } from './routes/artist.route';
 import { registerPublicRoutes } from './routes/public.route';
 import { registerAdminPromotionRoutes } from './routes/promotionAdmin.route';
 import { registerAdminContentRoutes } from './routes/adminContent.route';
+import { registerAdminProfileRoutes } from './routes/adminProfile.route';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { sendErrorResponse } from './utils/response';
 
@@ -70,6 +71,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerPublicRoutes, { prefix: '/public' });
   await app.register(registerAdminPromotionRoutes, { prefix: '/admin' });
   await app.register(registerAdminContentRoutes, { prefix: '/admin' });
+  await app.register(registerAdminProfileRoutes, { prefix: '/admin' });
 
   app.setErrorHandler(errorHandler);
 

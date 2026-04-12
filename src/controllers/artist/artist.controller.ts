@@ -1,42 +1,70 @@
+/* Mongoose model query helpers are typed loosely; strict ESLint sees `any` on assignments/member access. */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import { FastifyRequest, FastifyReply } from 'fastify';
-import mongoose from 'mongoose';
+import mongoose, { type HydratedDocument } from 'mongoose';
 import { Artist } from '../../models/artist';
 import { Music } from '../../models/music';
 import { Video } from '../../models/video';
 import { User } from '../../models/user';
+import type {
+  IArtist,
+  IMusic,
+  IVideo,
+  IUser,
+  ModelArtist,
+  ModelMusic,
+  ModelVideo,
+} from '../../lib/types/constants';
 import { AppError } from '../../utils/AppError';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { sendResponse } from '../../utils/response';
 import {
   slugify,
+  generateUniqueSlug,
   parsePositiveInteger,
   parseSearch,
   parseString,
   normalizeSort,
 } from '../../utils/helpers';
-import { ARTIST_POPULATE_SELECT, toArtistSummary, serializeDocIds } from './artist.helpers';
+import {
+  ARTIST_POPULATE_SELECT,
+  toArtistSummary,
+  serializeDocIds,
+  leanIdToString,
+  type PopulatedArtistDoc,
+} from './artist.helpers';
 import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
 
+type MusicWithArtistLean = IMusic & {
+  artist?: PopulatedArtistDoc | mongoose.Types.ObjectId | null;
+};
+
+type VideoWithArtistLean = IVideo & {
+  artist?: PopulatedArtistDoc | mongoose.Types.ObjectId | null;
+};
+
 /** Artist self-serve uploads are disabled; submissions go through WhatsApp / admin. */
-export async function rejectArtistMediaWrite(
+export function rejectArtistMediaWrite(
   _request: FastifyRequest,
   _reply: FastifyReply
 ): Promise<void> {
-  throw new AppError(
-    'Content submissions are handled via WhatsApp. Contact the admin to publish your work.',
-    403
+  return Promise.reject(
+    new AppError(
+      'Content submissions are handled via WhatsApp. Contact the admin to publish your work.',
+      403
+    )
   );
 }
 
 /** Returns artist or throws 403 (no artist link) / 404 (artist record missing). */
-async function getArtistForUser(userId: string) {
-  const user = await User.findById(userId).select('artistId').lean();
+async function getArtistForUser(userId: string): Promise<IArtist> {
+  const user = await User.findById(userId)
+    .select('artistId')
+    .lean<Pick<IUser, 'artistId'> | null>();
   if (!user?.artistId) {
     throw new AppError('You do not have an associated artist profile', 403);
   }
-  const artist = await Artist.findById(
-    (user as { artistId: mongoose.Types.ObjectId }).artistId
-  ).lean();
+  const artist = await Artist.findById(user.artistId).lean<IArtist | null>();
   if (!artist) {
     throw new AppError('Artist profile not found', 404);
   }
@@ -47,8 +75,89 @@ export async function getArtistMe(request: FastifyRequest, reply: FastifyReply):
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const serialized = serializeDocIds(artist as Record<string, unknown>);
+  const serialized = serializeDocIds(artist as unknown as Record<string, unknown>);
   sendResponse(reply, 200, { artist: serialized }, 'Artist profile loaded.');
+}
+
+/**
+ * Create the authenticated user's artist profile and set `user.artistId`.
+ * 409 if a profile is already linked. Repairs `user.artistId` if an artist row exists with `user` set but the user doc was missing the link.
+ */
+export async function createArtistMe(
+  request: FastifyRequest<{
+    Body: {
+      name: string;
+      bio?: string;
+      image?: string;
+      coverImage?: string;
+      genre?: string;
+      socials?: Record<string, string>;
+    };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  if (!mongoose.Types.ObjectId.isValid(auth.userId)) {
+    throw new AppError('Invalid user id', 400);
+  }
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+  const body = request.body ?? {};
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name) {
+    throw new AppError('Name is required', 400);
+  }
+
+  const user = await User.findById(userId)
+    .select('artistId')
+    .lean<Pick<IUser, '_id' | 'artistId'> | null>();
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  if (user.artistId) {
+    throw new AppError('You already have an artist profile', 409);
+  }
+
+  const linkedArtist = await Artist.findOne({ user: userId }).lean<IArtist | null>();
+  if (linkedArtist) {
+    await User.updateOne({ _id: userId }, { $set: { artistId: linkedArtist._id } });
+    const serialized = serializeDocIds(linkedArtist as unknown as Record<string, unknown>);
+    sendResponse(reply, 200, { artist: serialized }, 'Artist profile linked.');
+    return;
+  }
+
+  const slug = await generateUniqueSlug(Artist, name);
+
+  const artistDoc = (await Artist.create({
+    user: userId,
+    name,
+    slug,
+    bio: body.bio ?? '',
+    image: body.image ?? '',
+    coverImage: body.coverImage ?? '',
+    genre: body.genre ?? '',
+    socials: body.socials ?? {},
+    isFeatured: false,
+    isActive: true,
+    displayOrder: 0,
+  })) as HydratedDocument<ModelArtist>;
+
+  const linked = await User.findOneAndUpdate(
+    { _id: userId, artistId: null },
+    { $set: { artistId: artistDoc._id } },
+    { new: true }
+  );
+
+  if (!linked) {
+    await Artist.deleteOne({ _id: artistDoc._id });
+    throw new AppError('You already have an artist profile', 409);
+  }
+
+  const serialized = serializeDocIds(artistDoc.toObject() as unknown as Record<string, unknown>);
+  sendResponse(reply, 201, { artist: serialized }, 'Artist profile created.');
 }
 
 export async function updateArtistMe(
@@ -67,7 +176,7 @@ export async function updateArtistMe(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artistLean = await getArtistForUser(auth.userId);
-  const artistDoc = await Artist.findById((artistLean as { _id: mongoose.Types.ObjectId })._id);
+  const artistDoc = await Artist.findById(artistLean._id);
   if (!artistDoc) throw new AppError('Artist profile not found', 404);
 
   const body = request.body ?? {};
@@ -79,7 +188,7 @@ export async function updateArtistMe(
   if (body.socials !== undefined) artistDoc.socials = body.socials as typeof artistDoc.socials;
 
   await artistDoc.save();
-  const artist = serializeDocIds(artistDoc.toObject() as Record<string, unknown>);
+  const artist = serializeDocIds(artistDoc.toObject() as unknown as Record<string, unknown>);
   sendResponse(reply, 200, { artist }, 'Artist profile loaded.');
 }
 
@@ -90,7 +199,7 @@ export async function getDashboardStats(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   const stats = await buildArtistDashboardStats(artistId, { includeTopLists: false });
 
@@ -115,10 +224,10 @@ export async function getDashboardStats(
 
 const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 
-function shapeMusicItem(raw: Record<string, unknown>): Record<string, unknown> {
-  const artist = toArtistSummary(raw.artist as Parameters<typeof toArtistSummary>[0]);
+function shapeMusicItem(raw: MusicWithArtistLean): Record<string, unknown> {
+  const artist = toArtistSummary(raw.artist as PopulatedArtistDoc | null | undefined);
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     status: raw.status,
@@ -143,7 +252,7 @@ export async function listMyMusic(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   const limit = parsePositiveInteger(request.query.limit, 10, 100);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
@@ -168,11 +277,11 @@ export async function listMyMusic(
       .populate('artist', ARTIST_POPULATE_SELECT)
       .skip(skip)
       .limit(limit)
-      .lean(),
+      .lean<MusicWithArtistLean[]>(),
     Music.countDocuments(filter),
   ]);
 
-  const music = (items as Record<string, unknown>[]).map(shapeMusicItem);
+  const music = items.map(shapeMusicItem);
 
   sendResponse(
     reply,
@@ -197,7 +306,7 @@ export async function getMusicItem(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
@@ -208,12 +317,12 @@ export async function getMusicItem(
     artist: artistId,
   })
     .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+    .lean<MusicWithArtistLean | null>();
 
   if (!doc) throw new AppError('Music not found', 404);
 
   const music = {
-    _id: String(doc._id),
+    _id: leanIdToString(doc._id),
     title: doc.title,
     slug: doc.slug,
     description: doc.description,
@@ -229,7 +338,7 @@ export async function getMusicItem(
     downloads: doc.downloads ?? 0,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
-    artist: toArtistSummary(doc.artist as Parameters<typeof toArtistSummary>[0]),
+    artist: toArtistSummary(doc.artist as PopulatedArtistDoc | null | undefined),
   };
 
   sendResponse(reply, 200, { music }, 'Music loaded.');
@@ -253,7 +362,7 @@ export async function createMusic(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   const body = request.body;
   const baseSlug = slugify(body.title);
@@ -264,7 +373,7 @@ export async function createMusic(
     slug = `${baseSlug}-${n}`;
   }
 
-  const music = await Music.create({
+  const music = (await Music.create({
     title: body.title,
     slug,
     artist: artistId,
@@ -281,24 +390,24 @@ export async function createMusic(
     views: 0,
     plays: 0,
     downloads: 0,
-  });
+  })) as HydratedDocument<ModelMusic>;
 
   const populated = await Music.findById(music._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+    .lean<MusicWithArtistLean | null>();
 
   if (!populated) {
     sendResponse(
       reply,
       201,
-      { music: shapeMusicItem(music as unknown as Record<string, unknown>) },
+      { music: shapeMusicItem(music.toObject() as MusicWithArtistLean) },
       'Music created.'
     );
     return;
   }
 
   const musicPayload = {
-    _id: String(populated._id),
+    _id: leanIdToString(populated._id),
     title: populated.title,
     slug: populated.slug,
     description: populated.description,
@@ -316,7 +425,7 @@ export async function createMusic(
       populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
     updatedAt:
       populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
-    artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
+    artist: toArtistSummary(populated.artist as PopulatedArtistDoc | null | undefined),
   };
 
   sendResponse(reply, 201, { music: musicPayload }, 'Music created.');
@@ -342,7 +451,7 @@ export async function updateMusic(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
@@ -369,19 +478,19 @@ export async function updateMusic(
 
   const populated = await Music.findById(music._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+    .lean<MusicWithArtistLean | null>();
   if (!populated) {
     sendResponse(
       reply,
       200,
-      { music: shapeMusicItem(music.toObject() as Record<string, unknown>) },
+      { music: shapeMusicItem(music.toObject() as MusicWithArtistLean) },
       'Music updated.'
     );
     return;
   }
 
   const musicPayload = {
-    _id: String(populated._id),
+    _id: leanIdToString(populated._id),
     title: populated.title,
     slug: populated.slug,
     description: populated.description,
@@ -399,7 +508,7 @@ export async function updateMusic(
       populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
     updatedAt:
       populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
-    artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
+    artist: toArtistSummary(populated.artist as PopulatedArtistDoc | null | undefined),
   };
 
   sendResponse(reply, 200, { music: musicPayload }, 'Music updated.');
@@ -420,7 +529,7 @@ export async function deleteMusic(
   const result = await Music.findOneAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(request.params.id),
-      artist: (artist as { _id: mongoose.Types.ObjectId })._id,
+      artist: artist._id,
     },
     { $set: { status: 'archived' } }
   );
@@ -432,10 +541,10 @@ export async function deleteMusic(
 
 const VIDEO_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 
-function shapeVideoItem(raw: Record<string, unknown>): Record<string, unknown> {
-  const artist = toArtistSummary(raw.artist as Parameters<typeof toArtistSummary>[0]);
+function shapeVideoItem(raw: VideoWithArtistLean): Record<string, unknown> {
+  const artist = toArtistSummary(raw.artist as PopulatedArtistDoc | null | undefined);
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     status: raw.status,
@@ -460,7 +569,7 @@ export async function listMyVideos(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   const limit = parsePositiveInteger(request.query.limit, 10, 100);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
@@ -485,11 +594,11 @@ export async function listMyVideos(
       .populate('artist', ARTIST_POPULATE_SELECT)
       .skip(skip)
       .limit(limit)
-      .lean(),
+      .lean<VideoWithArtistLean[]>(),
     Video.countDocuments(filter),
   ]);
 
-  const videos = (items as Record<string, unknown>[]).map(shapeVideoItem);
+  const videos = items.map(shapeVideoItem);
 
   sendResponse(
     reply,
@@ -514,7 +623,7 @@ export async function getVideoItem(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
@@ -525,12 +634,12 @@ export async function getVideoItem(
     artist: artistId,
   })
     .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+    .lean<VideoWithArtistLean | null>();
 
   if (!doc) throw new AppError('Video not found', 404);
 
   const video = {
-    _id: String(doc._id),
+    _id: leanIdToString(doc._id),
     title: doc.title,
     slug: doc.slug,
     description: doc.description,
@@ -544,7 +653,7 @@ export async function getVideoItem(
     downloads: doc.downloads ?? 0,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
-    artist: toArtistSummary(doc.artist as Parameters<typeof toArtistSummary>[0]),
+    artist: toArtistSummary(doc.artist as PopulatedArtistDoc | null | undefined),
   };
 
   sendResponse(reply, 200, { video }, 'Video loaded.');
@@ -566,7 +675,7 @@ export async function createVideo(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   const body = request.body;
   const baseSlug = slugify(body.title);
@@ -577,7 +686,7 @@ export async function createVideo(
     slug = `${baseSlug}-${n}`;
   }
 
-  const video = await Video.create({
+  const video = (await Video.create({
     title: body.title,
     slug,
     artist: artistId,
@@ -592,24 +701,24 @@ export async function createVideo(
     views: 0,
     plays: 0,
     downloads: 0,
-  });
+  })) as HydratedDocument<ModelVideo>;
 
   const populated = await Video.findById(video._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+    .lean<VideoWithArtistLean | null>();
 
   if (!populated) {
     sendResponse(
       reply,
       201,
-      { video: shapeVideoItem(video as unknown as Record<string, unknown>) },
+      { video: shapeVideoItem(video.toObject() as VideoWithArtistLean) },
       'Video created.'
     );
     return;
   }
 
   const videoPayload = {
-    _id: String(populated._id),
+    _id: leanIdToString(populated._id),
     title: populated.title,
     slug: populated.slug,
     description: populated.description,
@@ -625,7 +734,7 @@ export async function createVideo(
       populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
     updatedAt:
       populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
-    artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
+    artist: toArtistSummary(populated.artist as PopulatedArtistDoc | null | undefined),
   };
 
   sendResponse(reply, 201, { video: videoPayload }, 'Video created.');
@@ -649,7 +758,7 @@ export async function updateVideo(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
-  const artistId = (artist as { _id: mongoose.Types.ObjectId })._id;
+  const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
@@ -674,19 +783,19 @@ export async function updateVideo(
 
   const populated = await Video.findById(video._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+    .lean<VideoWithArtistLean | null>();
   if (!populated) {
     sendResponse(
       reply,
       200,
-      { video: shapeVideoItem(video.toObject() as Record<string, unknown>) },
+      { video: shapeVideoItem(video.toObject() as VideoWithArtistLean) },
       'Video updated.'
     );
     return;
   }
 
   const videoPayload = {
-    _id: String(populated._id),
+    _id: leanIdToString(populated._id),
     title: populated.title,
     slug: populated.slug,
     description: populated.description,
@@ -702,7 +811,7 @@ export async function updateVideo(
       populated.createdAt instanceof Date ? populated.createdAt.toISOString() : populated.createdAt,
     updatedAt:
       populated.updatedAt instanceof Date ? populated.updatedAt.toISOString() : populated.updatedAt,
-    artist: toArtistSummary(populated.artist as Parameters<typeof toArtistSummary>[0]),
+    artist: toArtistSummary(populated.artist as PopulatedArtistDoc | null | undefined),
   };
 
   sendResponse(reply, 200, { video: videoPayload }, 'Video updated.');
@@ -723,7 +832,7 @@ export async function deleteVideo(
   const result = await Video.findOneAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(request.params.id),
-      artist: (artist as { _id: mongoose.Types.ObjectId })._id,
+      artist: artist._id,
     },
     { $set: { status: 'archived' } }
   );
