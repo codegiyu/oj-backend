@@ -4,6 +4,22 @@
  * music/video list and single-item responses.
  */
 
+import mongoose from 'mongoose';
+
+/** Safe id string for lean docs and ObjectIds (satisfies no-base-to-string). */
+export function leanIdToString(id: unknown): string {
+  if (typeof id === 'string') return id;
+  if (id instanceof mongoose.Types.ObjectId) return id.toHexString();
+  if (typeof id === 'object' && id !== null && 'toString' in id) {
+    const fn = (id as { toString: () => unknown }).toString;
+    if (typeof fn === 'function') {
+      const s = fn.call(id);
+      if (typeof s === 'string' && s.length > 0 && s !== '[object Object]') return s;
+    }
+  }
+  return '';
+}
+
 /** Fields to populate for artist ref: summary only (list/single item). */
 export const ARTIST_POPULATE_SELECT = '_id name slug image';
 
@@ -32,7 +48,7 @@ export function toArtistSummary(
 ): ArtistSummary | undefined {
   if (!artist || artist._id == null) return undefined;
   return {
-    _id: String(artist._id),
+    _id: leanIdToString(artist._id),
     name: artist.name ?? '',
     slug: artist.slug ?? '',
     image: artist.image ?? '',
@@ -47,7 +63,10 @@ export function toArtistSummary(
 export function serializeDocIds<T extends Record<string, unknown>>(doc: T): T {
   if (!doc || typeof doc !== 'object') return doc;
   const out = { ...doc } as Record<string, unknown>;
-  if (out._id != null) out._id = String(out._id);
+  if (out._id != null) out._id = leanIdToString(out._id);
+  if (out.user != null && typeof out.user !== 'string') {
+    out.user = leanIdToString(out.user);
+  }
   if (out.artist != null && typeof out.artist === 'object' && !Array.isArray(out.artist)) {
     out.artist = toArtistSummary(out.artist as PopulatedArtistDoc);
   }
