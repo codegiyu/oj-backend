@@ -63,7 +63,7 @@ export async function listAdminPrayerRequests(
     PrayerRequest.countDocuments(filter),
   ]);
 
-  const prayerRequests = (items as Record<string, unknown>[]).map(shapePrayerRequestItem);
+  const prayerRequests = (items as unknown as Record<string, unknown>[]).map(shapePrayerRequestItem);
 
   sendResponse(
     reply,
@@ -180,7 +180,7 @@ export async function updateAdminPrayerRequest(
     200,
     {
       prayerRequest: shapePrayerRequestItem(
-        (populated ?? prayerRequest.toObject()) as Record<string, unknown>
+        (populated ?? prayerRequest.toObject()) as unknown as Record<string, unknown>
       ),
     },
     'Prayer request updated.'
@@ -217,7 +217,7 @@ export async function answerAdminPrayerRequest(
     200,
     {
       prayerRequest: shapePrayerRequestItem(
-        (populated ?? prayerRequest.toObject()) as Record<string, unknown>
+        (populated ?? prayerRequest.toObject()) as unknown as Record<string, unknown>
       ),
     },
     'Prayer request answered.'

@@ -103,10 +103,10 @@ export async function getCommunity(_request: FastifyRequest, reply: FastifyReply
         resources: resourcesCount,
         promoteYourContent: 0,
       },
-      featuredTestimonies: (featuredTestimonies as Record<string, unknown>[]).map(
+      featuredTestimonies: (featuredTestimonies as unknown as Record<string, unknown>[]).map(
         shapeTestimonyListItem
       ),
-      trendingDevotionals: (trendingDevotionals as Record<string, unknown>[]).map(
+      trendingDevotionals: (trendingDevotionals as unknown as Record<string, unknown>[]).map(
         shapeDevotionalListItem
       ),
       activeDiscussions: [],
@@ -153,7 +153,7 @@ export async function listDevotionals(
     Devotional.countDocuments(filter),
   ]);
 
-  const devotionals = (items as Record<string, unknown>[]).map(shapeDevotionalListItem);
+  const devotionals = (items as unknown as Record<string, unknown>[]).map(shapeDevotionalListItem);
   sendResponse(
     reply,
     200,
@@ -170,14 +170,15 @@ export async function getDevotionalByIdOrSlug(
   const doc = await findByIdOrSlug(Devotional, request.params.idOrSlug, { status: 'published' });
   if (!doc) throw new AppError('Devotional not found', 404);
 
-  const populated = await Devotional.findById(doc._id)
+  const docOid = new mongoose.Types.ObjectId(String(doc._id));
+  const populated = await Devotional.findById(docOid)
     .populate('artist', ARTIST_POPULATE_SELECT)
     .lean();
-  const detailRaw = (populated ?? doc) as Record<string, unknown>;
+  const detailRaw = (populated ?? doc) as unknown as Record<string, unknown>;
 
   const category = doc.category as string | undefined;
   const related = category
-    ? await Devotional.find({ status: 'published', category, _id: { $ne: doc._id } })
+    ? await Devotional.find({ status: 'published', category, _id: { $ne: docOid } })
         .sort({ createdAt: -1 })
         .limit(RELATED_DEVOTIONALS_LIMIT)
         .populate('artist', ARTIST_POPULATE_SELECT)
@@ -189,7 +190,9 @@ export async function getDevotionalByIdOrSlug(
     200,
     {
       devotional: shapeDevotionalDetail(detailRaw),
-      relatedDevotionals: (related as Record<string, unknown>[]).map(shapeDevotionalListItem),
+      relatedDevotionals: (related as unknown as Record<string, unknown>[]).map(
+        shapeDevotionalListItem
+      ),
     },
     'Devotional loaded.'
   );
@@ -226,7 +229,7 @@ export async function listTestimonies(
     Testimony.countDocuments(filter),
   ]);
 
-  const testimonies = (items as Record<string, unknown>[]).map(shapeTestimonyListItem);
+  const testimonies = (items as unknown as Record<string, unknown>[]).map(shapeTestimonyListItem);
   sendResponse(
     reply,
     200,
@@ -267,7 +270,9 @@ export async function listPrayerRequests(
     PrayerRequest.countDocuments(filter),
   ]);
 
-  const prayerRequests = (items as Record<string, unknown>[]).map(shapePrayerRequestListItem);
+  const prayerRequests = (items as unknown as Record<string, unknown>[]).map(
+    shapePrayerRequestListItem
+  );
   sendResponse(
     reply,
     200,
@@ -318,7 +323,7 @@ export async function listAskAPastorQuestions(
     AskPastorQuestion.countDocuments(filter),
   ]);
 
-  const questions = (items as Record<string, unknown>[]).map(raw => {
+  const questions = (items as unknown as Record<string, unknown>[]).map(raw => {
     const pastor = raw.pastor as Record<string, unknown> | null | undefined;
     return shapeQuestionListItem(raw, pastor ?? null);
   });
@@ -367,7 +372,7 @@ export async function listAskAPastorPastors(
     Pastor.countDocuments({ isActive: true }),
   ]);
 
-  const pastors = (items as Record<string, unknown>[]).map(shapePastorListItem);
+  const pastors = (items as unknown as Record<string, unknown>[]).map(shapePastorListItem);
   sendResponse(
     reply,
     200,
@@ -396,7 +401,7 @@ export async function listPolls(
     Poll.countDocuments(filter),
   ]);
 
-  const polls = (items as Record<string, unknown>[]).map(shapePollListItem);
+  const polls = (items as unknown as Record<string, unknown>[]).map(shapePollListItem);
   sendResponse(
     reply,
     200,
@@ -433,7 +438,7 @@ export async function listCommunityArtists(
     Artist.countDocuments({ isActive: true }),
   ]);
 
-  const artists = (items as Record<string, unknown>[]).map(shapeArtistListItem);
+  const artists = (items as unknown as Record<string, unknown>[]).map(shapeArtistListItem);
   sendResponse(
     reply,
     200,
@@ -472,7 +477,7 @@ export async function listResources(
     Resource.countDocuments(filter),
   ]);
 
-  const resources = (items as Record<string, unknown>[]).map(shapeResourceListItem);
+  const resources = (items as unknown as Record<string, unknown>[]).map(shapeResourceListItem);
   sendResponse(
     reply,
     200,
@@ -509,7 +514,7 @@ export async function submitPrayerRequest(
     urgent: !!body.urgent,
     status: 'active',
   });
-  const raw = doc.toObject ? doc.toObject() : (doc as unknown as Record<string, unknown>);
+  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   sendResponse(
     reply,
     201,
@@ -539,7 +544,7 @@ export async function submitQuestion(
     helpful: 0,
     urgent: false,
   });
-  const raw = doc.toObject ? doc.toObject() : (doc as unknown as Record<string, unknown>);
+  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   sendResponse(reply, 201, { question: shapeQuestionDetail(raw, null) }, 'Question submitted.');
 }
 
@@ -564,7 +569,7 @@ export async function submitTestimony(
     isFeatured: false,
     displayOrder: 0,
   });
-  const raw = doc.toObject ? doc.toObject() : (doc as unknown as Record<string, unknown>);
+  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   sendResponse(reply, 201, { testimony: shapeTestimonyDetail(raw) }, 'Testimony submitted.');
 }
 
@@ -590,7 +595,7 @@ export async function createPoll(
     status: 'active',
     totalVotes: 0,
   });
-  const raw = doc.toObject ? doc.toObject() : (doc as unknown as Record<string, unknown>);
+  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   sendResponse(reply, 201, { poll: shapePollDetail(raw) }, 'Poll created.');
 }
 
@@ -619,8 +624,9 @@ export async function votePoll(
   if (optionIndex === -1) throw new AppError('Invalid option', 400);
 
   const voterIdentifier = getVoterIdentifier(request);
+  const pollOid = new mongoose.Types.ObjectId(String(pollDoc._id));
   const existingVote = await PollVote.findOne({
-    poll: pollDoc._id,
+    poll: pollOid,
     voterIdentifier,
   });
   if (existingVote) {
@@ -628,12 +634,12 @@ export async function votePoll(
   }
 
   await PollVote.create({
-    poll: pollDoc._id,
+    poll: pollOid,
     optionId: optionIdObj,
     voterIdentifier,
   });
 
-  const pollId = pollDoc._id as mongoose.Types.ObjectId;
+  const pollId = pollOid;
   await Poll.updateOne(
     { _id: pollId },
     {
@@ -647,7 +653,7 @@ export async function votePoll(
   sendResponse(
     reply,
     200,
-    { poll: shapePollDetail(updated as Record<string, unknown>) },
+    { poll: shapePollDetail(updated as unknown as Record<string, unknown>) },
     'Vote recorded.'
   );
 }

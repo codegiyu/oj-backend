@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
+import type { ModelUser } from '../../lib/types/constants';
 import { getFromCache, removeFromCache } from '../../utils/cache';
 import { updateCachedUser } from '../../utils/authCache';
 import { verifyOtpToken } from '../../utils/token';
@@ -29,7 +30,7 @@ export async function verifyOTP(
 
   await removeFromCache(`pers:${email}:${scope}` as `pers:${string}`);
 
-  let updatedUser = null;
+  let updatedUser: ModelUser | null = null;
   if (scope === 'verify-email') {
     updatedUser = await User.findOneAndUpdate(
       { email: email.toLowerCase() },
@@ -39,14 +40,14 @@ export async function verifyOTP(
         'kyc.email.data': { verifiedAt: new Date() },
       },
       { returnDocument: 'after' }
-    ).lean();
+    ).lean<ModelUser | null>();
 
     if (!updatedUser) throw new AppError('User account not found', 401);
 
     await updateCachedUser(updatedUser);
   }
 
-  const populatedUser = await buildClientUserPayload(updatedUser);
+  const populatedUser = updatedUser ? await buildClientUserPayload(updatedUser) : null;
 
   sendResponse(
     reply,

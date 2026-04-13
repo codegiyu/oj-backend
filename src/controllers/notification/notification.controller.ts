@@ -154,8 +154,9 @@ export async function readAll(
 export async function getPreferences(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const user = getAuthUser(request);
   if (!user) throw new AppError('Unauthorized', 401);
-  const Model = hasConsoleAccess(user) ? Admin : User;
-  const doc = await Model.findById(user.userId).select('preferences').lean();
+  const doc = hasConsoleAccess(user)
+    ? await Admin.findById(user.userId).select('preferences').lean()
+    : await User.findById(user.userId).select('preferences').lean();
   const prefs = doc?.preferences ?? {};
   sendResponse(
     reply,
@@ -181,7 +182,6 @@ export async function updatePreferences(
   const user = getAuthUser(request);
   if (!user) throw new AppError('Unauthorized', 401);
   const body = request.body;
-  const Model = hasConsoleAccess(user) ? Admin : User;
   const update: Record<string, boolean> = {};
   if (body.realtime !== undefined) update['preferences.realtimeNotifications'] = body.realtime;
   if (body.email !== undefined) update['preferences.emailNotifications'] = body.email;
@@ -192,7 +192,11 @@ export async function updatePreferences(
     sendResponse(reply, 200, { success: true }, 'Preferences unchanged.');
     return;
   }
-  await Model.findByIdAndUpdate(user.userId, { $set: update });
+  if (hasConsoleAccess(user)) {
+    await Admin.findByIdAndUpdate(user.userId, { $set: update });
+  } else {
+    await User.findByIdAndUpdate(user.userId, { $set: update });
+  }
   await invalidateAuthCache(user.email, hasConsoleAccess(user) ? 'admin' : 'user');
   sendResponse(reply, 200, { success: true }, 'Preferences updated.');
 }

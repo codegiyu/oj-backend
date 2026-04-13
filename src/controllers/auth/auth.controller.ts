@@ -62,7 +62,10 @@ export async function login(
 
   setAuthCookies(reply, accessToken, refreshToken);
 
-  const sanitized = deleteFields(admin.toObject() as Record<string, unknown>, adminUnselected);
+  const sanitized = deleteFields(
+    admin.toObject() as unknown as Record<string, unknown>,
+    adminUnselected
+  );
 
   await addAdminToCache(sanitized as unknown as ModelAdmin);
 
@@ -82,7 +85,7 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
   if (scope === 'console-access') {
     const admin = await Admin.findById(user.userId).lean<ModelAdmin>();
 
-    console.log('admin', admin);
+    // console.log('admin', admin);
 
     if (!admin || admin.accountStatus === 'deleted') {
       clearAuthCookies(reply);
@@ -91,7 +94,7 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
     }
 
     const sanitized = deleteFields(admin as unknown as Record<string, unknown>, adminUnselected);
-    console.log('sanitized', sanitized);
+    // console.log('sanitized', sanitized);
 
     sendResponse(reply, 200, { user: sanitized }, 'Session loaded.');
     return;
@@ -99,7 +102,7 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
 
   const userDoc = await User.findById(user.userId).lean<ModelUser>();
 
-  console.log('userDoc', userDoc);
+  // console.log('userDoc', userDoc);
 
   if (!userDoc || userDoc.accountStatus === 'deleted') {
     clearAuthCookies(reply);
@@ -108,7 +111,7 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
   }
 
   const payload = await buildClientUserPayload(userDoc);
-  console.log('payload', payload);
+  // console.log('payload', payload);
 
   sendResponse(reply, 200, { user: payload }, 'Session loaded.');
 }

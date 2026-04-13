@@ -42,7 +42,7 @@ export function errorHandler(error: Error, request: FastifyRequest, reply: Fasti
       details,
     });
     const data =
-      details && details.length > 0 ? ({ details } as Record<string, unknown>) : undefined;
+      details && details.length > 0 ? ({ details } as unknown as Record<string, unknown>) : undefined;
     sendErrorResponse(reply, 400, message, data);
     return;
   }

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { ModelSiteSettings, SOCIAL_PLATFORMS } from '../lib/types/constants';
 
 const DayHoursSchema = new Schema(
@@ -206,13 +206,12 @@ export const defaultSiteSettings = {
   socials: [] as Array<{ platform: string; href: string }>,
 };
 
-SiteSettingsSchema.statics.getSettings = async function () {
-  let settings = await this.findOne();
+SiteSettingsSchema.statics.getSettings = async function (): Promise<ModelSiteSettings> {
+  let settings = (await this.findOne()) as ModelSiteSettings | null;
   if (!settings) {
-    settings = await this.create(defaultSiteSettings);
+    settings = (await this.create(defaultSiteSettings)) as ModelSiteSettings;
   }
   return settings;
 };
 
-export const SiteSettings =
-  mongoose.models.SiteSettings || model<ModelSiteSettings>('SiteSettings', SiteSettingsSchema);
+export const SiteSettings = model<ModelSiteSettings>('SiteSettings', SiteSettingsSchema);

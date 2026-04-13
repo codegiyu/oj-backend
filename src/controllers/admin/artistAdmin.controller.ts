@@ -62,7 +62,7 @@ export async function listAdminArtists(
     Artist.countDocuments(filter),
   ]);
 
-  const artists = (items as Record<string, unknown>[]).map(shapeArtistItem);
+  const artists = (items as unknown as Record<string, unknown>[]).map(shapeArtistItem);
 
   sendResponse(
     reply,
@@ -185,7 +185,7 @@ export async function updateAdminArtist(
   sendResponse(
     reply,
     200,
-    { artist: shapeArtistItem((populated ?? artist.toObject()) as Record<string, unknown>) },
+    { artist: shapeArtistItem((populated ?? artist.toObject()) as unknown as Record<string, unknown>) },
     'Artist updated.'
   );
 }
@@ -211,7 +211,7 @@ export async function getAdminArtistDashboardStats(
   sendResponse(
     reply,
     200,
-    { ...stats } as Record<string, unknown>,
+    { ...stats } as unknown as Record<string, unknown>,
     'Artist dashboard stats loaded.'
   );
 }

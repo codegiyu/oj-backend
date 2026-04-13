@@ -64,7 +64,7 @@ export async function listAdminPastors(
     Pastor.countDocuments(filter),
   ]);
 
-  const pastors = (items as Record<string, unknown>[]).map(shapePastorItem);
+  const pastors = (items as unknown as Record<string, unknown>[]).map(shapePastorItem);
 
   sendResponse(
     reply,
@@ -176,7 +176,7 @@ export async function updateAdminPastor(
   sendResponse(
     reply,
     200,
-    { pastor: shapePastorItem((populated ?? pastor.toObject()) as Record<string, unknown>) },
+    { pastor: shapePastorItem((populated ?? pastor.toObject()) as unknown as Record<string, unknown>) },
     'Pastor updated.'
   );
 }

@@ -6,10 +6,11 @@ import { Product } from '../../models/product';
 import { Order } from '../../models/order';
 import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
-import { ModelProduct } from '../../lib/types/constants';
+import { ModelProduct, PopulatedOrder } from '../../lib/types/constants';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
+import { mapPopulatedOrderToApi } from '../../utils/mapPopulatedOrder';
 import {
   slugify,
   parsePositiveInteger,
@@ -18,11 +19,9 @@ import {
   normalizeSort,
 } from '../../utils/helpers';
 
-function buildWhatsappMessage(order: Record<string, unknown>): { message: string; link?: string } {
-  const customer = order.customer as
-    | { name?: string; email?: string; phone?: string; address?: string }
-    | undefined;
-  const items = (order.items as Array<Record<string, unknown>> | undefined) ?? [];
+function buildWhatsappMessage(order: PopulatedOrder): { message: string; link?: string } {
+  const customer = order.customer;
+  const items = order.items ?? [];
   const vendor = order.vendor as { whatsapp?: string } | undefined;
 
   const lines: string[] = [];
@@ -69,80 +68,6 @@ async function getActiveCategories(includeInactive: boolean | undefined) {
     .sort({ displayOrder: 1, name: 1 })
     .select('_id name slug displayOrder isActive')
     .lean();
-}
-
-/**
- * Map order doc to PopulatedMarketplaceOrder for GET /marketplace/orders.
- * Vendor: PopulatedVendorSummary { _id, name?, slug, storeName }.
- * items[].product: name, slug, price, images for display.
- * IDs and dates serialized as strings.
- */
-function mapOrderToPopulated(order: Record<string, unknown>): Record<string, unknown> {
-  const vendorDoc = order.vendor as Record<string, unknown> | undefined;
-  const vendorSummary = {
-    _id:
-      (vendorDoc?._id ?? order.vendor) != null ? String(vendorDoc?._id ?? order.vendor) : undefined,
-    name: vendorDoc?.name,
-    slug: vendorDoc?.slug,
-    storeName: vendorDoc?.storeName,
-  };
-
-  const items =
-    (order.items as Array<Record<string, unknown>> | undefined)?.map(
-      (item: Record<string, unknown>) => {
-        const productDoc = item.product as Record<string, unknown> | undefined;
-        const product =
-          productDoc && typeof productDoc === 'object' && productDoc._id != null
-            ? {
-                _id: String(productDoc._id),
-                name: productDoc.name,
-                slug: productDoc.slug,
-                price: productDoc.price,
-                images: Array.isArray(productDoc.images) ? productDoc.images : [],
-                image: Array.isArray(productDoc.images)
-                  ? (productDoc.images as string[])[0]
-                  : productDoc.image,
-              }
-            : {
-                _id: item.product != null ? String(item.product) : '',
-                name: item.productName ?? '',
-                slug: '',
-                price: item.price,
-                images: [] as string[],
-                image: undefined,
-              };
-
-        return {
-          product,
-          productName: item.productName,
-          quantity: item.quantity,
-          price: item.price,
-          totalPrice: item.totalPrice ?? (Number(item.quantity) || 0) * (Number(item.price) || 0),
-          ...(item.sku != null ? { sku: item.sku } : {}),
-          ...(item.selectedOptions &&
-          typeof item.selectedOptions === 'object' &&
-          Object.keys(item.selectedOptions).length > 0
-            ? { selectedOptions: item.selectedOptions }
-            : {}),
-        };
-      }
-    ) ?? [];
-
-  const createdAt = order.createdAt;
-  const updatedAt = order.updatedAt;
-
-  return {
-    _id: order._id != null ? String(order._id) : undefined,
-    orderNumber: order.orderNumber,
-    customer: order.customer,
-    vendor: vendorSummary,
-    items,
-    totalAmount: order.totalAmount,
-    status: order.status,
-    paymentStatus: order.paymentStatus,
-    createdAt: createdAt instanceof Date ? createdAt.toISOString() : createdAt,
-    updatedAt: updatedAt instanceof Date ? updatedAt.toISOString() : updatedAt,
-  };
 }
 
 export async function getCategories(
@@ -222,7 +147,7 @@ export async function getVendorBySlug(
   sendResponse(
     reply,
     200,
-    { ...vendor, productCount } as Record<string, unknown>,
+    { ...vendor, productCount } as unknown as Record<string, unknown>,
     'Vendor loaded.'
   );
 }
@@ -324,26 +249,31 @@ export async function getProducts(
     Product.countDocuments(filter),
   ]);
 
-  const list = products.map((p: Record<string, unknown>) => {
-    const v = p.vendor as {
+  const list = products.map(p => {
+    const row = p;
+    const v = row.vendor as {
       _id?: mongoose.Types.ObjectId;
       storeName?: string;
       slug?: string;
       whatsapp?: string;
     } | null;
-    const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
-    const s = p.subCategory as {
+    const c = row.category as {
+      _id?: mongoose.Types.ObjectId;
+      name?: string;
+      slug?: string;
+    } | null;
+    const s = row.subCategory as {
       _id?: mongoose.Types.ObjectId;
       name?: string;
       slug?: string;
       category?: mongoose.Types.ObjectId;
     } | null;
     return {
-      ...p,
+      ...row,
       vendorName: v?.storeName,
       vendorSlug: v?.slug,
       vendorWhatsapp: v?.whatsapp,
-      vendor: (v?._id ?? (p.vendor as mongoose.Types.ObjectId))?.toString(),
+      vendor: (v?._id ?? row.vendor)?.toString(),
       category: c
         ? {
             _id: c._id?.toString(),
@@ -391,7 +321,7 @@ export async function getProductBySlug(
     .populate('subCategory', 'name slug category')
     .lean();
   if (!product) throw new AppError('Product not found', 404);
-  const p = product as Record<string, unknown>;
+  const p = product as unknown as Record<string, unknown>;
   const v = p.vendor as { storeName?: string; slug?: string; whatsapp?: string } | null;
   const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
   const s = p.subCategory as {
@@ -633,20 +563,20 @@ export async function placeOrder(
     const created = await Order.findById(order._id)
       .populate('vendor', 'name storeName slug phone whatsapp')
       .populate('items.product', 'name slug images')
-      .lean();
+      .lean<PopulatedOrder | null>();
 
     if (!created) {
       continue;
     }
 
-    const { message, link } = buildWhatsappMessage(created as Record<string, unknown>);
-    const v = created?.vendor;
+    const { message, link } = buildWhatsappMessage(created);
+    const v = created?.vendor as { whatsapp?: string } | mongoose.Types.ObjectId | null | undefined;
 
-    if (v && v.whatsapp) {
+    if (v && typeof v === 'object' && 'whatsapp' in v && v.whatsapp) {
       try {
         await addJobToQueue({
           type: 'notificationEmail',
-          to: v.whatsapp,
+          to: (v as { whatsapp: string }).whatsapp,
           userModel: 'User',
           title: 'New marketplace order',
           message,
@@ -656,7 +586,7 @@ export async function placeOrder(
       }
     }
 
-    const shaped = mapOrderToPopulated(created as Record<string, unknown>);
+    const shaped = mapPopulatedOrderToApi(created);
     createdOrders.push({
       ...shaped,
       whatsappLink: link,
@@ -714,11 +644,11 @@ export async function getMyOrders(
       .sort(sortStr)
       .skip(skip)
       .limit(limit)
-      .lean(),
+      .lean<PopulatedOrder[]>(),
     Order.countDocuments(filter),
   ]);
 
-  const list = (orders as Record<string, unknown>[]).map(o => mapOrderToPopulated(o));
+  const list = orders.map(o => mapPopulatedOrderToApi(o));
   sendResponse(
     reply,
     200,
@@ -753,15 +683,15 @@ export async function getOrderWhatsappLink(
   })
     .populate('vendor', 'name storeName slug phone whatsapp')
     .populate('items.product', 'name slug images')
-    .lean();
+    .lean<PopulatedOrder | null>();
 
   if (!order) throw new AppError('Order not found', 404);
 
-  const shaped = mapOrderToPopulated(order as Record<string, unknown>);
+  const shaped = mapPopulatedOrderToApi(order);
   const { message, link } = buildWhatsappMessage({
     ...order,
     ...shaped,
-  } as Record<string, unknown>);
+  });
 
   if (!link) {
     sendResponse(

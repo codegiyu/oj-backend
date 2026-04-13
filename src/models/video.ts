@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelVideo } from '../lib/types/constants';
 
 const videoSchema = new Schema<ModelVideo>(
@@ -36,4 +36,4 @@ const videoSchema = new Schema<ModelVideo>(
 
 videoSchema.index({ artist: 1, status: 1, createdAt: -1 });
 
-export const Video = mongoose.models.Video || model<ModelVideo>('Video', videoSchema);
+export const Video = model<ModelVideo>('Video', videoSchema);

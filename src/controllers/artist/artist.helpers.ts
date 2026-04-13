@@ -62,7 +62,7 @@ export function toArtistSummary(
  */
 export function serializeDocIds<T extends Record<string, unknown>>(doc: T): T {
   if (!doc || typeof doc !== 'object') return doc;
-  const out = { ...doc } as Record<string, unknown>;
+  const out = { ...doc } as unknown as Record<string, unknown>;
   if (out._id != null) out._id = leanIdToString(out._id);
   if (out.user != null && typeof out.user !== 'string') {
     out.user = leanIdToString(out.user);

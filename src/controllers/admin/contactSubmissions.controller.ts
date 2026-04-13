@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendResponse } from '../../utils/response';
 import { ContactSubmission } from '../../models/contactSubmission';
 import { parsePositiveInteger, parseSearch, normalizeSort } from '../../utils/helpers';
+import mongoose from 'mongoose';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'subject', 'email'];
 
@@ -39,16 +40,19 @@ export async function listContactSubmissions(
     ContactSubmission.countDocuments(filter),
   ]);
 
-  const contactSubmissions = submissions.map((doc: Record<string, unknown>) => ({
-    _id: doc._id != null ? String(doc._id) : doc._id,
-    name: doc.name,
-    phone: doc.phone,
-    email: doc.email,
-    subject: doc.subject,
-    message: doc.message,
-    createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
-    updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
-  }));
+  const contactSubmissions = submissions.map(doc => {
+    const d = doc as unknown as Record<string, unknown>;
+    return {
+      _id: d._id != null ? (d._id as mongoose.Types.ObjectId | null)?.toString() : d._id,
+      name: d.name,
+      phone: d.phone,
+      email: d.email,
+      subject: d.subject,
+      message: d.message,
+      createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : d.createdAt,
+      updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : d.updatedAt,
+    };
+  });
 
   sendResponse(
     reply,

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelPartnershipBenefit } from '../lib/types/constants';
 
 const partnershipBenefitSchema = new Schema<ModelPartnershipBenefit>(
@@ -12,6 +12,7 @@ const partnershipBenefitSchema = new Schema<ModelPartnershipBenefit>(
 
 partnershipBenefitSchema.index({ isActive: 1, displayOrder: 1 });
 
-export const PartnershipBenefit =
-  mongoose.models.PartnershipBenefit ||
-  model<ModelPartnershipBenefit>('PartnershipBenefit', partnershipBenefitSchema);
+export const PartnershipBenefit = model<ModelPartnershipBenefit>(
+  'PartnershipBenefit',
+  partnershipBenefitSchema
+);

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import {
   ACCOUNT_STATUSES,
   AuthUserRole,
@@ -75,4 +75,4 @@ export const AdminSchema = new Schema<ModelAdmin>(
   { timestamps: true, collection: 'admins' }
 );
 
-export const Admin = mongoose.models.Admin || model<ModelAdmin>('Admin', AdminSchema);
+export const Admin = model<ModelAdmin>('Admin', AdminSchema);

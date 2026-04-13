@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelPrayerRequest } from '../lib/types/constants';
 
 const prayerRequestSchema = new Schema<ModelPrayerRequest>(
@@ -27,5 +27,4 @@ const prayerRequestSchema = new Schema<ModelPrayerRequest>(
 prayerRequestSchema.index({ status: 1, createdAt: -1 });
 prayerRequestSchema.index({ status: 1, category: 1, createdAt: -1 });
 
-export const PrayerRequest =
-  mongoose.models.PrayerRequest || model<ModelPrayerRequest>('PrayerRequest', prayerRequestSchema);
+export const PrayerRequest = model<ModelPrayerRequest>('PrayerRequest', prayerRequestSchema);

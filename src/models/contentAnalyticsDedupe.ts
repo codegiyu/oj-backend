@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
 /** Short-lived keys for idempotency / session dedupe on public analytics events. */
 const contentAnalyticsDedupeSchema = new Schema(
@@ -10,6 +10,4 @@ const contentAnalyticsDedupeSchema = new Schema(
 
 contentAnalyticsDedupeSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
 
-export const ContentAnalyticsDedupe =
-  mongoose.models.ContentAnalyticsDedupe ||
-  model('ContentAnalyticsDedupe', contentAnalyticsDedupeSchema);
+export const ContentAnalyticsDedupe = model('ContentAnalyticsDedupe', contentAnalyticsDedupeSchema);

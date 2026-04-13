@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelPastor } from '../lib/types/constants';
 
 const pastorSchema = new Schema<ModelPastor>(
@@ -21,4 +21,4 @@ const pastorSchema = new Schema<ModelPastor>(
 
 pastorSchema.index({ isActive: 1, displayOrder: 1 });
 
-export const Pastor = mongoose.models.Pastor || model<ModelPastor>('Pastor', pastorSchema);
+export const Pastor = model<ModelPastor>('Pastor', pastorSchema);

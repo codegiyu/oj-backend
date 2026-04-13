@@ -31,7 +31,7 @@ export async function getSiteSettings(
 ): Promise<void> {
   const slice = (request.params.slice ?? 'all') as SiteSettingsSlice;
   const settings = await getSettingsDoc();
-  const plain = settings.toObject() as Record<string, unknown>;
+  const plain = settings.toObject() as unknown as Record<string, unknown>;
 
   if (slice === 'all') {
     sendResponse(reply, 200, plain, 'Site settings loaded.');
@@ -49,7 +49,7 @@ export async function getSiteSettings(
   sendResponse(
     reply,
     200,
-    (typeof value === 'object' && value !== null ? value : { value }) as Record<string, unknown>,
+    (typeof value === 'object' && value !== null ? value : { value }) as unknown as Record<string, unknown>,
     'Site settings loaded.'
   );
 }
@@ -71,10 +71,10 @@ export async function updateSiteSettings(
 
   for (const item of settingsPayload) {
     if (item.name === 'all' || !SLICES.includes(item.name)) continue;
-    (settings as Record<string, unknown>)[item.name] = item.value;
+    (settings as unknown as Record<string, unknown>)[item.name] = item.value;
   }
 
   await settings.save();
-  const plain = settings.toObject() as Record<string, unknown>;
+  const plain = settings.toObject() as unknown as Record<string, unknown>;
   sendResponse(reply, 200, plain, 'Site settings updated.');
 }

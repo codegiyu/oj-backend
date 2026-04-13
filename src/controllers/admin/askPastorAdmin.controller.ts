@@ -84,7 +84,7 @@ export async function listAdminAskPastor(
     AskPastorQuestion.countDocuments(filter),
   ]);
 
-  const questions = (items as Record<string, unknown>[]).map(shapeAskPastorItem);
+  const questions = (items as unknown as Record<string, unknown>[]).map(shapeAskPastorItem);
 
   sendResponse(
     reply,
@@ -150,7 +150,7 @@ export async function updateAdminAskPastor(
   sendResponse(
     reply,
     200,
-    { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) },
+    { question: shapeAskPastorItem((populated ?? question.toObject()) as unknown as Record<string, unknown>) },
     'Ask Pastor question updated.'
   );
 }
@@ -187,7 +187,7 @@ export async function assignPastorAdminAskPastor(
   sendResponse(
     reply,
     200,
-    { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) },
+    { question: shapeAskPastorItem((populated ?? question.toObject()) as unknown as Record<string, unknown>) },
     'Pastor assigned.'
   );
 }
@@ -213,7 +213,7 @@ export async function rejectAdminAskPastor(
   sendResponse(
     reply,
     200,
-    { question: shapeAskPastorItem((populated ?? question.toObject()) as Record<string, unknown>) },
+    { question: shapeAskPastorItem((populated ?? question.toObject()) as unknown as Record<string, unknown>) },
     'Ask Pastor question rejected.'
   );
 }

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
 const wishlistSchema = new Schema(
   {
@@ -13,4 +13,4 @@ const wishlistSchema = new Schema(
 
 wishlistSchema.index({ user: 1, product: 1 }, { unique: true });
 
-export const Wishlist = mongoose.models.Wishlist || model('Wishlist', wishlistSchema);
+export const Wishlist = model('Wishlist', wishlistSchema);

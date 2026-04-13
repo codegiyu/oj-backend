@@ -1,18 +1,7 @@
-import mongoose, { Schema, model } from 'mongoose';
-import type { HomeAdvertSlot } from '../lib/types/constants';
+import { Schema, model } from 'mongoose';
+import { ModelHomeAdvert } from '../lib/types/constants';
 
-export interface IHomeAdvertDoc {
-  _id: mongoose.Types.ObjectId;
-  slot: HomeAdvertSlot;
-  imageUrl: string;
-  linkUrl: string;
-  displayOrder: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const homeAdvertSchema = new Schema<IHomeAdvertDoc>(
+const homeAdvertSchema = new Schema<ModelHomeAdvert>(
   {
     slot: {
       type: String,
@@ -29,5 +18,4 @@ const homeAdvertSchema = new Schema<IHomeAdvertDoc>(
 
 homeAdvertSchema.index({ slot: 1, isActive: 1, displayOrder: 1 });
 
-export const HomeAdvert =
-  mongoose.models.HomeAdvert || model<IHomeAdvertDoc>('HomeAdvert', homeAdvertSchema);
+export const HomeAdvert = model<ModelHomeAdvert>('HomeAdvert', homeAdvertSchema);

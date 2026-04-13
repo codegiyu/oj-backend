@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelNewsArticle } from '../lib/types/constants';
 
 const newsArticleSchema = new Schema<ModelNewsArticle>(
@@ -32,5 +32,4 @@ const newsArticleSchema = new Schema<ModelNewsArticle>(
 newsArticleSchema.index({ status: 1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, isFeatured: 1 });
 
-export const NewsArticle =
-  mongoose.models.NewsArticle || model<ModelNewsArticle>('NewsArticle', newsArticleSchema);
+export const NewsArticle = model<ModelNewsArticle>('NewsArticle', newsArticleSchema);

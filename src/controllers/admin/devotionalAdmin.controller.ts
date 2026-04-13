@@ -30,34 +30,45 @@ function ownerApiFields(raw: Record<string, unknown>): {
   ownerUserId?: string;
 } {
   const artistVal = raw.artist;
+
   if (artistVal == null) return { ownerLocked: false };
+
   if (
     typeof artistVal === 'object' &&
     artistVal !== null &&
-    (artistVal as { _id?: unknown })._id == null
+    (artistVal as { _id?: mongoose.Types.ObjectId | null })._id == null
   ) {
     return { ownerLocked: false };
   }
+
   const u =
     typeof artistVal === 'object' && artistVal !== null && 'user' in artistVal
-      ? (artistVal as { user?: { _id?: unknown } | unknown }).user
+      ? (artistVal as { user?: { _id?: mongoose.Types.ObjectId | null } | null }).user
       : undefined;
+
   let ownerUserId: string | undefined;
+
   if (u != null && typeof u === 'object' && u !== null && '_id' in u) {
-    ownerUserId = String((u as { _id: unknown })._id);
-  } else if (u != null && mongoose.Types.ObjectId.isValid(String(u))) {
-    ownerUserId = String(u);
+    ownerUserId = u._id != null ? (u._id as mongoose.Types.ObjectId | null)?.toString() : undefined;
+  } else if (u != null && u._id != null && mongoose.Types.ObjectId.isValid(u._id.toString())) {
+    ownerUserId = u._id != null ? (u._id as mongoose.Types.ObjectId | null)?.toString() : undefined;
   }
+
   return { ownerLocked: true, ...(ownerUserId ? { ownerUserId } : {}) };
 }
 
 function shapeDevotionalItem(raw: Record<string, unknown>): Record<string, unknown> {
   const artist = toArtistSummary(
-    raw.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
+    raw.artist as {
+      _id: mongoose.Types.ObjectId | null;
+      name?: string;
+      slug?: string;
+      image?: string;
+    } | null
   );
   const owner = ownerApiFields(raw);
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     coverImage: raw.coverImage ?? '',
@@ -119,7 +130,7 @@ export async function listAdminDevotionals(
     Devotional.countDocuments(filter),
   ]);
 
-  const devotionals = (items as Record<string, unknown>[]).map(shapeDevotionalItem);
+  const devotionals = (items as unknown as Record<string, unknown>[]).map(shapeDevotionalItem);
 
   sendResponse(
     reply,
@@ -194,7 +205,7 @@ export async function createAdminDevotional(
     category: body.category ?? '',
     author: body.author ?? '',
     verse: body.verse ?? '',
-    date: body.date ? new Date(body.date) : null,
+    date: body.date ? new Date(body.date) : undefined,
     readingTime: body.readingTime ?? 0,
     lessons: Array.isArray(body.lessons) ? body.lessons : [],
     duration: body.duration ?? 0,
@@ -259,7 +270,7 @@ export async function updateAdminDevotional(
   if (body.category !== undefined) devotional.category = body.category;
   if (body.author !== undefined) devotional.author = body.author;
   if (body.verse !== undefined) devotional.verse = body.verse;
-  if (body.date !== undefined) devotional.date = body.date ? new Date(body.date) : null;
+  if (body.date !== undefined) devotional.date = body.date ? new Date(body.date) : undefined;
   if (body.readingTime !== undefined) devotional.readingTime = body.readingTime;
   if (body.lessons !== undefined)
     devotional.lessons = Array.isArray(body.lessons) ? body.lessons : devotional.lessons;
@@ -276,7 +287,7 @@ export async function updateAdminDevotional(
     200,
     {
       devotional: shapeDevotionalItem(
-        (populated ?? devotional.toObject()) as Record<string, unknown>
+        (populated ?? devotional.toObject()) as unknown as Record<string, unknown>
       ),
     },
     'Devotional updated.'
@@ -316,7 +327,7 @@ export async function approveAdminDevotional(
     200,
     {
       devotional: shapeDevotionalItem(
-        (populated ?? devotional.toObject()) as Record<string, unknown>
+        (populated ?? devotional.toObject()) as unknown as Record<string, unknown>
       ),
     },
     'Devotional approved.'
@@ -347,7 +358,7 @@ export async function rejectAdminDevotional(
     200,
     {
       devotional: shapeDevotionalItem(
-        (populated ?? devotional.toObject()) as Record<string, unknown>
+        (populated ?? devotional.toObject()) as unknown as Record<string, unknown>
       ),
     },
     'Devotional rejected.'

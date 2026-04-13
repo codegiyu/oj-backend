@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelResourceDownloadCategory } from '../lib/types/constants';
 
 const resourceDownloadCategorySchema = new Schema<ModelResourceDownloadCategory>(
@@ -16,6 +16,7 @@ const resourceDownloadCategorySchema = new Schema<ModelResourceDownloadCategory>
 
 resourceDownloadCategorySchema.index({ isActive: 1, displayOrder: 1 });
 
-export const ResourceDownloadCategory =
-  mongoose.models.ResourceDownloadCategory ||
-  model<ModelResourceDownloadCategory>('ResourceDownloadCategory', resourceDownloadCategorySchema);
+export const ResourceDownloadCategory = model<ModelResourceDownloadCategory>(
+  'ResourceDownloadCategory',
+  resourceDownloadCategorySchema
+);

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { ModelOrder } from '../lib/types/constants';
 
 const orderItemSchema = new Schema(
@@ -35,4 +35,4 @@ const orderSchema = new Schema<ModelOrder>(
 
 orderSchema.index({ vendor: 1, createdAt: -1 });
 
-export const Order = mongoose.models.Order || model<ModelOrder>('Order', orderSchema);
+export const Order = model<ModelOrder>('Order', orderSchema);

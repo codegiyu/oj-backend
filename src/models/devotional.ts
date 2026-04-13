@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelDevotional } from '../lib/types/constants';
 
 const devotionalSchema = new Schema<ModelDevotional>(
@@ -53,5 +53,4 @@ const devotionalSchema = new Schema<ModelDevotional>(
 devotionalSchema.index({ status: 1, type: 1, createdAt: -1 });
 devotionalSchema.index({ status: 1, category: 1, createdAt: -1 });
 
-export const Devotional =
-  mongoose.models.Devotional || model<ModelDevotional>('Devotional', devotionalSchema);
+export const Devotional = model<ModelDevotional>('Devotional', devotionalSchema);

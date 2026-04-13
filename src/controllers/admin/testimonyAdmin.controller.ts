@@ -66,7 +66,7 @@ export async function listAdminTestimonies(
     Testimony.countDocuments(filter),
   ]);
 
-  const testimonies = (items as Record<string, unknown>[]).map(shapeTestimonyItem);
+  const testimonies = (items as unknown as Record<string, unknown>[]).map(shapeTestimonyItem);
 
   sendResponse(
     reply,
@@ -176,7 +176,7 @@ export async function updateAdminTestimony(
     reply,
     200,
     {
-      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>),
+      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as unknown as Record<string, unknown>),
     },
     'Testimony updated.'
   );
@@ -214,7 +214,7 @@ export async function approveAdminTestimony(
     reply,
     200,
     {
-      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>),
+      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as unknown as Record<string, unknown>),
     },
     'Testimony approved.'
   );
@@ -243,7 +243,7 @@ export async function rejectAdminTestimony(
     reply,
     200,
     {
-      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as Record<string, unknown>),
+      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as unknown as Record<string, unknown>),
     },
     'Testimony rejected.'
   );

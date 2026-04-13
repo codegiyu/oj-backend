@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { ModelVendor } from '../lib/types/constants';
 
 const vendorSchema = new Schema<ModelVendor>(
@@ -33,4 +33,4 @@ const vendorSchema = new Schema<ModelVendor>(
 
 vendorSchema.index({ status: 1 });
 
-export const Vendor = mongoose.models.Vendor || model<ModelVendor>('Vendor', vendorSchema);
+export const Vendor = model<ModelVendor>('Vendor', vendorSchema);

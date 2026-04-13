@@ -13,38 +13,30 @@ import { logger } from '../../utils/logger';
 import { ENVIRONMENT } from '../../config/env';
 import type { JOB_TYPE, JobData } from '../../lib/types/queues';
 
-const TEMPLATES: Partial<
-  Record<
-    JOB_TYPE,
-    {
-      subject: string;
-      template: (data: JobData & { branding: ReturnType<typeof getAppBranding> }) => ReactNode;
-    }
-  >
+type EmailTemplateProps = JobData & { branding: ReturnType<typeof getAppBranding> };
+
+const TEMPLATES: Record<
+  JOB_TYPE,
+  {
+    subject: string;
+    template: (data: EmailTemplateProps) => ReactNode;
+  }
 > = {
   verificationCode: {
     subject: 'Account verification code',
-    template: OTPCode as (
-      data: JobData & { branding: ReturnType<typeof getAppBranding> }
-    ) => ReactNode,
+    template: OTPCode as (data: EmailTemplateProps) => ReactNode,
   },
   resetPassword: {
     subject: 'Reset your password',
-    template: ResetPasswordLink as (
-      data: JobData & { branding: ReturnType<typeof getAppBranding> }
-    ) => ReactNode,
+    template: ResetPasswordLink as (data: EmailTemplateProps) => ReactNode,
   },
   notificationEmail: {
     subject: 'You have a new notification',
-    template: NotificationEmailTemplate as (
-      data: JobData & { branding: ReturnType<typeof getAppBranding> }
-    ) => ReactNode,
+    template: NotificationEmailTemplate as (data: EmailTemplateProps) => ReactNode,
   },
   inviteAdmin: {
     subject: 'Your invitation to OJ Multimedia Admin',
-    template: InviteAdminTemplate as (
-      data: JobData & { branding: ReturnType<typeof getAppBranding> }
-    ) => ReactNode,
+    template: InviteAdminTemplate as (data: EmailTemplateProps) => ReactNode,
   },
 };
 
@@ -78,7 +70,7 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
   }
 
   if (!emailLog && jobId) {
-    emailLog = await createEmailLog({
+    emailLog = (await createEmailLog({
       jobId,
       type: type,
       to,
@@ -86,19 +78,19 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
       subject,
       provider: 'smtp',
       metadata: { jobData: data },
-    });
+    })) as unknown as Awaited<ReturnType<typeof EmailLog.findOne>>;
   }
 
-  const templatePayload = emailLog?.metadata?.jobData
-    ? { ...(emailLog.metadata.jobData as Record<string, unknown>), ...data, branding }
+  const templateProps: EmailTemplateProps = emailLog?.metadata?.jobData
+    ? ({
+        ...(emailLog.metadata.jobData as Record<string, unknown>),
+        ...data,
+        branding,
+      } as EmailTemplateProps)
     : { ...data, branding };
 
   try {
-    const html = await render(
-      options.template(
-        templatePayload as JobData & { branding: ReturnType<typeof getAppBranding> }
-      ) as any
-    );
+    const html = await render(options.template(templateProps) as React.ReactNode);
 
     const transporter = nodemailer.createTransport({
       host: ENVIRONMENT.email.smtp.host,

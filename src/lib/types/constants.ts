@@ -819,6 +819,29 @@ export interface IProductVariant {
   image?: string;
 }
 
+/** Marketplace product category (top-level). */
+export interface ICategory {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  slug: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Marketplace product subcategory (belongs to one Category). */
+export interface ISubCategory {
+  _id: mongoose.Types.ObjectId;
+  category: mongoose.Types.ObjectId;
+  name: string;
+  slug: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IProduct {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -869,6 +892,44 @@ export interface IOrder {
   paymentStatus: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Vendor document shape when `Order.vendor` is populated (e.g. `name slug storeName`). */
+export interface PopulatedOrderVendor {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  slug?: string;
+  storeName?: string;
+  /** Included when populate select adds it (marketplace WhatsApp / notifications). */
+  phone?: string;
+  whatsapp?: string;
+}
+
+/** Product document shape when `Order.items[].product` is populated (`name slug price images`). */
+export interface PopulatedOrderProduct {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  slug?: string;
+  price?: number;
+  images?: string[];
+  /** Not typically populated; response mapper may set from `images[0]`. */
+  image?: string;
+}
+
+export interface PopulatedOrderItem extends Omit<IOrderItem, 'product'> {
+  /** `null` when populated but the referenced product document no longer exists. */
+  product: PopulatedOrderProduct | null;
+}
+
+/**
+ * `IOrder` after `.populate('vendor', ...)` and `.populate('items.product', ...)`.
+ * Optional fields on nested types cover routes that populate a narrower field list.
+ * `ObjectId` = path not populated; populated subdoc or `null` (Mongoose uses `null` when the ref target is missing).
+ */
+export interface PopulatedOrder extends Omit<IOrder, 'vendor' | 'items'> {
+  /** `null` when populated but the referenced vendor no longer exists. */
+  vendor: PopulatedOrderVendor | null;
+  items: PopulatedOrderItem[];
 }
 
 export interface ICartItem {
@@ -930,6 +991,8 @@ export type ModelAskPastorQuestion = IAskPastorQuestion & IModelIndex & Document
 export type ModelPoll = IPoll & IModelIndex & Document;
 export type ModelPollVote = IPollVote & IModelIndex & Document;
 export type ModelVendor = IVendor & IModelIndex & Document;
+export type ModelCategory = ICategory & IModelIndex & Document;
+export type ModelSubCategory = ISubCategory & IModelIndex & Document;
 export type ModelProduct = IProduct & IModelIndex & Document;
 export type ModelOrder = IOrder & IModelIndex & Document;
 export type ModelNewsletter = INewsletter & IModelIndex & Document;

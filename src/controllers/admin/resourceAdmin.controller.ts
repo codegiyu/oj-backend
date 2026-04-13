@@ -69,7 +69,7 @@ export async function listAdminResources(
     Resource.countDocuments(filter),
   ]);
 
-  const resources = (items as Record<string, unknown>[]).map(shapeResourceItem);
+  const resources = (items as unknown as Record<string, unknown>[]).map(shapeResourceItem);
 
   sendResponse(
     reply,
@@ -191,7 +191,7 @@ export async function updateAdminResource(
   sendResponse(
     reply,
     200,
-    { resource: shapeResourceItem((populated ?? resource.toObject()) as Record<string, unknown>) },
+    { resource: shapeResourceItem((populated ?? resource.toObject()) as unknown as Record<string, unknown>) },
     'Resource updated.'
   );
 }
@@ -227,7 +227,7 @@ export async function approveAdminResource(
   sendResponse(
     reply,
     200,
-    { resource: shapeResourceItem((populated ?? resource.toObject()) as Record<string, unknown>) },
+    { resource: shapeResourceItem((populated ?? resource.toObject()) as unknown as Record<string, unknown>) },
     'Resource approved.'
   );
 }
@@ -254,7 +254,7 @@ export async function rejectAdminResource(
   sendResponse(
     reply,
     200,
-    { resource: shapeResourceItem((populated ?? resource.toObject()) as Record<string, unknown>) },
+    { resource: shapeResourceItem((populated ?? resource.toObject()) as unknown as Record<string, unknown>) },
     'Resource rejected.'
   );
 }

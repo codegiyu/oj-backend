@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { ROLE_SLUGS, ModelRole } from '../lib/types/constants';
 
 const roleSchema = new Schema<ModelRole>(
@@ -22,4 +22,4 @@ const roleSchema = new Schema<ModelRole>(
   { timestamps: true, collection: 'roles' }
 );
 
-export const Role = mongoose.models.Role || model<ModelRole>('Role', roleSchema);
+export const Role = model<ModelRole>('Role', roleSchema);

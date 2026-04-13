@@ -11,7 +11,7 @@ export async function findByIdOrSlug<T>(
   idOrSlug: string,
   filter: Record<string, unknown> = {}
 ): Promise<Record<string, unknown> | null> {
-  const q = { ...filter } as Record<string, unknown>;
+  const q = { ...filter } as unknown as Record<string, unknown>;
   if (
     mongoose.Types.ObjectId.isValid(idOrSlug) &&
     String(new mongoose.Types.ObjectId(idOrSlug)) === idOrSlug
@@ -19,13 +19,13 @@ export async function findByIdOrSlug<T>(
     q._id = new mongoose.Types.ObjectId(idOrSlug);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic filter at runtime
     const byId = await model.findOne(q as any).lean();
-    if (byId) return byId as Record<string, unknown>;
+    if (byId) return byId as unknown as Record<string, unknown>;
   }
   delete q._id;
   q.slug = idOrSlug;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic filter at runtime
   const bySlug = await model.findOne(q as any).lean();
-  return bySlug as Record<string, unknown> | null;
+  return bySlug as unknown as Record<string, unknown> | null;
 }
 
 /** Format a date as a human-readable "time ago" string. */

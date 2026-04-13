@@ -27,7 +27,7 @@ export async function resendEmail(
   }
 
   const metadata = emailLog.metadata || {};
-  const storedJobData = (metadata.jobData as Record<string, unknown>) || {};
+  const storedJobData = (metadata.jobData as unknown as Record<string, unknown>) || {};
 
   const jobDataPayload: Record<string, unknown> = {
     ...storedJobData,
