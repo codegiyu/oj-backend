@@ -111,7 +111,7 @@ export async function listAdminMusic(
     Music.countDocuments(filter),
   ]);
 
-  const music = (items as Record<string, unknown>[]).map(shapeMusicItem);
+  const music = (items as unknown as Record<string, unknown>[]).map(shapeMusicItem);
 
   sendResponse(
     reply,
@@ -267,7 +267,7 @@ export async function updateAdminMusic(
   sendResponse(
     reply,
     200,
-    { music: shapeMusicItem((populated ?? music.toObject()) as Record<string, unknown>) },
+    { music: shapeMusicItem((populated ?? music.toObject()) as unknown as Record<string, unknown>) },
     'Music updated.'
   );
 }
@@ -303,7 +303,7 @@ export async function approveAdminMusic(
   sendResponse(
     reply,
     200,
-    { music: shapeMusicItem((populated ?? music.toObject()) as Record<string, unknown>) },
+    { music: shapeMusicItem((populated ?? music.toObject()) as unknown as Record<string, unknown>) },
     'Music approved.'
   );
 }
@@ -330,7 +330,7 @@ export async function rejectAdminMusic(
   sendResponse(
     reply,
     200,
-    { music: shapeMusicItem((populated ?? music.toObject()) as Record<string, unknown>) },
+    { music: shapeMusicItem((populated ?? music.toObject()) as unknown as Record<string, unknown>) },
     'Music rejected.'
   );
 }

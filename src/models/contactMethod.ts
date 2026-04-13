@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelContactMethod } from '../lib/types/constants';
 
 const contactMethodSchema = new Schema<ModelContactMethod>(
@@ -15,5 +15,4 @@ const contactMethodSchema = new Schema<ModelContactMethod>(
 
 contactMethodSchema.index({ isActive: 1, displayOrder: 1 });
 
-export const ContactMethod =
-  mongoose.models.ContactMethod || model<ModelContactMethod>('ContactMethod', contactMethodSchema);
+export const ContactMethod = model<ModelContactMethod>('ContactMethod', contactMethodSchema);

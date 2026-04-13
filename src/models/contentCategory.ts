@@ -1,19 +1,8 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model, type Model } from 'mongoose';
+import type { ModelContentCategory } from '../lib/types/constants';
 import { generateUniqueSlug } from '../utils/helpers';
-import type { ContentCategoryScope } from '../lib/types/constants';
 
-export interface IContentCategoryDoc {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  slug: string;
-  scope: ContentCategoryScope;
-  displayOrder: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const contentCategorySchema = new Schema<IContentCategoryDoc>(
+const contentCategorySchema = new Schema<ModelContentCategory>(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
@@ -32,23 +21,22 @@ const contentCategorySchema = new Schema<IContentCategoryDoc>(
 contentCategorySchema.index({ scope: 1, isActive: 1, displayOrder: 1 });
 contentCategorySchema.index({ scope: 1, slug: 1 }, { unique: true });
 
-contentCategorySchema.pre('save', async function (this: IContentCategoryDoc & mongoose.Document) {
+contentCategorySchema.pre('save', async function (this: ModelContentCategory) {
   if (!this.isModified('name')) return;
-  const Model =
-    mongoose.models.ContentCategory ||
-    model<IContentCategoryDoc>('ContentCategory', contentCategorySchema);
+  const ContentCategoryModel = model<ModelContentCategory>('ContentCategory');
   const scopeFilter: Record<string, unknown> = { scope: this.scope };
   if (this._id) {
     scopeFilter._id = { $ne: this._id };
   }
   const slug = await generateUniqueSlug(
-    Model as mongoose.Model<{ slug: string }>,
+    ContentCategoryModel as Model<{ slug: string }>,
     this.name,
     scopeFilter
   );
   this.slug = slug;
 });
 
-export const ContentCategory =
-  mongoose.models.ContentCategory ||
-  model<IContentCategoryDoc>('ContentCategory', contentCategorySchema);
+export const ContentCategory = model<ModelContentCategory>(
+  'ContentCategory',
+  contentCategorySchema
+);

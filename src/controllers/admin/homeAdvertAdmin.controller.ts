@@ -39,7 +39,7 @@ export async function listAdminHomeAdverts(
     HomeAdvert.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
     HomeAdvert.countDocuments(filter),
   ]);
-  const adverts = (items as Record<string, unknown>[]).map(shapeAdvert);
+  const adverts = (items as unknown as Record<string, unknown>[]).map(shapeAdvert);
   sendResponse(
     reply,
     200,
@@ -79,7 +79,7 @@ export async function createAdminHomeAdvert(
   sendResponse(
     reply,
     201,
-    { advert: shapeAdvert((populated ?? doc.toObject()) as Record<string, unknown>) },
+    { advert: shapeAdvert((populated ?? doc.toObject()) as unknown as Record<string, unknown>) },
     'Advert created.'
   );
 }
@@ -115,7 +115,7 @@ export async function updateAdminHomeAdvert(
   sendResponse(
     reply,
     200,
-    { advert: shapeAdvert((populated ?? advert.toObject()) as Record<string, unknown>) },
+    { advert: shapeAdvert((populated ?? advert.toObject()) as unknown as Record<string, unknown>) },
     'Advert updated.'
   );
 }

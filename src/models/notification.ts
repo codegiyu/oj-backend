@@ -1,5 +1,5 @@
 import { ModelNotification, NotificationEmailDelivery } from '../lib/types/constants';
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
 const emailDeliverySchema = new Schema<NotificationEmailDelivery>(
   {
@@ -48,11 +48,11 @@ notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Filter to active notifications (not expired, trigger date reached)
 notificationSchema.pre(/^find/, function () {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- pre find hook
   this.find({
     expiresAt: { $gt: new Date() },
     triggerDate: { $lte: new Date() },
   });
 });
 
-export const Notification =
-  mongoose.models.Notification || model<ModelNotification>('Notification', notificationSchema);
+export const Notification = model<ModelNotification>('Notification', notificationSchema);

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelPromotionPricingOption } from '../lib/types/constants';
 
 const promotionPricingOptionSchema = new Schema<ModelPromotionPricingOption>(
@@ -16,6 +16,7 @@ const promotionPricingOptionSchema = new Schema<ModelPromotionPricingOption>(
 
 promotionPricingOptionSchema.index({ isActive: 1, displayOrder: 1 });
 
-export const PromotionPricingOption =
-  mongoose.models.PromotionPricingOption ||
-  model<ModelPromotionPricingOption>('PromotionPricingOption', promotionPricingOptionSchema);
+export const PromotionPricingOption = model<ModelPromotionPricingOption>(
+  'PromotionPricingOption',
+  promotionPricingOptionSchema
+);

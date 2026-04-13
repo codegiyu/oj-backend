@@ -75,13 +75,18 @@ export async function googleAuth(
       email: email.toLowerCase(),
       googleId: sub,
       avatar: picture || '',
-      'auth.refreshTokenJTI': jti,
-      'auth.roles': [{ roleId: customerRole._id, slug: customerRole.slug }],
+      auth: {
+        refreshTokenJTI: jti,
+        roles: [{ roleId: customerRole._id, slug: customerRole.slug }],
+      },
       accountStatus: payload.email_verified ? 'active' : 'unverified',
-      ...(payload.email_verified && {
-        'kyc.email.isVerified': true,
-        'kyc.email.data': { verifiedAt: new Date() },
-      }),
+      kyc: {
+        email: {
+          isVerified: !!payload.email_verified,
+          data: payload.email_verified ? { verifiedAt: new Date() } : {},
+        },
+        phoneNumber: { isVerified: false, data: {} },
+      },
     });
 
     user = await User.findById(newUser._id).lean<ModelUser>();

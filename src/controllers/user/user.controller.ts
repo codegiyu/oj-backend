@@ -123,7 +123,7 @@ export async function listWishlist(
     Wishlist.countDocuments(filter),
   ]);
 
-  const mapped = (items as Record<string, unknown>[]).map(item =>
+  const mapped = (items as unknown as Record<string, unknown>[]).map(item =>
     shapeWishlistItem(item as { _id: unknown; createdAt?: unknown; product?: unknown })
   );
 
@@ -224,18 +224,22 @@ function mapCart(cart: Record<string, unknown> | null | undefined) {
   const rawItems = (cart.items as Array<Record<string, unknown>> | undefined) ?? [];
   const items = rawItems.map(item => {
     const product = item.product as Record<string, unknown> | undefined;
-    const vendor = (product?.vendor ?? null) as Record<string, unknown> | null;
+    const vendor = (product?.vendor ?? null) as unknown as Record<string, unknown> | null;
     const quantity = Number(item.quantity) || 0;
     const price = Number(product?.price ?? 0);
     const lineTotal = quantity * price;
 
     return {
-      productId: product?._id != null ? String(product._id) : '',
+      productId:
+        product?._id != null ? (product._id as mongoose.Types.ObjectId | null)?.toString() : '',
       quantity,
       sku: item.sku as string | undefined,
       product: product
         ? {
-            _id: product._id != null ? String(product._id) : '',
+            _id:
+              product._id != null
+                ? (product._id as mongoose.Types.ObjectId | null)?.toString()
+                : '',
             name: product.name,
             slug: product.slug,
             price,
@@ -283,6 +287,8 @@ async function upsertCartItem(userId: mongoose.Types.ObjectId, input: CartItemIn
     (await Cart.findOne({ user: userId }).lean()) ??
     (await Cart.create({ user: userId, items: [] }).then(doc => doc.toObject()));
 
+  if (!cart) throw new AppError('Cart not available', 500);
+
   const items =
     (cart.items as
       | Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }>
@@ -311,7 +317,7 @@ export async function getCart(request: FastifyRequest, reply: FastifyReply): Pro
 
   const userId = new mongoose.Types.ObjectId(auth.userId);
   const cart = await loadCartWithProducts(userId);
-  const shaped = mapCart(cart as Record<string, unknown> | null | undefined);
+  const shaped = mapCart(cart as unknown as Record<string, unknown> | null | undefined);
   sendResponse(reply, 200, shaped, 'Cart loaded.');
 }
 
@@ -330,7 +336,7 @@ export async function addToCart(
   const userId = new mongoose.Types.ObjectId(auth.userId);
   await upsertCartItem(userId, body);
   const cart = await loadCartWithProducts(userId);
-  const shaped = mapCart(cart as Record<string, unknown> | null | undefined);
+  const shaped = mapCart(cart as unknown as Record<string, unknown> | null | undefined);
 
   sendResponse(reply, 200, shaped, 'Cart updated.');
 }
@@ -389,7 +395,7 @@ export async function updateCart(
   await Cart.updateOne({ user: userId }, { $set: { items } });
 
   const updated = await loadCartWithProducts(userId);
-  const shaped = mapCart(updated as Record<string, unknown> | null | undefined);
+  const shaped = mapCart(updated as unknown as Record<string, unknown> | null | undefined);
 
   sendResponse(reply, 200, shaped, 'Cart updated.');
 }
@@ -421,7 +427,7 @@ export async function removeFromCart(
   await Cart.updateOne({ user: userId }, { $pull: { items: pullCondition } });
 
   const cart = await loadCartWithProducts(userId);
-  const shaped = mapCart(cart as Record<string, unknown> | null | undefined);
+  const shaped = mapCart(cart as unknown as Record<string, unknown> | null | undefined);
   sendResponse(reply, 200, shaped, 'Cart updated.');
 }
 

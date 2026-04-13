@@ -1,5 +1,5 @@
 import { EMAIL_STATUSES, ModelEmailLog } from '../lib/types/constants';
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
 export const EmailLogSchema = new Schema<ModelEmailLog>(
   {
@@ -28,5 +28,4 @@ export const EmailLogSchema = new Schema<ModelEmailLog>(
   { timestamps: true }
 );
 
-export const EmailLog =
-  mongoose.models.EmailLog || model<ModelEmailLog>('EmailLog', EmailLogSchema);
+export const EmailLog = model<ModelEmailLog>('EmailLog', EmailLogSchema);

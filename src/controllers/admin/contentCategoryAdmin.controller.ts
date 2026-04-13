@@ -54,7 +54,7 @@ export async function listAdminContentCategories(
     ContentCategory.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
     ContentCategory.countDocuments(filter),
   ]);
-  const categories = (items as Record<string, unknown>[]).map(shapeCategory);
+  const categories = (items as unknown as Record<string, unknown>[]).map(shapeCategory);
   sendResponse(
     reply,
     200,
@@ -91,7 +91,7 @@ export async function createAdminContentCategory(
   sendResponse(
     reply,
     201,
-    { category: shapeCategory((populated ?? doc.toObject()) as Record<string, unknown>) },
+    { category: shapeCategory((populated ?? doc.toObject()) as unknown as Record<string, unknown>) },
     'Category created.'
   );
 }
@@ -125,7 +125,7 @@ export async function updateAdminContentCategory(
   sendResponse(
     reply,
     200,
-    { category: shapeCategory((populated ?? cat.toObject()) as Record<string, unknown>) },
+    { category: shapeCategory((populated ?? cat.toObject()) as unknown as Record<string, unknown>) },
     'Category updated.'
   );
 }

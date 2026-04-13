@@ -93,7 +93,7 @@ export function deleteFields<T extends Record<string, unknown>>(obj: T, fields: 
     for (let i = 0; i < parts.length - 1; i++) {
       const key = parts[i];
       if (key in target && typeof target[key] === 'object' && target[key] !== null) {
-        target = target[key] as Record<string, unknown>;
+        target = target[key] as unknown as Record<string, unknown>;
       }
     }
     const lastKey = parts[parts.length - 1];

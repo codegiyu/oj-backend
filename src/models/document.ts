@@ -4,7 +4,7 @@ import {
   ModelDocument,
   UPLOAD_INTENTS,
 } from '../lib/types/constants';
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
 export const DocumentSchema = new Schema<ModelDocument>(
   {
@@ -54,8 +54,9 @@ DocumentSchema.index({ expiresAt: 1 });
 
 // Exclude soft-deleted documents from queries by default
 DocumentSchema.pre(/^find/, function () {
+  // Mongoose query `this` is loosely typed in middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- pre find hook
   this.find({ isDeleted: { $ne: true } });
 });
 
-export const Document =
-  mongoose.models.Document || model<ModelDocument>('Document', DocumentSchema);
+export const Document = model<ModelDocument>('Document', DocumentSchema);

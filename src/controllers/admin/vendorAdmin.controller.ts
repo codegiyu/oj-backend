@@ -68,7 +68,7 @@ export async function listAdminVendors(
     Vendor.countDocuments(filter),
   ]);
 
-  const vendors = (items as Record<string, unknown>[]).map(shapeVendorItem);
+  const vendors = (items as unknown as Record<string, unknown>[]).map(shapeVendorItem);
 
   sendResponse(
     reply,
@@ -205,7 +205,7 @@ export async function updateAdminVendor(
   sendResponse(
     reply,
     200,
-    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) },
+    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as unknown as Record<string, unknown>) },
     'Vendor updated.'
   );
 }
@@ -231,7 +231,7 @@ export async function approveAdminVendor(
   sendResponse(
     reply,
     200,
-    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) },
+    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as unknown as Record<string, unknown>) },
     'Vendor approved.'
   );
 }
@@ -258,7 +258,7 @@ export async function rejectAdminVendor(
   sendResponse(
     reply,
     200,
-    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as Record<string, unknown>) },
+    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as unknown as Record<string, unknown>) },
     'Vendor rejected.'
   );
 }

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelPoll } from '../lib/types/constants';
 
 const pollOptionSchema = new Schema(
@@ -34,4 +34,4 @@ const pollSchema = new Schema<ModelPoll>(
 
 pollSchema.index({ status: 1, createdAt: -1 });
 
-export const Poll = mongoose.models.Poll || model<ModelPoll>('Poll', pollSchema);
+export const Poll = model<ModelPoll>('Poll', pollSchema);

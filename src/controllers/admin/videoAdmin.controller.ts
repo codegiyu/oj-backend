@@ -110,7 +110,7 @@ export async function listAdminVideos(
     Video.countDocuments(filter),
   ]);
 
-  const videos = (items as Record<string, unknown>[]).map(shapeVideoItem);
+  const videos = (items as unknown as Record<string, unknown>[]).map(shapeVideoItem);
 
   sendResponse(
     reply,
@@ -270,7 +270,7 @@ export async function updateAdminVideo(
   sendResponse(
     reply,
     200,
-    { video: shapeVideoItem((populated ?? video.toObject()) as Record<string, unknown>) },
+    { video: shapeVideoItem((populated ?? video.toObject()) as unknown as Record<string, unknown>) },
     'Video updated.'
   );
 }
@@ -306,7 +306,7 @@ export async function approveAdminVideo(
   sendResponse(
     reply,
     200,
-    { video: shapeVideoItem((populated ?? video.toObject()) as Record<string, unknown>) },
+    { video: shapeVideoItem((populated ?? video.toObject()) as unknown as Record<string, unknown>) },
     'Video approved.'
   );
 }
@@ -333,7 +333,7 @@ export async function rejectAdminVideo(
   sendResponse(
     reply,
     200,
-    { video: shapeVideoItem((populated ?? video.toObject()) as Record<string, unknown>) },
+    { video: shapeVideoItem((populated ?? video.toObject()) as unknown as Record<string, unknown>) },
     'Video rejected.'
   );
 }

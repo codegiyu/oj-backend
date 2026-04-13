@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelContactSubmission } from '../lib/types/constants';
 
 const contactSubmissionSchema = new Schema<ModelContactSubmission>(
@@ -14,6 +14,7 @@ const contactSubmissionSchema = new Schema<ModelContactSubmission>(
 
 contactSubmissionSchema.index({ createdAt: -1 });
 
-export const ContactSubmission =
-  mongoose.models.ContactSubmission ||
-  model<ModelContactSubmission>('ContactSubmission', contactSubmissionSchema);
+export const ContactSubmission = model<ModelContactSubmission>(
+  'ContactSubmission',
+  contactSubmissionSchema
+);

@@ -1,20 +1,11 @@
 /* Mongoose model query helpers are typed loosely; strict ESLint sees `any` on assignments/member access. */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose, { type HydratedDocument } from 'mongoose';
 import { Artist } from '../../models/artist';
 import { Music } from '../../models/music';
 import { Video } from '../../models/video';
 import { User } from '../../models/user';
-import type {
-  IArtist,
-  IMusic,
-  IVideo,
-  IUser,
-  ModelArtist,
-  ModelMusic,
-  ModelVideo,
-} from '../../lib/types/constants';
+import type { IArtist, IMusic, IVideo, IUser, ModelArtist } from '../../lib/types/constants';
 import { AppError } from '../../utils/AppError';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { sendResponse } from '../../utils/response';
@@ -373,7 +364,7 @@ export async function createMusic(
     slug = `${baseSlug}-${n}`;
   }
 
-  const music = (await Music.create({
+  const music = await Music.create({
     title: body.title,
     slug,
     artist: artistId,
@@ -390,7 +381,7 @@ export async function createMusic(
     views: 0,
     plays: 0,
     downloads: 0,
-  })) as HydratedDocument<ModelMusic>;
+  });
 
   const populated = await Music.findById(music._id)
     .populate('artist', ARTIST_POPULATE_SELECT)
@@ -686,7 +677,7 @@ export async function createVideo(
     slug = `${baseSlug}-${n}`;
   }
 
-  const video = (await Video.create({
+  const video = await Video.create({
     title: body.title,
     slug,
     artist: artistId,
@@ -701,7 +692,7 @@ export async function createVideo(
     views: 0,
     plays: 0,
     downloads: 0,
-  })) as HydratedDocument<ModelVideo>;
+  });
 
   const populated = await Video.findById(video._id)
     .populate('artist', ARTIST_POPULATE_SELECT)

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelFeaturedOption } from '../lib/types/constants';
 
 const featuredOptionSchema = new Schema<ModelFeaturedOption>(
@@ -17,6 +17,4 @@ const featuredOptionSchema = new Schema<ModelFeaturedOption>(
 
 featuredOptionSchema.index({ isActive: 1, displayOrder: 1 });
 
-export const FeaturedOption =
-  mongoose.models.FeaturedOption ||
-  model<ModelFeaturedOption>('FeaturedOption', featuredOptionSchema);
+export const FeaturedOption = model<ModelFeaturedOption>('FeaturedOption', featuredOptionSchema);

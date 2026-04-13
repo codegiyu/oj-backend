@@ -16,6 +16,7 @@ import {
   parseString,
   normalizeSort,
 } from '../../utils/helpers';
+import { ICategory, PopulatedOrder } from '../../lib/types/constants';
 
 async function getVendorForUser(userId: string): Promise<InstanceType<typeof Vendor>> {
   const user = await User.findById(userId).select('vendorId').lean();
@@ -175,7 +176,9 @@ export async function createProduct(
   reply: FastifyReply
 ): Promise<void> {
   const user = getAuthUser(request);
+
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
   const vendor = await getVendorForUser(user.userId);
   const body = request.body;
 
@@ -186,9 +189,12 @@ export async function createProduct(
     if (!mongoose.Types.ObjectId.isValid(body.category)) {
       throw new AppError('Invalid category id', 400);
     }
-    const category = await Category.findById(body.category).select('_id').lean();
+
+    const category = await Category.findById(body.category).lean<ICategory>();
+
     if (!category) throw new AppError('Category not found', 400);
-    categoryId = category._id as mongoose.Types.ObjectId;
+
+    categoryId = category._id;
   }
 
   if (body.subCategory) {
@@ -278,13 +284,18 @@ export async function updateProduct(
   reply: FastifyReply
 ): Promise<void> {
   const user = getAuthUser(request);
+
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
   const vendor = await getVendorForUser(user.userId);
+
   const product = await Product.findOne({
     _id: new mongoose.Types.ObjectId(request.params.productId),
     vendor: vendor._id,
   });
+
   if (!product) throw new AppError('Product not found', 404);
+
   const body = request.body;
 
   let categoryId: mongoose.Types.ObjectId | null | undefined = undefined;
@@ -297,9 +308,12 @@ export async function updateProduct(
       if (!mongoose.Types.ObjectId.isValid(body.category)) {
         throw new AppError('Invalid category id', 400);
       }
-      const category = await Category.findById(body.category).select('_id').lean();
+
+      const category = await Category.findById(body.category).lean<ICategory>();
+
       if (!category) throw new AppError('Category not found', 400);
-      categoryId = category._id as mongoose.Types.ObjectId;
+
+      categoryId = category._id;
     }
   }
 
@@ -310,18 +324,24 @@ export async function updateProduct(
       if (!mongoose.Types.ObjectId.isValid(body.subCategory)) {
         throw new AppError('Invalid subCategory id', 400);
       }
+
       const sub = await SubCategory.findById(body.subCategory)
         .select('_id category')
         .lean<{ _id: mongoose.Types.ObjectId; category: mongoose.Types.ObjectId } | null>();
+
       if (!sub) throw new AppError('SubCategory not found', 400);
+
       subCategoryId = sub._id;
+
       const effectiveCategoryId =
         categoryId !== undefined
           ? categoryId
           : (product.category as mongoose.Types.ObjectId | null);
+
       if (effectiveCategoryId && sub.category.toString() !== effectiveCategoryId.toString()) {
         throw new AppError('SubCategory does not belong to the specified category', 400);
       }
+
       if (categoryId === undefined && !product.category) {
         categoryId = sub.category;
       }
@@ -337,7 +357,12 @@ export async function updateProduct(
   if (body.images !== undefined) product.images = body.images;
   if (body.inStock !== undefined) product.inStock = body.inStock;
   if (body.variationOptions !== undefined) product.variationOptions = body.variationOptions;
-  if (body.variants !== undefined) product.variants = body.variants;
+  if (body.variants !== undefined) {
+    product.variants = body.variants.map(v => ({
+      ...v,
+      isDefault: v.isDefault ?? false,
+    }));
+  }
   if (body.status !== undefined) product.status = body.status;
   if (body.isFeatured !== undefined) product.isFeatured = body.isFeatured;
 
@@ -396,21 +421,25 @@ export async function getVendorOrders(
       .limit(limit)
       .populate('vendor', 'name storeName slug')
       .populate('items.product', 'name slug images')
-      .lean(),
+      .lean<PopulatedOrder[]>(),
     Order.countDocuments(filter),
   ]);
 
-  const mapped = orders.map((order: any) => {
+  const mapped = orders.map(order => {
     const vendorDoc = order.vendor;
+
     const vendorSummary = {
-      _id: (vendorDoc?._id ?? order.vendor)?.toString(),
+      _id:
+        vendorDoc?._id != null
+          ? (vendorDoc._id as mongoose.Types.ObjectId | null)?.toString()
+          : order.vendor,
       name: vendorDoc?.name,
       slug: vendorDoc?.slug,
       storeName: vendorDoc?.storeName,
     };
 
     const items =
-      order.items?.map((item: any) => {
+      order.items?.map(item => {
         const productDoc = item.product;
         const product =
           productDoc && typeof productDoc === 'object' && productDoc._id
@@ -421,7 +450,10 @@ export async function getVendorOrders(
                 image: Array.isArray(productDoc.images) ? productDoc.images[0] : productDoc.image,
               }
             : {
-                _id: (item.product ?? '').toString(),
+                _id:
+                  item.product != null
+                    ? (item.product as mongoose.Types.ObjectId | null)?.toString()
+                    : '',
                 name: item.productName ?? '',
                 slug: '',
                 image: undefined,

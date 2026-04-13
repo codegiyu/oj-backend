@@ -12,6 +12,7 @@ import { parsePositiveInteger, parseString } from '../../utils/helpers';
 import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../../utils/videoEmbed';
 import { ContentCategory } from '../../models/contentCategory';
 import { HomeAdvert } from '../../models/homeAdvert';
+import { IContentCategory } from '../../lib/types/constants';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 100;
@@ -22,21 +23,23 @@ async function findByIdOrSlug<T>(
   idOrSlug: string,
   filter: Record<string, unknown> = {}
 ): Promise<Record<string, unknown> | null> {
-  const q = { ...filter } as Record<string, unknown>;
+  const q = { ...filter } as unknown as Record<string, unknown>;
+
   if (
     mongoose.Types.ObjectId.isValid(idOrSlug) &&
     String(new mongoose.Types.ObjectId(idOrSlug)) === idOrSlug
   ) {
     q._id = new mongoose.Types.ObjectId(idOrSlug);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic filter built at runtime
-    const byId = await model.findOne(q as any).lean();
-    if (byId) return byId as Record<string, unknown>;
+    const byId = await model.findOne(q).lean();
+
+    if (byId) return byId as unknown as Record<string, unknown>;
   }
+
   delete q._id;
   q.slug = idOrSlug;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic filter built at runtime
-  const bySlug = await model.findOne(q as any).lean();
-  return bySlug as Record<string, unknown> | null;
+  const bySlug = await model.findOne(q).lean();
+
+  return bySlug as unknown as Record<string, unknown> | null;
 }
 
 function shapeMusicListItem(
@@ -45,8 +48,9 @@ function shapeMusicListItem(
   type: string
 ): Record<string, unknown> {
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
+
   const item: Record<string, unknown> = {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     coverImage: raw.coverImage,
@@ -57,10 +61,12 @@ function shapeMusicListItem(
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     ...(artist && { artist }),
   };
+
   if (type === 'charts') {
     item.chartPosition = index + 1;
     item.rank = index + 1;
   }
+
   return item;
 }
 
@@ -68,7 +74,7 @@ function shapeMusicDetail(raw: Record<string, unknown>): Record<string, unknown>
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
   const videoUrlStr = typeof raw.videoUrl === 'string' ? raw.videoUrl : '';
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     description: raw.description,
@@ -92,7 +98,7 @@ function shapeMusicDetail(raw: Record<string, unknown>): Record<string, unknown>
 function shapeVideoListItem(raw: Record<string, unknown>): Record<string, unknown> {
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     thumbnail: raw.thumbnail,
@@ -114,7 +120,7 @@ function shapeVideoDetail(raw: Record<string, unknown>): Record<string, unknown>
   const embedField = typeof raw.embedUrl === 'string' ? raw.embedUrl.trim() : '';
   const embedUrl = embedField || (legacyUrl && isLikelyYoutubeUrl(legacyUrl) ? legacyUrl : '');
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     description: raw.description,
@@ -136,7 +142,7 @@ function shapeVideoDetail(raw: Record<string, unknown>): Record<string, unknown>
 function shapeArticleListItem(raw: Record<string, unknown>): Record<string, unknown> {
   const excerpt = raw.excerpt ?? (typeof raw.content === 'string' ? raw.content.slice(0, 160) : '');
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     excerpt: excerpt || raw.excerpt,
@@ -151,7 +157,7 @@ function shapeArticleListItem(raw: Record<string, unknown>): Record<string, unkn
 function shapeArticleDetail(raw: Record<string, unknown>): Record<string, unknown> {
   const embedRaw = typeof raw.embedUrl === 'string' ? raw.embedUrl : '';
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     title: raw.title,
     slug: raw.slug,
     content: raw.content,
@@ -228,7 +234,7 @@ export async function listPublicMusic(
     Music.countDocuments(filter),
   ]);
 
-  const music = (items as Record<string, unknown>[]).map((doc, i) =>
+  const music = (items as unknown as Record<string, unknown>[]).map((doc, i) =>
     shapeMusicListItem(doc, i, type ?? '')
   );
 
@@ -312,7 +318,7 @@ export async function listPublicVideos(
     Video.countDocuments(filter),
   ]);
 
-  const videos = (items as Record<string, unknown>[]).map(shapeVideoListItem);
+  const videos = (items as unknown as Record<string, unknown>[]).map(shapeVideoListItem);
 
   sendResponse(
     reply,
@@ -394,7 +400,7 @@ export async function listPublicNews(
     NewsArticle.countDocuments(filter),
   ]);
 
-  const articles = (items as Record<string, unknown>[]).map(shapeArticleListItem);
+  const articles = (items as unknown as Record<string, unknown>[]).map(shapeArticleListItem);
 
   sendResponse(
     reply,
@@ -431,7 +437,7 @@ export async function downloadPublicMusic(
   const doc = await findByIdOrSlug(Music, request.params.idOrSlug, { status: 'published' });
   if (!doc) throw new AppError('Music not found', 404);
   const raw = doc;
-  const id = raw._id;
+  const id = new mongoose.Types.ObjectId(String(raw._id));
   const downloadUrl = typeof raw.downloadUrl === 'string' ? raw.downloadUrl.trim() : '';
   const audioUrl = typeof raw.audioUrl === 'string' ? raw.audioUrl.trim() : '';
   const target = downloadUrl || audioUrl;
@@ -448,7 +454,7 @@ export async function downloadPublicVideo(
   const doc = await findByIdOrSlug(Video, request.params.idOrSlug, { status: 'published' });
   if (!doc) throw new AppError('Video not found', 404);
   const raw = doc;
-  const id = raw._id;
+  const id = new mongoose.Types.ObjectId(String(raw._id));
   const fileField = typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl.trim() : '';
   const legacy = typeof raw.videoUrl === 'string' ? raw.videoUrl.trim() : '';
   const candidate = fileField || legacy;
@@ -468,14 +474,20 @@ export async function listPublicContentCategories(
 ): Promise<void> {
   const scope = parseString(request.query.scope);
   const filter: Record<string, unknown> = { isActive: true };
+
   if (scope && ['music', 'video', 'news', 'devotional'].includes(scope)) filter.scope = scope;
-  const items = await ContentCategory.find(filter).sort({ displayOrder: 1, name: 1 }).lean();
-  const categories = (items as Record<string, unknown>[]).map(c => ({
+
+  const items = await ContentCategory.find(filter)
+    .sort({ displayOrder: 1, name: 1 })
+    .lean<IContentCategory[]>();
+
+  const categories = items.map(c => ({
     _id: c._id != null ? String(c._id) : c._id,
     name: c.name,
     slug: c.slug,
     scope: c.scope,
   }));
+
   sendResponse(reply, 200, { categories }, 'Content categories loaded.');
 }
 
@@ -484,7 +496,8 @@ export async function listPublicHomeAdverts(
   reply: FastifyReply
 ): Promise<void> {
   const items = await HomeAdvert.find({ isActive: true }).sort({ slot: 1, displayOrder: 1 }).lean();
-  const adverts = (items as Record<string, unknown>[]).map(a => ({
+
+  const adverts = items.map(a => ({
     _id: a._id != null ? String(a._id) : a._id,
     slot: a.slot,
     imageUrl: a.imageUrl,

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model, type Document } from 'mongoose';
 import {
   ACCOUNT_STATUSES,
   AuthUserRole,
@@ -69,7 +69,7 @@ export const UserSchema = new Schema<ModelUser>(
         ],
         validate: [
           {
-            validator: function (this: mongoose.Document, value: AuthUserRole[]) {
+            validator: function (this: Document, value: AuthUserRole[]) {
               return value && value.length > 0;
             },
             message: 'There must be at least one role.',
@@ -114,7 +114,8 @@ export const UserSchema = new Schema<ModelUser>(
 
 // Exclude soft-deleted users from queries by default
 UserSchema.pre(/^find/, function () {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- pre find hook
   this.find({ isDeleted: { $ne: true } });
 });
 
-export const User = mongoose.models.User || model<ModelUser>('User', UserSchema);
+export const User = model<ModelUser>('User', UserSchema);

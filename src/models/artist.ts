@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { IArtist, ArtistSocials } from '../lib/types/constants';
 
 const socialsSchema = new Schema<ArtistSocials>(
@@ -36,4 +36,4 @@ const artistSchema = new Schema<IArtist>(
 artistSchema.index({ isActive: 1, isFeatured: 1, displayOrder: 1 });
 artistSchema.index({ user: 1 }, { sparse: true });
 
-export const Artist = mongoose.models.Artist || model<IArtist>('Artist', artistSchema);
+export const Artist = model<IArtist>('Artist', artistSchema);

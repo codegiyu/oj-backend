@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelPollVote } from '../lib/types/constants';
 
 const pollVoteSchema = new Schema<ModelPollVote>(
@@ -12,5 +12,4 @@ const pollVoteSchema = new Schema<ModelPollVote>(
 
 pollVoteSchema.index({ poll: 1, voterIdentifier: 1 }, { unique: true });
 
-export const PollVote =
-  mongoose.models.PollVote || model<ModelPollVote>('PollVote', pollVoteSchema);
+export const PollVote = model<ModelPollVote>('PollVote', pollVoteSchema);

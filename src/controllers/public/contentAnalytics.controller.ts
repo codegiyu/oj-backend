@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import mongoose from 'mongoose';
 import { Music } from '../../models/music';
 import { Video } from '../../models/video';
 import { Devotional } from '../../models/devotional';
@@ -76,37 +77,58 @@ export async function postPublicContentAnalyticsEvent(
 
   if (body.entityType === 'music') {
     const doc = await findByIdOrSlug(Music, idOrSlug, { status: 'published' });
+
     if (!doc) throw new AppError('Music not found', 404);
+
     const inc: Record<string, number> = {};
+
     if (body.event === 'view') inc.views = 1;
     else if (body.event === 'play') inc.plays = 1;
     else inc.downloads = 1;
-    await Music.updateOne({ _id: doc._id }, { $inc: inc });
+
+    await Music.updateOne({ _id: new mongoose.Types.ObjectId(String(doc._id)) }, { $inc: inc });
   } else if (body.entityType === 'video') {
     const doc = await findByIdOrSlug(Video, idOrSlug, { status: 'published' });
+
     if (!doc) throw new AppError('Video not found', 404);
+
     const inc: Record<string, number> = {};
+
     if (body.event === 'view') inc.views = 1;
     else if (body.event === 'play') inc.plays = 1;
     else inc.downloads = 1;
-    await Video.updateOne({ _id: doc._id }, { $inc: inc });
+
+    await Video.updateOne({ _id: new mongoose.Types.ObjectId(String(doc._id)) }, { $inc: inc });
   } else if (body.entityType === 'devotional') {
     const doc = await findByIdOrSlug(Devotional, idOrSlug, { status: 'published' });
+
     if (!doc) throw new AppError('Devotional not found', 404);
+
     if (body.event === 'download') {
       sendResponse(reply, 200, { ok: true }, 'Event acknowledged.');
       return;
     }
+
     const inc: Record<string, number> = body.event === 'view' ? { views: 1 } : { plays: 1 };
-    await Devotional.updateOne({ _id: doc._id }, { $inc: inc });
+
+    await Devotional.updateOne(
+      { _id: new mongoose.Types.ObjectId(String(doc._id)) },
+      { $inc: inc }
+    );
   } else {
     const doc = await findByIdOrSlug(NewsArticle, idOrSlug, { status: 'published' });
+
     if (!doc) throw new AppError('Article not found', 404);
+
     if (body.event !== 'view') {
       sendResponse(reply, 200, { ok: true }, 'No metric for this event type.');
       return;
     }
-    await NewsArticle.updateOne({ _id: doc._id }, { $inc: { views: 1 } });
+
+    await NewsArticle.updateOne(
+      { _id: new mongoose.Types.ObjectId(String(doc._id)) },
+      { $inc: { views: 1 } }
+    );
   }
 
   sendResponse(reply, 200, { ok: true }, 'Event recorded.');

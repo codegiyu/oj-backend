@@ -3,6 +3,7 @@ import { Notification } from '../models/notification';
 import { User } from '../models/user';
 import { Admin } from '../models/admin';
 import { sendRealTimeNotification } from '../socket';
+import { IAdmin, IUser } from '@/lib/types/constants';
 
 export async function expireNotificationsForUser(
   userId: string,
@@ -115,9 +116,7 @@ export interface DispatchNotificationOptions {
   context?: Record<string, unknown>;
 }
 
-export async function dispatchNotification(
-  options: DispatchNotificationOptions
-): Promise<unknown | null> {
+export async function dispatchNotification(options: DispatchNotificationOptions): Promise<unknown> {
   const {
     userId,
     userModel,
@@ -130,8 +129,10 @@ export async function dispatchNotification(
     sendEmail = false,
     context,
   } = options;
-  const Model = userModel === 'Admin' ? Admin : User;
-  const user = await Model.findById(userId).select('_id preferences').lean();
+  const user =
+    userModel === 'Admin'
+      ? await Admin.findById(userId).select('_id preferences').lean<IAdmin>()
+      : await User.findById(userId).select('_id preferences').lean<IUser>();
   if (!user) return null;
   const notification = await createAndSendNotification(
     {

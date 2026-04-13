@@ -74,7 +74,7 @@ export async function listAdminNews(
     NewsArticle.countDocuments(filter),
   ]);
 
-  const news = (items as Record<string, unknown>[]).map(shapeNewsItem);
+  const news = (items as unknown as Record<string, unknown>[]).map(shapeNewsItem);
 
   sendResponse(
     reply,
@@ -214,7 +214,7 @@ export async function updateAdminNews(
   sendResponse(
     reply,
     200,
-    { news: shapeNewsItem((populated ?? news.toObject()) as Record<string, unknown>) },
+    { news: shapeNewsItem((populated ?? news.toObject()) as unknown as Record<string, unknown>) },
     'News article updated.'
   );
 }

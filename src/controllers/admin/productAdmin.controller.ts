@@ -27,8 +27,8 @@ function shapeProductItem(raw: Record<string, unknown>): Record<string, unknown>
     slug: raw.slug,
     vendor: vendor != null ? String(vendor) : vendor,
     vendorName:
-      (vendor as Record<string, unknown>)?.storeName ?? (vendor as Record<string, unknown>)?.name,
-    vendorSlug: (vendor as Record<string, unknown>)?.slug,
+      (vendor as unknown as Record<string, unknown>)?.storeName ?? (vendor as unknown as Record<string, unknown>)?.name,
+    vendorSlug: (vendor as unknown as Record<string, unknown>)?.slug,
     description: raw.description,
     category: category,
     subCategory: subCategory,
@@ -96,7 +96,7 @@ export async function listAdminProducts(
     Product.countDocuments(filter),
   ]);
 
-  const products = (items as Record<string, unknown>[]).map(shapeProductItem);
+  const products = (items as unknown as Record<string, unknown>[]).map(shapeProductItem);
 
   sendResponse(
     reply,
@@ -276,7 +276,7 @@ export async function updateAdminProduct(
   sendResponse(
     reply,
     200,
-    { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) },
+    { product: shapeProductItem((populated ?? product.toObject()) as unknown as Record<string, unknown>) },
     'Product updated.'
   );
 }
@@ -316,7 +316,7 @@ export async function approveAdminProduct(
   sendResponse(
     reply,
     200,
-    { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) },
+    { product: shapeProductItem((populated ?? product.toObject()) as unknown as Record<string, unknown>) },
     'Product approved.'
   );
 }
@@ -347,7 +347,7 @@ export async function rejectAdminProduct(
   sendResponse(
     reply,
     200,
-    { product: shapeProductItem((populated ?? product.toObject()) as Record<string, unknown>) },
+    { product: shapeProductItem((populated ?? product.toObject()) as unknown as Record<string, unknown>) },
     'Product rejected.'
   );
 }

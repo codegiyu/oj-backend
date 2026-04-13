@@ -1,5 +1,17 @@
 declare module 'react' {
-  export type ReactNode = unknown;
+  /**
+   * Named export for `import { type ReactNode } from 'react'`.
+   * Must not be `unknown` or values passed to `@react-email/render`’s `render()` fail
+   * assignability to `React.ReactNode`.
+   */
+  export type ReactNode =
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | Iterable<ReactNode>
+    | object;
 
   export const Children: {
     toArray(children: ReactNode): ReactNode[];
@@ -14,7 +26,7 @@ declare module 'react' {
     interface IntrinsicElements {
       [elemName: string]: Record<string, unknown>;
     }
-    interface Element extends unknown {}
+    type Element = unknown;
   }
 
   interface ReactStatic {

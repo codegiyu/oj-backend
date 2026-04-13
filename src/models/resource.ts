@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelResource } from '../lib/types/constants';
 
 const resourceSchema = new Schema<ModelResource>(
@@ -38,5 +38,4 @@ const resourceSchema = new Schema<ModelResource>(
 
 resourceSchema.index({ status: 1, type: 1, createdAt: -1 });
 
-export const Resource =
-  mongoose.models.Resource || model<ModelResource>('Resource', resourceSchema);
+export const Resource = model<ModelResource>('Resource', resourceSchema);

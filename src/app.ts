@@ -25,10 +25,20 @@ import { registerAdminContentRoutes } from './routes/adminContent.route';
 import { registerAdminProfileRoutes } from './routes/adminProfile.route';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { sendErrorResponse } from './utils/response';
+import { logger } from './utils/logger';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
   const app = Fastify({
     logger: false, // We use winston instead
+  });
+
+  app.addHook('onResponse', (request, reply) => {
+    logger.info('HTTP', {
+      method: request.method,
+      url: request.url,
+      statusCode: reply.statusCode,
+      responseTimeMs: reply.elapsedTime,
+    });
   });
 
   // Security plugins

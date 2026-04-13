@@ -103,7 +103,7 @@ export async function search(
       .limit(PER_TYPE_LIMIT)
       .lean();
 
-    for (const doc of runMusic as Record<string, unknown>[]) {
+    for (const doc of runMusic as unknown as Record<string, unknown>[]) {
       const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
       results.push({
         _id: idStr(doc._id),
@@ -122,7 +122,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String(doc.title ?? ''),
@@ -142,7 +142,7 @@ export async function search(
       .populate('artist', ARTIST_POPULATE_SELECT)
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
       results.push({
         _id: idStr(doc._id),
@@ -168,7 +168,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String(doc.title ?? ''),
@@ -186,7 +186,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String((doc.content as string)?.slice(0, 60) ?? doc.author ?? ''),
@@ -204,7 +204,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String(doc.title ?? ''),
@@ -221,7 +221,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String(doc.question ?? ''),
@@ -238,7 +238,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       const totalVotes = Number(doc.totalVotes) ?? 0;
       results.push({
         _id: idStr(doc._id),
@@ -256,7 +256,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String(doc.name ?? ''),
@@ -275,7 +275,7 @@ export async function search(
     })
       .limit(PER_TYPE_LIMIT)
       .lean();
-    for (const doc of docs as Record<string, unknown>[]) {
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
         _id: idStr(doc._id),
         title: String(doc.title ?? ''),

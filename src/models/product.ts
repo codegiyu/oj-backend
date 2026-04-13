@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { IProductVariant, IVariationOption } from '../lib/types/constants';
 import { ModelProduct } from '../lib/types/constants';
 
@@ -84,6 +84,7 @@ function defaultSku(slug: string, options: Record<string, string>): string {
 }
 
 productSchema.pre('save', function (this: ModelProduct) {
+  // eslint-disable-next-line @typescript-eslint/no-this-alias -- readable name for long hook body
   const doc = this;
   const opts = doc.variationOptions;
   const vars = doc.variants;
@@ -146,4 +147,4 @@ productSchema.index({ vendor: 1, status: 1 });
 productSchema.index({ category: 1, status: 1 });
 productSchema.index({ slug: 1, vendor: 1 }, { unique: true });
 
-export const Product = mongoose.models.Product || model<ModelProduct>('Product', productSchema);
+export const Product = model<ModelProduct>('Product', productSchema);

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelAskPastorQuestion } from '../lib/types/constants';
 
 const askPastorQuestionSchema = new Schema<ModelAskPastorQuestion>(
@@ -30,6 +30,7 @@ const askPastorQuestionSchema = new Schema<ModelAskPastorQuestion>(
 askPastorQuestionSchema.index({ status: 1, createdAt: -1 });
 askPastorQuestionSchema.index({ status: 1, category: 1, createdAt: -1 });
 
-export const AskPastorQuestion =
-  mongoose.models.AskPastorQuestion ||
-  model<ModelAskPastorQuestion>('AskPastorQuestion', askPastorQuestionSchema);
+export const AskPastorQuestion = model<ModelAskPastorQuestion>(
+  'AskPastorQuestion',
+  askPastorQuestionSchema
+);

@@ -13,6 +13,7 @@ import { Role } from '../models/role';
 import { SiteSettings, defaultSiteSettings } from '../models/siteSettings';
 import { Admin } from '../models/admin';
 import { authService } from '../services/auth.service';
+import { ICategory, IRole, ISubCategory } from '@/lib/types/constants';
 
 /** Seed email used for both ContactMethod and admins */
 const SEED_EMAIL = 'ohemultimedia@gmail.com';
@@ -34,7 +35,7 @@ export const seedMarketplaceCategories = async (): Promise<void> => {
 
     const existingCategory = await Category.findOne({ slug: categorySlug })
       .select('_id slug name')
-      .lean();
+      .lean<ICategory>();
 
     const categoryDoc = await Category.findOneAndUpdate(
       { slug: categorySlug },
@@ -68,7 +69,7 @@ export const seedMarketplaceCategories = async (): Promise<void> => {
         slug: subSlug,
       })
         .select('_id')
-        .lean();
+        .lean<ISubCategory>();
 
       await SubCategory.findOneAndUpdate(
         { category: categoryId, slug: subSlug },
@@ -316,7 +317,7 @@ export const seedSiteSettings = async (): Promise<void> => {
 
   // If more than one SiteSettings document exists, delete all but one
   if (siteSettingsCount > 1) {
-    const docs = await SiteSettings.find().select('_id').lean();
+    const docs = await SiteSettings.find();
     if (docs.length > 1) {
       // Keep the first one, remove the rest
       const idsToDelete = docs.slice(1).map(doc => doc._id);
@@ -331,8 +332,7 @@ export const seedSiteSettings = async (): Promise<void> => {
     { upsert: true, runValidators: true }
   );
 
-  const siteSettings = await SiteSettings.findOne();
-  console.log('siteSettings', siteSettings);
+  await SiteSettings.findOne();
 
   logger.info('seedSiteSettings: site settings upserted');
 };
@@ -346,7 +346,7 @@ const ADMIN_SEED_PASSWORD = 'Admin@123';
 export const seedAdmins = async (): Promise<void> => {
   await seedRoles(); // Ensure roles exist first
 
-  const superAdminRole = await Role.findOne({ slug: 'super-admin' }).lean();
+  const superAdminRole = await Role.findOne({ slug: 'super-admin' }).lean<IRole>();
   if (!superAdminRole) {
     logger.warn('seedAdmins: super-admin role not found, skipping admin seed');
     return;

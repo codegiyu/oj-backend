@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelCart } from '../lib/types/constants';
 
 const cartItemSchema = new Schema(
@@ -18,4 +18,4 @@ const cartSchema = new Schema<ModelCart>(
   { timestamps: true, collection: 'carts' }
 );
 
-export const Cart = mongoose.models.Cart || model<ModelCart>('Cart', cartSchema);
+export const Cart = model<ModelCart>('Cart', cartSchema);

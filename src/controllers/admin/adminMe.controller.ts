@@ -10,7 +10,7 @@ import { invalidateAuthCache, updateCachedAdmin } from '../../utils/authCache';
 import type { ModelAdmin } from '../../lib/types/constants';
 
 function sanitizeAdminForClient(admin: ModelAdmin | Record<string, unknown>): Record<string, unknown> {
-  return deleteFields(admin as Record<string, unknown>, adminUnselected);
+  return deleteFields(admin as unknown as Record<string, unknown>, adminUnselected);
 }
 
 export async function getAdminMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {

@@ -1,17 +1,8 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model, type Model } from 'mongoose';
+import type { ModelCategory } from '../lib/types/constants';
 import { generateCategorySlug } from '../utils/helpers';
 
-export interface ICategory {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  slug: string;
-  displayOrder: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const categorySchema = new Schema<ICategory>(
+const categorySchema = new Schema<ModelCategory>(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, index: true },
@@ -23,15 +14,12 @@ const categorySchema = new Schema<ICategory>(
 
 categorySchema.index({ displayOrder: 1 });
 
-categorySchema.pre('save', async function (this: ICategory & mongoose.Document) {
+categorySchema.pre('save', async function (this) {
   if (!this.isModified('name')) return;
 
-  const CategoryModel = mongoose.models.Category || model<ICategory>('Category', categorySchema);
-  const slug = await generateCategorySlug(
-    CategoryModel as mongoose.Model<{ slug: string }>,
-    this.name
-  );
+  const CategoryModel = model<ModelCategory>('Category');
+  const slug = await generateCategorySlug(CategoryModel as Model<{ slug: string }>, this.name);
   this.slug = slug;
 });
 
-export const Category = mongoose.models.Category || model<ICategory>('Category', categorySchema);
+export const Category = model<ModelCategory>('Category', categorySchema);

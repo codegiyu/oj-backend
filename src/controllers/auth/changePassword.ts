@@ -5,6 +5,7 @@ import { User } from '../../models/user';
 import { authService } from '../../services/auth.service';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { processPasswordChange } from './auth.helpers';
+import { IAdmin, IUser } from '@/lib/types/constants';
 
 export async function changePassword(
   request: FastifyRequest<{
@@ -29,8 +30,10 @@ export async function changePassword(
   }
 
   const accessType = authUser.scope === 'console-access' ? 'console' : 'client';
-  const Model = accessType === 'console' ? Admin : User;
-  const user = await Model.findById(authUser.userId).lean();
+  const user =
+    accessType === 'console'
+      ? await Admin.findById(authUser.userId).lean<IAdmin>()
+      : await User.findById(authUser.userId).lean<IUser>();
   if (!user) throw new AppError('User not found', 404);
 
   const currentHash = user.auth?.password?.value;

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import type { ModelTestimony } from '../lib/types/constants';
 
 const testimonySchema = new Schema<ModelTestimony>(
@@ -31,5 +31,4 @@ const testimonySchema = new Schema<ModelTestimony>(
 testimonySchema.index({ status: 1, isFeatured: 1, createdAt: -1 });
 testimonySchema.index({ status: 1, category: 1, createdAt: -1 });
 
-export const Testimony =
-  mongoose.models.Testimony || model<ModelTestimony>('Testimony', testimonySchema);
+export const Testimony = model<ModelTestimony>('Testimony', testimonySchema);

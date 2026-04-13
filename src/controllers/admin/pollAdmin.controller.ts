@@ -16,7 +16,7 @@ const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
 
 function shapePollItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
     question: raw.question,
     slug: raw.slug,
     description: raw.description,
@@ -62,7 +62,7 @@ export async function listAdminPolls(
     Poll.countDocuments(filter),
   ]);
 
-  const polls = (items as Record<string, unknown>[]).map(shapePollItem);
+  const polls = (items as unknown as Record<string, unknown>[]).map(shapePollItem);
 
   sendResponse(
     reply,
@@ -130,7 +130,7 @@ export async function createAdminPoll(
     options,
     status: body.status ?? 'active',
     startDate: body.startDate ? new Date(body.startDate) : new Date(),
-    endDate: body.endDate ? new Date(body.endDate) : null,
+    endDate: body.endDate ? new Date(body.endDate) : undefined,
   });
 
   const populated = await Poll.findById(poll._id).lean();
@@ -175,7 +175,7 @@ export async function updateAdminPoll(
   if (body.status !== undefined) poll.status = body.status;
   if (body.startDate !== undefined)
     poll.startDate = body.startDate ? new Date(body.startDate) : poll.startDate;
-  if (body.endDate !== undefined) poll.endDate = body.endDate ? new Date(body.endDate) : null;
+  if (body.endDate !== undefined) poll.endDate = body.endDate ? new Date(body.endDate) : undefined;
 
   await poll.save();
 
@@ -183,7 +183,7 @@ export async function updateAdminPoll(
   sendResponse(
     reply,
     200,
-    { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) },
+    { poll: shapePollItem((populated ?? poll.toObject()) as unknown as Record<string, unknown>) },
     'Poll updated.'
   );
 }
@@ -209,14 +209,14 @@ export async function openAdminPoll(
   poll.status = 'active';
   poll.closedReason = '';
   poll.closedBy = null;
-  poll.endDate = null;
+  poll.endDate = undefined;
   await poll.save();
 
   const populated = await Poll.findById(poll._id).lean();
   sendResponse(
     reply,
     200,
-    { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) },
+    { poll: shapePollItem((populated ?? poll.toObject()) as unknown as Record<string, unknown>) },
     'Poll opened.'
   );
 }
@@ -241,7 +241,7 @@ export async function closeAdminPoll(
   sendResponse(
     reply,
     200,
-    { poll: shapePollItem((populated ?? poll.toObject()) as Record<string, unknown>) },
+    { poll: shapePollItem((populated ?? poll.toObject()) as unknown as Record<string, unknown>) },
     'Poll closed.'
   );
 }
