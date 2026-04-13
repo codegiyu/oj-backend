@@ -33,13 +33,22 @@ export function signAccess(payload: AccessPayload): string {
   } as SignOptions);
 }
 
-export function verifyAccess(token: string): TokenPayload | null {
+/** Verify access JWT; on failure exposes `jwtErrorName` (e.g. TokenExpiredError) for diagnostics — never log the token. */
+export function verifyAccessWithMeta(token: string): {
+  payload: TokenPayload | null;
+  jwtErrorName?: string;
+} {
   try {
     const decoded = jwt.verify(token, ENVIRONMENT.jwt.secret) as TokenPayload;
-    return decoded;
-  } catch {
-    return null;
+    return { payload: decoded };
+  } catch (err) {
+    const name = err instanceof Error ? err.name : 'Unknown';
+    return { payload: null, jwtErrorName: name };
   }
+}
+
+export function verifyAccess(token: string): TokenPayload | null {
+  return verifyAccessWithMeta(token).payload;
 }
 
 export function signRefresh(payload: RefreshPayload): string {
