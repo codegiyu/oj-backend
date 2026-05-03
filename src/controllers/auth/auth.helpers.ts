@@ -67,6 +67,8 @@ export function setAuthCookies(
     partitioned: true,
     sameSite,
   };
+  console.log('baseOptions', baseOptions);
+  console.log('ENVIRONMENT', ENVIRONMENT);
 
   reply.setCookie(accessCookieName, accessToken, {
     ...baseOptions,
