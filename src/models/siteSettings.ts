@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { ModelSiteSettings, SOCIAL_PLATFORMS } from '../lib/types/constants';
+import { ModelSiteSettings, SOCIAL_PLATFORMS, type Social } from '../lib/types/constants';
 
 const DayHoursSchema = new Schema(
   { start: { type: String, default: null }, end: { type: String, default: null } },
@@ -203,7 +203,7 @@ export const defaultSiteSettings = {
       sunday: null,
     },
   },
-  socials: [] as Array<{ platform: string; href: string }>,
+  socials: [] as Social[],
 };
 
 SiteSettingsSchema.statics.getSettings = async function (): Promise<ModelSiteSettings> {

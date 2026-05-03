@@ -16,8 +16,17 @@ import {
   resolveArtistIdForAdminContent,
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
+import { DEVOTIONAL_TYPES, type DevotionalType } from '../../lib/types/constants';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'date', 'views', 'plays'];
+
+const DEVOTIONAL_TYPES_SET = new Set<string>(DEVOTIONAL_TYPES);
+
+function resolveDevotionalType(raw: string | undefined): DevotionalType {
+  const t = raw?.trim();
+  if (t && DEVOTIONAL_TYPES_SET.has(t)) return t as DevotionalType;
+  return 'latest';
+}
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -201,7 +210,7 @@ export async function createAdminDevotional(
     coverImage: body.coverImage ?? '',
     excerpt: body.excerpt ?? '',
     content: body.content ?? '',
-    type: body.type ?? 'latest',
+    type: resolveDevotionalType(body.type),
     category: body.category ?? '',
     author: body.author ?? '',
     verse: body.verse ?? '',
