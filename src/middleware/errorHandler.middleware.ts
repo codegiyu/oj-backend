@@ -14,6 +14,8 @@ type ErrorWithValidation = FastifyError & {
   validation?: ValidationErrorItem[];
 };
 
+const GENERIC_SERVER_ERROR_MESSAGE = 'An unexpected error occurred. Please try again later.';
+
 function buildValidationDetails(
   validation: ValidationErrorItem[]
 ): Array<{ message?: string; path?: string }> {
@@ -28,7 +30,7 @@ function buildValidationDetails(
 export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
   const err = error as ErrorWithValidation;
   const statusCode = error instanceof AppError ? error.statusCode : (err.statusCode ?? 500);
-  const message = error instanceof Error ? error.message : 'Internal Server Error';
+  const internalMessage = error instanceof Error ? error.message : 'Internal Server Error';
 
   if (err.code === 'FST_ERR_VALIDATION') {
     const details =
@@ -36,28 +38,38 @@ export function errorHandler(error: Error, request: FastifyRequest, reply: Fasti
         ? buildValidationDetails(err.validation)
         : undefined;
     logger.warn('Validation error:', {
-      message,
+      message: internalMessage,
       url: request.url,
       method: request.method,
       details,
     });
     const data =
-      details && details.length > 0 ? ({ details } as unknown as Record<string, unknown>) : undefined;
-    sendErrorResponse(reply, 400, message, data);
+      details && details.length > 0
+        ? ({ details } as unknown as Record<string, unknown>)
+        : undefined;
+    sendErrorResponse(reply, 400, internalMessage, data);
     return;
   }
 
   logger.error('Request error:', {
-    error: message,
+    error: internalMessage,
     stack: error instanceof Error ? error.stack : undefined,
     url: request.url,
     method: request.method,
   });
+
+  const isAppError = error instanceof AppError;
+  const clientMessage = isAppError
+    ? internalMessage
+    : ENVIRONMENT.nodeEnv === 'production'
+      ? GENERIC_SERVER_ERROR_MESSAGE
+      : internalMessage;
+
   const errorData: unknown =
-    error instanceof AppError && error.data !== undefined
+    isAppError && error.data !== undefined
       ? error.data
       : ENVIRONMENT.nodeEnv === 'development' && error instanceof Error && error.stack
         ? { stack: error.stack }
         : undefined;
-  sendErrorResponse(reply, statusCode, message, errorData);
+  sendErrorResponse(reply, statusCode, clientMessage, errorData);
 }
