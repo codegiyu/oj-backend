@@ -27,7 +27,7 @@ export async function resolveArtistIdForAdminContent(input: {
     if (user.artistId) {
       const existing = await Artist.findById(user.artistId).lean();
       if (!existing) throw new AppError('Linked artist profile not found', 404);
-      return user.artistId as mongoose.Types.ObjectId;
+      return user.artistId;
     }
 
     const name =
@@ -52,7 +52,7 @@ export async function resolveArtistIdForAdminContent(input: {
 
     await User.updateOne({ _id: uid }, { $set: { artistId: artist._id } });
 
-    return artist._id as mongoose.Types.ObjectId;
+    return artist._id;
   }
 
   if (input.artistId) {

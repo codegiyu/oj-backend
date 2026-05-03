@@ -176,7 +176,9 @@ export async function updateAdminTestimony(
     reply,
     200,
     {
-      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as unknown as Record<string, unknown>),
+      testimony: shapeTestimonyItem(
+        (populated ?? testimony.toObject()) as unknown as Record<string, unknown>
+      ),
     },
     'Testimony updated.'
   );
@@ -214,7 +216,9 @@ export async function approveAdminTestimony(
     reply,
     200,
     {
-      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as unknown as Record<string, unknown>),
+      testimony: shapeTestimonyItem(
+        (populated ?? testimony.toObject()) as unknown as Record<string, unknown>
+      ),
     },
     'Testimony approved.'
   );
@@ -243,7 +247,9 @@ export async function rejectAdminTestimony(
     reply,
     200,
     {
-      testimony: shapeTestimonyItem((populated ?? testimony.toObject()) as unknown as Record<string, unknown>),
+      testimony: shapeTestimonyItem(
+        (populated ?? testimony.toObject()) as unknown as Record<string, unknown>
+      ),
     },
     'Testimony rejected.'
   );

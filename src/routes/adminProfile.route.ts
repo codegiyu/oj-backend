@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import type { FastifyInstance } from 'fastify';
 import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
@@ -13,5 +14,9 @@ export async function registerAdminProfileRoutes(app: FastifyInstance): Promise<
       email?: string;
       avatar?: string;
     };
-  }>('/me', { preHandler: [authenticate, requireConsoleAccess], schema: adminUpdateMeBodySchema }, catchAsync(updateAdminMe));
+  }>(
+    '/me',
+    { preHandler: [authenticate, requireConsoleAccess], schema: adminUpdateMeBodySchema },
+    catchAsync(updateAdminMe)
+  );
 }

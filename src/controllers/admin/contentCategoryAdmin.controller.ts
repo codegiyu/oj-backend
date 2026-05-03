@@ -91,7 +91,9 @@ export async function createAdminContentCategory(
   sendResponse(
     reply,
     201,
-    { category: shapeCategory((populated ?? doc.toObject()) as unknown as Record<string, unknown>) },
+    {
+      category: shapeCategory((populated ?? doc.toObject()) as unknown as Record<string, unknown>),
+    },
     'Category created.'
   );
 }
@@ -125,7 +127,9 @@ export async function updateAdminContentCategory(
   sendResponse(
     reply,
     200,
-    { category: shapeCategory((populated ?? cat.toObject()) as unknown as Record<string, unknown>) },
+    {
+      category: shapeCategory((populated ?? cat.toObject()) as unknown as Record<string, unknown>),
+    },
     'Category updated.'
   );
 }

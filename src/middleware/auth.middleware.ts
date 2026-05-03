@@ -47,7 +47,8 @@ export const authenticate = async (
   const token = getAccessToken(request);
 
   if (!token) {
-    logger.info('auth: authenticate rejected (no access token)', snapshot);
+    console.log('NO TOKEN FOUND');
+    logger.info('auth: authenticate rejected (no access token)', { snapshot });
 
     throw new AppError('NAT: Unauthorized', 401);
   }
@@ -90,6 +91,7 @@ export const optionalAuthenticate = async (
   const token = getAccessToken(request);
 
   if (!token) {
+    console.log('NO TOKEN FOUND');
     logger.debug('auth: optionalAuthenticate — no credentials', snapshot);
     return;
   }

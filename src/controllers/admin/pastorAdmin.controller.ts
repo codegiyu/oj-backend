@@ -176,7 +176,11 @@ export async function updateAdminPastor(
   sendResponse(
     reply,
     200,
-    { pastor: shapePastorItem((populated ?? pastor.toObject()) as unknown as Record<string, unknown>) },
+    {
+      pastor: shapePastorItem(
+        (populated ?? pastor.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Pastor updated.'
   );
 }

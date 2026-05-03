@@ -63,7 +63,9 @@ export async function listAdminPrayerRequests(
     PrayerRequest.countDocuments(filter),
   ]);
 
-  const prayerRequests = (items as unknown as Record<string, unknown>[]).map(shapePrayerRequestItem);
+  const prayerRequests = (items as unknown as Record<string, unknown>[]).map(
+    shapePrayerRequestItem
+  );
 
   sendResponse(
     reply,

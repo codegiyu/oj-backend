@@ -27,8 +27,8 @@ function shapeProductItem(raw: Record<string, unknown>): Record<string, unknown>
     slug: raw.slug,
     vendor: vendor != null ? String(vendor) : vendor,
     vendorName:
-      (vendor as unknown as Record<string, unknown>)?.storeName ?? (vendor as unknown as Record<string, unknown>)?.name,
-    vendorSlug: (vendor as unknown as Record<string, unknown>)?.slug,
+      (vendor as Record<string, unknown>)?.storeName ?? (vendor as Record<string, unknown>)?.name,
+    vendorSlug: (vendor as Record<string, unknown>)?.slug,
     description: raw.description,
     category: category,
     subCategory: subCategory,
@@ -169,11 +169,11 @@ export async function createAdminProduct(
   let subCategoryId: mongoose.Types.ObjectId | null = null;
   if (body.category && mongoose.Types.ObjectId.isValid(body.category)) {
     const cat = await Category.findById(body.category).select('_id').lean();
-    if (cat) categoryId = cat._id as mongoose.Types.ObjectId;
+    if (cat) categoryId = cat._id;
   }
   if (body.subCategory && mongoose.Types.ObjectId.isValid(body.subCategory)) {
     const sub = await SubCategory.findById(body.subCategory).select('_id').lean();
-    if (sub) subCategoryId = sub._id as mongoose.Types.ObjectId;
+    if (sub) subCategoryId = sub._id;
   }
 
   const slug = await generateVendorProductSlug(Product, vendorId, body.name.trim());
@@ -276,7 +276,11 @@ export async function updateAdminProduct(
   sendResponse(
     reply,
     200,
-    { product: shapeProductItem((populated ?? product.toObject()) as unknown as Record<string, unknown>) },
+    {
+      product: shapeProductItem(
+        (populated ?? product.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Product updated.'
   );
 }
@@ -316,7 +320,11 @@ export async function approveAdminProduct(
   sendResponse(
     reply,
     200,
-    { product: shapeProductItem((populated ?? product.toObject()) as unknown as Record<string, unknown>) },
+    {
+      product: shapeProductItem(
+        (populated ?? product.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Product approved.'
   );
 }
@@ -347,7 +355,11 @@ export async function rejectAdminProduct(
   sendResponse(
     reply,
     200,
-    { product: shapeProductItem((populated ?? product.toObject()) as unknown as Record<string, unknown>) },
+    {
+      product: shapeProductItem(
+        (populated ?? product.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Product rejected.'
   );
 }

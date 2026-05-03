@@ -49,7 +49,10 @@ export async function getSiteSettings(
   sendResponse(
     reply,
     200,
-    (typeof value === 'object' && value !== null ? value : { value }) as unknown as Record<string, unknown>,
+    (typeof value === 'object' && value !== null ? value : { value }) as unknown as Record<
+      string,
+      unknown
+    >,
     'Site settings loaded.'
   );
 }

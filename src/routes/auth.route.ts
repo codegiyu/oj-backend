@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { FastifyInstance } from 'fastify';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
