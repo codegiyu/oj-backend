@@ -47,7 +47,7 @@ export const authenticate = async (
   const token = getAccessToken(request);
 
   if (!token) {
-    logger.info('auth: authenticate rejected (no access token)', snapshot);
+    logger.info('auth: authenticate rejected (no access token)', JSON.stringify(snapshot, null, 2));
 
     throw new AppError('NAT: Unauthorized', 401);
   }
@@ -55,10 +55,17 @@ export const authenticate = async (
   const { payload, jwtErrorName } = verifyAccessWithMeta(token);
 
   if (!payload || !payload.userId || !payload.email || !payload.scope || !payload.jti) {
-    logger.info('auth: authenticate rejected (invalid or incomplete access token)', {
-      ...snapshot,
-      jwtErrorName: jwtErrorName ?? (payload ? 'incomplete_payload' : undefined),
-    });
+    logger.info(
+      'auth: authenticate rejected (invalid or incomplete access token)',
+      JSON.stringify(
+        {
+          ...snapshot,
+          jwtErrorName: jwtErrorName ?? (payload ? 'incomplete_payload' : undefined),
+        },
+        null,
+        2
+      )
+    );
 
     throw new AppError('IAT: Unauthorized', 401);
   }
@@ -90,17 +97,24 @@ export const optionalAuthenticate = async (
   const token = getAccessToken(request);
 
   if (!token) {
-    logger.debug('auth: optionalAuthenticate — no credentials', snapshot);
+    logger.debug('auth: optionalAuthenticate — no credentials', JSON.stringify(snapshot, null, 2));
     return;
   }
 
   const { payload, jwtErrorName } = verifyAccessWithMeta(token);
 
   if (!payload || !payload.userId || !payload.email || !payload.scope || !payload.jti) {
-    logger.info('auth: optionalAuthenticate — credential present but not a valid session', {
-      ...snapshot,
-      jwtErrorName: jwtErrorName ?? (payload ? 'incomplete_payload' : undefined),
-    });
+    logger.info(
+      'auth: optionalAuthenticate — credential present but not a valid session',
+      JSON.stringify(
+        {
+          ...snapshot,
+          jwtErrorName: jwtErrorName ?? (payload ? 'incomplete_payload' : undefined),
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
