@@ -105,6 +105,9 @@ export async function presignedUrlClient(
     throw new AppError('Invalid entityId', 400);
   }
 
+  const narrowedEntityType = entityType as EntityType;
+  const narrowedIntent = intent as UploadIntent;
+
   const filesArray = Array.isArray(files) ? files : [];
   const hasSingle = fileExtension !== undefined;
   const hasBatch = filesArray.length > 0;
@@ -127,19 +130,19 @@ export async function presignedUrlClient(
         if (!ext) {
           throw new AppError(`files[${index}].fileExtension is required`, 400);
         }
-        const ct = resolveContentType(ext, entry.contentType, intent as UploadIntent);
+        const ct = resolveContentType(ext, entry.contentType, narrowedIntent);
         const { filename, url, key, publicUrl } = await generatePresignedUrl({
-          entityType: entityType as EntityType,
+          entityType: narrowedEntityType,
           entityId,
-          intent: intent as UploadIntent,
+          intent: narrowedIntent,
           fileExtension: ext,
           contentType: ct,
           expiresIn: expiresInSeconds,
         });
         const doc = await Document.create({
-          entityType,
+          entityType: narrowedEntityType,
           entityId: new mongoose.Types.ObjectId(entityId),
-          intent,
+          intent: narrowedIntent,
           filename,
           key,
           publicUrl,
@@ -171,19 +174,19 @@ export async function presignedUrlClient(
   if (!ext) {
     throw new AppError('fileExtension is required', 400);
   }
-  const ct = resolveContentType(ext, contentType, intent as UploadIntent);
+  const ct = resolveContentType(ext, contentType, narrowedIntent);
   const { filename, url, key, publicUrl } = await generatePresignedUrl({
-    entityType: entityType as EntityType,
+    entityType: narrowedEntityType,
     entityId,
-    intent: intent as UploadIntent,
+    intent: narrowedIntent,
     fileExtension: ext,
     contentType: ct,
     expiresIn: expiresInSeconds,
   });
   const doc = await Document.create({
-    entityType,
+    entityType: narrowedEntityType,
     entityId: new mongoose.Types.ObjectId(entityId),
-    intent,
+    intent: narrowedIntent,
     filename,
     key,
     publicUrl,
@@ -233,6 +236,9 @@ export async function presignedUrlAdmin(
     throw new AppError('Invalid entityId', 400);
   }
 
+  const narrowedEntityTypeAdmin = entityType as EntityType;
+  const narrowedIntentAdmin = intent as UploadIntent;
+
   const filesArray = Array.isArray(files) ? files : [];
   const hasSingle = fileExtension !== undefined;
   const hasBatch = filesArray.length > 0;
@@ -255,19 +261,19 @@ export async function presignedUrlAdmin(
         if (!ext) {
           throw new AppError(`files[${index}].fileExtension is required`, 400);
         }
-        const ct = resolveContentType(ext, entry.contentType, intent as UploadIntent);
+        const ct = resolveContentType(ext, entry.contentType, narrowedIntentAdmin);
         const { filename, url, key, publicUrl } = await generatePresignedUrl({
-          entityType: entityType as EntityType,
+          entityType: narrowedEntityTypeAdmin,
           entityId,
-          intent: intent as UploadIntent,
+          intent: narrowedIntentAdmin,
           fileExtension: ext,
           contentType: ct,
           expiresIn: expiresInSeconds,
         });
         const doc = await Document.create({
-          entityType,
+          entityType: narrowedEntityTypeAdmin,
           entityId: new mongoose.Types.ObjectId(entityId),
-          intent,
+          intent: narrowedIntentAdmin,
           filename,
           key,
           publicUrl,
@@ -299,19 +305,19 @@ export async function presignedUrlAdmin(
   if (!ext) {
     throw new AppError('fileExtension is required', 400);
   }
-  const ct = resolveContentType(ext, contentType, intent as UploadIntent);
+  const ct = resolveContentType(ext, contentType, narrowedIntentAdmin);
   const { filename, url, key, publicUrl } = await generatePresignedUrl({
-    entityType: entityType as EntityType,
+    entityType: narrowedEntityTypeAdmin,
     entityId,
-    intent: intent as UploadIntent,
+    intent: narrowedIntentAdmin,
     fileExtension: ext,
     contentType: ct,
     expiresIn: expiresInSeconds,
   });
   const doc = await Document.create({
-    entityType,
+    entityType: narrowedEntityTypeAdmin,
     entityId: new mongoose.Types.ObjectId(entityId),
-    intent,
+    intent: narrowedIntentAdmin,
     filename,
     key,
     publicUrl,
