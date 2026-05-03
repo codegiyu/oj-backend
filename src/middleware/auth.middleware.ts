@@ -9,15 +9,20 @@ const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 
 function getAccessToken(request: FastifyRequest): string | undefined {
   const fromCookie = request.cookies?.[accessCookieName];
+
   if (fromCookie && typeof fromCookie === 'string') return fromCookie;
+
   const auth = request.headers.authorization;
+
   if (auth?.startsWith('Bearer ')) return auth.slice(7);
+
   return undefined;
 }
 
 /** Safe request context for auth logs — no cookie values, tokens, or Authorization contents. */
 function authRequestSnapshot(request: FastifyRequest): Record<string, unknown> {
   const cookieKeys = request.cookies ? Object.keys(request.cookies) : [];
+
   return {
     method: request.method,
     url: request.url,
@@ -40,24 +45,31 @@ export const authenticate = async (
 ): Promise<void> => {
   const snapshot = authRequestSnapshot(request);
   const token = getAccessToken(request);
+
   if (!token) {
     logger.info('auth: authenticate rejected (no access token)', snapshot);
+
     throw new AppError('NAT: Unauthorized', 401);
   }
+
   const { payload, jwtErrorName } = verifyAccessWithMeta(token);
+
   if (!payload || !payload.userId || !payload.email || !payload.scope || !payload.jti) {
     logger.info('auth: authenticate rejected (invalid or incomplete access token)', {
       ...snapshot,
       jwtErrorName: jwtErrorName ?? (payload ? 'incomplete_payload' : undefined),
     });
+
     throw new AppError('IAT: Unauthorized', 401);
   }
+
   request.authUser = {
     userId: String(payload.userId),
     email: payload.email,
     scope: payload.scope,
     jti: payload.jti,
   };
+
   logger.debug('auth: authenticate ok', {
     ...snapshot,
     userId: payload.userId,
@@ -81,6 +93,7 @@ export const optionalAuthenticate = async (
     logger.debug('auth: optionalAuthenticate — no credentials', snapshot);
     return;
   }
+
   const { payload, jwtErrorName } = verifyAccessWithMeta(token);
 
   if (!payload || !payload.userId || !payload.email || !payload.scope || !payload.jti) {
@@ -97,6 +110,7 @@ export const optionalAuthenticate = async (
     scope: payload.scope,
     jti: payload.jti,
   };
+
   logger.debug('auth: optionalAuthenticate — session attached', {
     ...snapshot,
     userId: payload.userId,

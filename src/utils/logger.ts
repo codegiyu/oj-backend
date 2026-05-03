@@ -1,3 +1,4 @@
+import util from 'node:util';
 import winston from 'winston';
 import { ENVIRONMENT } from '../config/env';
 
@@ -12,9 +13,9 @@ const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let msg = `${timestamp} [${level}]: ${message}`;
+    let msg = `${timestamp as string} [${level}]: ${message as string}`;
     if (Object.keys(meta).length > 0) {
-      msg += ` ${JSON.stringify(meta)}`;
+      msg += `\n${util.inspect(meta, { colors: true, depth: 8, compact: false, breakLength: 96 })}`;
     }
     return msg;
   })
