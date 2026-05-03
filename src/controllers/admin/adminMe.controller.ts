@@ -9,7 +9,9 @@ import { deleteFields } from '../../utils/helpers';
 import { invalidateAuthCache, updateCachedAdmin } from '../../utils/authCache';
 import type { ModelAdmin } from '../../lib/types/constants';
 
-function sanitizeAdminForClient(admin: ModelAdmin | Record<string, unknown>): Record<string, unknown> {
+function sanitizeAdminForClient(
+  admin: ModelAdmin | Record<string, unknown>
+): Record<string, unknown> {
   return deleteFields(admin as unknown as Record<string, unknown>, adminUnselected);
 }
 

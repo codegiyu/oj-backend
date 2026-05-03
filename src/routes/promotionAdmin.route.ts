@@ -41,7 +41,10 @@ import {
 export async function registerAdminPromotionRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: { page?: string; limit?: string; includeInactive?: string } }>(
     '/featured-options',
-    { preHandler: [authenticate, requireConsoleAccess], schema: listPromotionItemsQuerystringSchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: listPromotionItemsQuerystringSchema,
+    },
     catchAsync(listAdminFeaturedOptions)
   );
   app.post<{ Body: Record<string, unknown> }>(
@@ -51,7 +54,10 @@ export async function registerAdminPromotionRoutes(app: FastifyInstance): Promis
   );
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
     '/featured-options/:id',
-    { preHandler: [authenticate, requireConsoleAccess], schema: { ...idParamSchema, ...updateFeaturedOptionBodySchema } },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: { ...idParamSchema, ...updateFeaturedOptionBodySchema },
+    },
     catchAsync(updateAdminFeaturedOption)
   );
   app.delete<{ Params: { id: string } }>(
@@ -62,12 +68,18 @@ export async function registerAdminPromotionRoutes(app: FastifyInstance): Promis
 
   app.get<{ Querystring: { page?: string; limit?: string; includeInactive?: string } }>(
     '/promotion-pricing-options',
-    { preHandler: [authenticate, requireConsoleAccess], schema: listPromotionItemsQuerystringSchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: listPromotionItemsQuerystringSchema,
+    },
     catchAsync(listAdminPromotionPricingOptions)
   );
   app.post<{ Body: Record<string, unknown> }>(
     '/promotion-pricing-options',
-    { preHandler: [authenticate, requireConsoleAccess], schema: createPromotionPricingOptionBodySchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: createPromotionPricingOptionBodySchema,
+    },
     catchAsync(createAdminPromotionPricingOption)
   );
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
@@ -86,12 +98,18 @@ export async function registerAdminPromotionRoutes(app: FastifyInstance): Promis
 
   app.get<{ Querystring: { page?: string; limit?: string; includeInactive?: string } }>(
     '/resource-download-categories',
-    { preHandler: [authenticate, requireConsoleAccess], schema: listPromotionItemsQuerystringSchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: listPromotionItemsQuerystringSchema,
+    },
     catchAsync(listAdminResourceDownloadCategories)
   );
   app.post<{ Body: Record<string, unknown> }>(
     '/resource-download-categories',
-    { preHandler: [authenticate, requireConsoleAccess], schema: createResourceDownloadCategoryBodySchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: createResourceDownloadCategoryBodySchema,
+    },
     catchAsync(createAdminResourceDownloadCategory)
   );
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
@@ -110,7 +128,10 @@ export async function registerAdminPromotionRoutes(app: FastifyInstance): Promis
 
   app.get<{ Querystring: { page?: string; limit?: string; includeInactive?: string } }>(
     '/contact-methods',
-    { preHandler: [authenticate, requireConsoleAccess], schema: listPromotionItemsQuerystringSchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: listPromotionItemsQuerystringSchema,
+    },
     catchAsync(listAdminContactMethods)
   );
   app.post<{ Body: Record<string, unknown> }>(
@@ -120,7 +141,10 @@ export async function registerAdminPromotionRoutes(app: FastifyInstance): Promis
   );
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
     '/contact-methods/:id',
-    { preHandler: [authenticate, requireConsoleAccess], schema: { ...idParamSchema, ...updateContactMethodBodySchema } },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: { ...idParamSchema, ...updateContactMethodBodySchema },
+    },
     catchAsync(updateAdminContactMethod)
   );
   app.delete<{ Params: { id: string } }>(
@@ -131,12 +155,18 @@ export async function registerAdminPromotionRoutes(app: FastifyInstance): Promis
 
   app.get<{ Querystring: { page?: string; limit?: string; includeInactive?: string } }>(
     '/partnership-benefits',
-    { preHandler: [authenticate, requireConsoleAccess], schema: listPromotionItemsQuerystringSchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: listPromotionItemsQuerystringSchema,
+    },
     catchAsync(listAdminPartnershipBenefits)
   );
   app.post<{ Body: Record<string, unknown> }>(
     '/partnership-benefits',
-    { preHandler: [authenticate, requireConsoleAccess], schema: createPartnershipBenefitBodySchema },
+    {
+      preHandler: [authenticate, requireConsoleAccess],
+      schema: createPartnershipBenefitBodySchema,
+    },
     catchAsync(createAdminPartnershipBenefit)
   );
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(

@@ -185,7 +185,11 @@ export async function updateAdminArtist(
   sendResponse(
     reply,
     200,
-    { artist: shapeArtistItem((populated ?? artist.toObject()) as unknown as Record<string, unknown>) },
+    {
+      artist: shapeArtistItem(
+        (populated ?? artist.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Artist updated.'
   );
 }

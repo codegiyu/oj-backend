@@ -205,7 +205,11 @@ export async function updateAdminVendor(
   sendResponse(
     reply,
     200,
-    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as unknown as Record<string, unknown>) },
+    {
+      vendor: shapeVendorItem(
+        (populated ?? vendor.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Vendor updated.'
   );
 }
@@ -231,7 +235,11 @@ export async function approveAdminVendor(
   sendResponse(
     reply,
     200,
-    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as unknown as Record<string, unknown>) },
+    {
+      vendor: shapeVendorItem(
+        (populated ?? vendor.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Vendor approved.'
   );
 }
@@ -258,7 +266,11 @@ export async function rejectAdminVendor(
   sendResponse(
     reply,
     200,
-    { vendor: shapeVendorItem((populated ?? vendor.toObject()) as unknown as Record<string, unknown>) },
+    {
+      vendor: shapeVendorItem(
+        (populated ?? vendor.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Vendor rejected.'
   );
 }

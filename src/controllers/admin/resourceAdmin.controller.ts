@@ -191,7 +191,11 @@ export async function updateAdminResource(
   sendResponse(
     reply,
     200,
-    { resource: shapeResourceItem((populated ?? resource.toObject()) as unknown as Record<string, unknown>) },
+    {
+      resource: shapeResourceItem(
+        (populated ?? resource.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Resource updated.'
   );
 }
@@ -227,7 +231,11 @@ export async function approveAdminResource(
   sendResponse(
     reply,
     200,
-    { resource: shapeResourceItem((populated ?? resource.toObject()) as unknown as Record<string, unknown>) },
+    {
+      resource: shapeResourceItem(
+        (populated ?? resource.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Resource approved.'
   );
 }
@@ -254,7 +262,11 @@ export async function rejectAdminResource(
   sendResponse(
     reply,
     200,
-    { resource: shapeResourceItem((populated ?? resource.toObject()) as unknown as Record<string, unknown>) },
+    {
+      resource: shapeResourceItem(
+        (populated ?? resource.toObject()) as unknown as Record<string, unknown>
+      ),
+    },
     'Resource rejected.'
   );
 }
