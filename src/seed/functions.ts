@@ -427,7 +427,7 @@ export const seedContentCategories = async (): Promise<void> => {
   let updated = 0;
 
   // Temporary reset requested: clear all content categories before reseeding.
-  await ContentCategory.deleteMany({});
+  // await ContentCategory.deleteMany({});
 
   for (const category of CONTENT_CATEGORY_SEEDS) {
     const categorySlug = slugify(category.name);
