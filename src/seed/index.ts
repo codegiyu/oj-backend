@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { logger } from '../utils/logger';
-import { seedContentCategories } from './functions';
+// import { seedContentCategories } from './functions';
 
 export {
   seedMarketplaceCategories,
@@ -23,7 +24,7 @@ export const seedDb = async (): Promise<void> => {
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
     // await seedMarketplaceCategories();
     // await seedPromotionContent();
-    await seedContentCategories();
+    // await seedContentCategories();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;
