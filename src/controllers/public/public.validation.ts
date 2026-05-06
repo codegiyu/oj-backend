@@ -1,3 +1,4 @@
+import { CONTENT_CATEGORY_SCOPES } from '@/lib/types/constants';
 import type { FastifySchema } from 'fastify';
 
 const MUSIC_TYPES = ['trending', 'featured', 'recent', 'charts'] as const;
@@ -61,7 +62,10 @@ export const listPublicContentCategoriesQuerystringSchema: FastifySchema = {
   querystring: {
     type: 'object',
     properties: {
-      scope: { type: 'string', enum: ['music', 'video', 'news', 'devotional'] },
+      scope: {
+        type: 'string',
+        enum: CONTENT_CATEGORY_SCOPES,
+      },
     },
   },
 };

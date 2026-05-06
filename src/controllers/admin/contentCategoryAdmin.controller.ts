@@ -16,8 +16,22 @@ import { CONTENT_CATEGORY_SCOPES } from '../../lib/types/constants';
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'displayOrder'];
 
 function shapeCategory(raw: Record<string, unknown>): Record<string, unknown> {
+  const rawId = raw._id;
+  const id =
+    typeof rawId === 'string' ||
+    typeof rawId === 'number' ||
+    typeof rawId === 'bigint' ||
+    typeof rawId === 'boolean'
+      ? `${rawId}`
+      : rawId &&
+          typeof rawId === 'object' &&
+          'toHexString' in rawId &&
+          typeof (rawId as { toHexString?: unknown }).toHexString === 'function'
+        ? (rawId as { toHexString: () => string }).toHexString()
+        : rawId;
+
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: id,
     name: raw.name,
     slug: raw.slug,
     scope: raw.scope,

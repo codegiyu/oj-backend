@@ -1,5 +1,5 @@
 import { Schema, model, type Model } from 'mongoose';
-import type { ModelContentCategory } from '../lib/types/constants';
+import { CONTENT_CATEGORY_SCOPES, type ModelContentCategory } from '../lib/types/constants';
 import { generateUniqueSlug } from '../utils/helpers';
 
 const contentCategorySchema = new Schema<ModelContentCategory>(
@@ -9,7 +9,7 @@ const contentCategorySchema = new Schema<ModelContentCategory>(
     scope: {
       type: String,
       required: true,
-      enum: ['music', 'video', 'news', 'devotional'],
+      enum: CONTENT_CATEGORY_SCOPES,
       index: true,
     },
     displayOrder: { type: Number, default: 0 },
