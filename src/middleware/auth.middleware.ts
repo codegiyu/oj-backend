@@ -10,11 +10,20 @@ const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 function getAccessToken(request: FastifyRequest): string | undefined {
   const fromCookie = request.cookies?.[accessCookieName];
 
-  if (fromCookie && typeof fromCookie === 'string') return fromCookie;
-
   const auth = request.headers.authorization;
+  console.log('auth header: ', auth);
 
-  if (auth?.startsWith('Bearer ')) return auth.slice(7);
+  if (auth?.startsWith('Bearer ')) {
+    const token = auth.slice(7);
+    console.log('Bearer token found in Authorization header: ', token);
+
+    return token;
+  }
+
+  if (fromCookie && typeof fromCookie === 'string') {
+    console.log('fromCookie', fromCookie);
+    return fromCookie;
+  }
 
   return undefined;
 }
