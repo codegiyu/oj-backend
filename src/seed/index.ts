@@ -1,11 +1,5 @@
-/* eslint-disable @typescript-eslint/require-await */
-import {} from // seedMarketplaceCategories,
-// seedPromotionContent,
-// seedRoles,
-// seedSiteSettings,
-// seedAdmins,
-'./functions';
 import { logger } from '../utils/logger';
+import { seedContentCategories } from './functions';
 
 export {
   seedMarketplaceCategories,
@@ -13,6 +7,7 @@ export {
   seedRoles,
   seedSiteSettings,
   seedAdmins,
+  seedContentCategories,
 } from './functions';
 
 /**
@@ -28,6 +23,7 @@ export const seedDb = async (): Promise<void> => {
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
     // await seedMarketplaceCategories();
     // await seedPromotionContent();
+    await seedContentCategories();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;

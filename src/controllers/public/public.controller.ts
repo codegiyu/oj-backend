@@ -12,7 +12,11 @@ import { parsePositiveInteger, parseString } from '../../utils/helpers';
 import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../../utils/videoEmbed';
 import { ContentCategory } from '../../models/contentCategory';
 import { HomeAdvert } from '../../models/homeAdvert';
-import { IContentCategory } from '../../lib/types/constants';
+import {
+  ContentCategoryScope,
+  CONTENT_CATEGORY_SCOPES,
+  IContentCategory,
+} from '../../lib/types/constants';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 100;
@@ -475,7 +479,9 @@ export async function listPublicContentCategories(
   const scope = parseString(request.query.scope);
   const filter: Record<string, unknown> = { isActive: true };
 
-  if (scope && ['music', 'video', 'news', 'devotional'].includes(scope)) filter.scope = scope;
+  if (scope && CONTENT_CATEGORY_SCOPES.includes(scope as unknown as ContentCategoryScope)) {
+    filter.scope = scope;
+  }
 
   const items = await ContentCategory.find(filter)
     .sort({ displayOrder: 1, name: 1 })

@@ -344,7 +344,17 @@ export const ENTITY_TYPES = [
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
-export const CONTENT_CATEGORY_SCOPES = ['music', 'video', 'news', 'devotional'] as const;
+export const CONTENT_CATEGORY_SCOPES = [
+  'music',
+  'video',
+  'news',
+  'devotional',
+  'resource',
+  'testimony',
+  'prayer-request',
+  'poll',
+  'question',
+] as const;
 export type ContentCategoryScope = (typeof CONTENT_CATEGORY_SCOPES)[number];
 
 export const HOME_ADVERT_SLOTS = ['after_hero', 'before_cta'] as const;
