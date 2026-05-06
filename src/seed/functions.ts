@@ -426,6 +426,9 @@ export const seedContentCategories = async (): Promise<void> => {
   let created = 0;
   let updated = 0;
 
+  // Temporary reset requested: clear all content categories before reseeding.
+  await ContentCategory.deleteMany({});
+
   for (const category of CONTENT_CATEGORY_SEEDS) {
     const existing = await ContentCategory.findOne({
       scope: category.scope,
@@ -438,6 +441,8 @@ export const seedContentCategories = async (): Promise<void> => {
       { scope: category.scope, name: category.name },
       {
         $set: {
+          name: category.name,
+          scope: category.scope,
           displayOrder: category.displayOrder,
           isActive: true,
         },

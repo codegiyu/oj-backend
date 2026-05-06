@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { Document } from 'mongoose';
 import { JOB_TYPE } from './queues';
-import { AccessScope } from '@/utils/token';
+import { AccessScope } from '../../utils/token';
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
