@@ -5,7 +5,7 @@ import { User } from '../../models/user';
 import { authService } from '../../services/auth.service';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { processPasswordChange } from './auth.helpers';
-import { IAdmin, IUser } from '@/lib/types/constants';
+import { IAdmin, IUser } from '../../lib/types/constants';
 
 export async function changePassword(
   request: FastifyRequest<{
