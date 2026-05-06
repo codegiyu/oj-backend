@@ -43,7 +43,8 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
   // Temporary ingress diagnostics: confirms whether auth-related headers
   // reached Fastify before route preHandlers (no sensitive values logged).
-  app.addHook('onRequest', request => {
+  app.addHook('onRequest', (request, _reply, done) => {
+    console.log('request.headers: ', JSON.stringify(request.headers, null, 2));
     logger.debug('HTTP ingress headers snapshot', {
       method: request.method,
       url: request.url,
@@ -56,6 +57,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
       hasRefererHeader: typeof request.headers.referer === 'string',
       userAgentPresent: typeof request.headers['user-agent'] === 'string',
     });
+    done();
   });
 
   // Security plugins
