@@ -2,13 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { ContentCategory } from '../../models/contentCategory';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import {
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-  generateUniqueSlug,
-} from '../../utils/helpers';
+import { parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
 import { parseObjectId } from './admin.helpers';
 import type { ContentCategoryScope } from '../../lib/types/constants';
 import { CONTENT_CATEGORY_SCOPES } from '../../lib/types/constants';
@@ -91,12 +85,8 @@ export async function createAdminContentCategory(
   if (!body.scope || !(CONTENT_CATEGORY_SCOPES as readonly string[]).includes(body.scope)) {
     throw new AppError('Invalid scope', 400);
   }
-  const slug = await generateUniqueSlug(ContentCategory as never, body.name.trim(), {
-    scope: body.scope,
-  });
   const doc = await ContentCategory.create({
     name: body.name.trim(),
-    slug,
     scope: body.scope,
     displayOrder: body.displayOrder ?? 0,
     isActive: body.isActive ?? true,

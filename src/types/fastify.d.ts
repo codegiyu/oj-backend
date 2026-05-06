@@ -1,5 +1,4 @@
 import { AuthUser } from '../lib/types/constants';
-import type { AccessScope } from '../utils/token';
 
 declare module 'fastify' {
   interface FastifyRequest {
