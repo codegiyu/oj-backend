@@ -41,6 +41,23 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     });
   });
 
+  // Temporary ingress diagnostics: confirms whether auth-related headers
+  // reached Fastify before route preHandlers (no sensitive values logged).
+  app.addHook('onRequest', request => {
+    logger.debug('HTTP ingress headers snapshot', {
+      method: request.method,
+      url: request.url,
+      hasAuthorizationHeader: typeof request.headers.authorization === 'string',
+      authorizationIsBearer:
+        typeof request.headers.authorization === 'string' &&
+        request.headers.authorization.startsWith('Bearer '),
+      hasCookieHeader: typeof request.headers.cookie === 'string',
+      hasOriginHeader: typeof request.headers.origin === 'string',
+      hasRefererHeader: typeof request.headers.referer === 'string',
+      userAgentPresent: typeof request.headers['user-agent'] === 'string',
+    });
+  });
+
   // Security plugins
   await app.register(helmet, {
     contentSecurityPolicy: false,
@@ -49,6 +66,8 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(cors, {
     origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   await app.register(cookie, {
