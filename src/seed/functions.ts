@@ -14,7 +14,7 @@ import { SiteSettings, defaultSiteSettings } from '../models/siteSettings';
 import { Admin } from '../models/admin';
 import { ContentCategory } from '../models/contentCategory';
 import { authService } from '../services/auth.service';
-import { ICategory, IRole, ISubCategory, type ContentCategoryScope } from '@/lib/types/constants';
+import { ICategory, IRole, ISubCategory, type ContentCategoryScope } from '../lib/types/constants';
 
 /** Seed email used for both ContactMethod and admins */
 const SEED_EMAIL = 'ohemultimedia@gmail.com';

@@ -3,7 +3,7 @@ import { Notification } from '../models/notification';
 import { User } from '../models/user';
 import { Admin } from '../models/admin';
 import { sendRealTimeNotification } from '../socket';
-import { IAdmin, IUser } from '@/lib/types/constants';
+import { IAdmin, IUser } from '../lib/types/constants';
 
 export async function expireNotificationsForUser(
   userId: string,

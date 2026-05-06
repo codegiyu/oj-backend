@@ -1,4 +1,4 @@
-import { CONTENT_CATEGORY_SCOPES } from '@/lib/types/constants';
+import { CONTENT_CATEGORY_SCOPES } from '../../lib/types/constants';
 import type { FastifySchema } from 'fastify';
 
 const MUSIC_TYPES = ['trending', 'featured', 'recent', 'charts'] as const;
