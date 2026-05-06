@@ -66,8 +66,14 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(cors, {
     origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    // methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    // allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: [
+      ENVIRONMENT.tokenNames.cookies.access,
+      ENVIRONMENT.tokenNames.cookies.refresh,
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials',
+    ],
   });
 
   await app.register(cookie, {
