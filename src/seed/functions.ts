@@ -430,21 +430,26 @@ export const seedContentCategories = async (): Promise<void> => {
   await ContentCategory.deleteMany({});
 
   for (const category of CONTENT_CATEGORY_SEEDS) {
+    const categorySlug = slugify(category.name);
+
     const existing = await ContentCategory.findOne({
       scope: category.scope,
-      name: category.name,
+      slug: categorySlug,
     })
       .select('_id')
       .lean();
 
     await ContentCategory.findOneAndUpdate(
-      { scope: category.scope, name: category.name },
+      { scope: category.scope, slug: categorySlug },
       {
         $set: {
           name: category.name,
           scope: category.scope,
           displayOrder: category.displayOrder,
           isActive: true,
+        },
+        $setOnInsert: {
+          slug: categorySlug,
         },
       },
       { upsert: true, runValidators: true, setDefaultsOnInsert: true }

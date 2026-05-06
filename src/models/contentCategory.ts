@@ -73,6 +73,7 @@ contentCategorySchema.pre('save', async function (this: ModelContentCategory) {
   if (!this.isModified('name')) return;
   this.slug = await buildCategorySlug(this.name, this.scope, this._id);
 });
+
 contentCategorySchema.pre(
   /update/i,
   async function (this: mongoose.Query<unknown, ModelContentCategory>) {
