@@ -88,7 +88,7 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
     // console.log('admin', admin);
 
     if (!admin || admin.accountStatus === 'deleted') {
-      clearAuthCookies(reply);
+      clearAuthCookies(reply, request);
       sendResponse(reply, 200, { user: null }, 'No session.');
       return;
     }
@@ -105,7 +105,7 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
   // console.log('userDoc', userDoc);
 
   if (!userDoc || userDoc.accountStatus === 'deleted') {
-    clearAuthCookies(reply);
+    clearAuthCookies(reply, request);
     sendResponse(reply, 200, { user: null }, 'No session.');
     return;
   }
@@ -128,6 +128,6 @@ export async function logout(request: FastifyRequest, reply: FastifyReply): Prom
     }
   }
 
-  clearAuthCookies(reply);
+  clearAuthCookies(reply, request);
   sendResponse(reply, 200, { success: true }, 'Logged out.');
 }

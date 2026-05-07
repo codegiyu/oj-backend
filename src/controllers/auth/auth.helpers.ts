@@ -1,4 +1,5 @@
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { attachAuthTokenHeaders } from '../../utils/authHeaders';
 import { CookieSerializeOptions } from '@fastify/cookie';
 import { ENVIRONMENT } from '../../config/env';
 import { AppError } from '../../utils/AppError';
@@ -67,8 +68,6 @@ export function setAuthCookies(
     partitioned: true,
     sameSite,
   };
-  console.log('baseOptions', baseOptions);
-  console.log('ENVIRONMENT', ENVIRONMENT);
 
   reply.setCookie(accessCookieName, accessToken, {
     ...baseOptions,
@@ -78,13 +77,19 @@ export function setAuthCookies(
     ...baseOptions,
     maxAge: ENVIRONMENT.jwt.refreshCookieMaxAge,
   });
+
+  attachAuthTokenHeaders(reply, { access: accessToken, refresh: refreshToken });
 }
 
 /** Must pass same path, secure, sameSite as setAuthCookies for the browser to clear correctly. */
-export function clearAuthCookies(reply: FastifyReply): void {
+export function clearAuthCookies(reply: FastifyReply, request?: FastifyRequest): void {
   const clearOptions = { path: cookiePath, secure, sameSite };
   reply.clearCookie(accessCookieName, clearOptions);
   reply.clearCookie(refreshCookieName, clearOptions);
+
+  const req = request ?? reply.request;
+  req.authTokens = { accessToken: '', refreshToken: '' };
+  attachAuthTokenHeaders(reply, { access: '', refresh: '' });
 }
 
 export type AccessType = 'client' | 'console';
@@ -126,6 +131,7 @@ export async function buildClientUserPayload(user: ModelUser): Promise<Record<st
 
 export async function processPasswordChange(options: {
   reply: FastifyReply;
+  request?: FastifyRequest;
   user: ModelAdmin | ModelUser;
   password: string;
   accessType: AccessType;
