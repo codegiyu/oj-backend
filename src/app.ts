@@ -77,6 +77,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(cors, {
     origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', ...tokenHeaderAllowlist],
     exposedHeaders: [
       ...tokenHeaderAllowlist,
