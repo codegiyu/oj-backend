@@ -20,6 +20,18 @@ export type Environment = {
       readonly access: string;
       readonly refresh: string;
     };
+    /** Request/response header names for tokens (Express-style); default to cookie names. */
+    readonly headers: {
+      readonly access: string;
+      readonly refresh: string;
+    };
+  };
+  readonly auth: {
+    /**
+     * When true, protected routes require a refresh token on every request (JWT must verify),
+     * similar to Express `protectRoutes`. Access alone is not enough.
+     */
+    readonly requireRefreshToken: boolean;
   };
   readonly google: {
     readonly clientId: string;
@@ -100,6 +112,14 @@ export const ENVIRONMENT: Environment = {
       access: process.env.TOKEN_COOKIE_ACCESS || 'oj-acc-token',
       refresh: process.env.TOKEN_COOKIE_REFRESH || 'oj-ref-token',
     },
+    headers: {
+      access: process.env.TOKEN_HEADER_ACCESS || process.env.TOKEN_COOKIE_ACCESS || 'oj-acc-token',
+      refresh:
+        process.env.TOKEN_HEADER_REFRESH || process.env.TOKEN_COOKIE_REFRESH || 'oj-ref-token',
+    },
+  },
+  auth: {
+    requireRefreshToken: process.env.REQUIRE_REFRESH_TOKEN === 'true',
   },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',

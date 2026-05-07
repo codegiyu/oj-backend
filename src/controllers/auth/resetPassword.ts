@@ -44,6 +44,7 @@ export async function resetPassword(
     }
     await processPasswordChange({
       reply,
+      request,
       user: admin,
       password: password,
       accessType: 'console',
@@ -54,6 +55,7 @@ export async function resetPassword(
     }
     await processPasswordChange({
       reply,
+      request,
       user,
       password: password,
       accessType: 'client',

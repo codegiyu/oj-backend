@@ -65,14 +65,21 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     contentSecurityPolicy: false,
   });
 
+  const tokenHeaderAllowlist = [
+    ...new Set([
+      ENVIRONMENT.tokenNames.cookies.access,
+      ENVIRONMENT.tokenNames.cookies.refresh,
+      ENVIRONMENT.tokenNames.headers.access,
+      ENVIRONMENT.tokenNames.headers.refresh,
+    ]),
+  ];
+
   await app.register(cors, {
     origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
     credentials: true,
-    // methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    // allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', ...tokenHeaderAllowlist],
     exposedHeaders: [
-      ENVIRONMENT.tokenNames.cookies.access,
-      ENVIRONMENT.tokenNames.cookies.refresh,
+      ...tokenHeaderAllowlist,
       'Access-Control-Allow-Origin',
       'Access-Control-Allow-Credentials',
     ],

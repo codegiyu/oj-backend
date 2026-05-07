@@ -44,6 +44,7 @@ export async function changePassword(
 
   await processPasswordChange({
     reply,
+    request,
     user: user as Parameters<typeof processPasswordChange>[0]['user'],
     password: password,
     accessType,
