@@ -46,6 +46,10 @@ npm run dev
 npm run start:dev
 ```
 
+## API versioning
+
+Business routes are served under **`/api/v1`** (for example `/api/v1/public/music`, `/api/v1/auth/login`). Liveness and readiness stay at **`/health`** and **`/ready`** (unversioned).
+
 ## Production
 
 Set `NODE_ENV=production` and provide strong, non-placeholder values for at least:

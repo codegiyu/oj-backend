@@ -15,7 +15,7 @@ describe('protected admin routes', () => {
   });
 
   it('returns 401 for GET /admin/me without credentials', async () => {
-    const response = await app.inject({ method: 'GET', url: '/admin/me' });
+    const response = await app.inject({ method: 'GET', url: '/api/v1/admin/me' });
 
     expect(response.statusCode).toBe(401);
 

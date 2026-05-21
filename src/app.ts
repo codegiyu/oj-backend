@@ -23,6 +23,7 @@ import { registerPublicRoutes } from './routes/public.route';
 import { registerAdminPromotionRoutes } from './routes/promotionAdmin.route';
 import { registerAdminContentRoutes } from './routes/adminContent.route';
 import { registerAdminProfileRoutes } from './routes/adminProfile.route';
+import { API_V1_PREFIX } from './constants/apiVersion';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { sendErrorResponse } from './utils/response';
 import { logger } from './utils/logger';
@@ -94,28 +95,32 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     timeWindow: ENVIRONMENT.rateLimit.timeWindow,
   });
 
-  // Routes
+  // Liveness/readiness (unversioned for probes)
   await app.register(registerHealthRoutes);
-  await app.register(registerAuthRoutes, { prefix: '/auth' });
-  await app.register(registerUploadRoutes, { prefix: '/upload' });
-  await app.register(registerAdminUploadRoutes, { prefix: '/admin/upload' });
-  await app.register(registerDocumentRoutes, { prefix: '/documents' });
-  await app.register(registerAdminDocumentRoutes, { prefix: '/admin/documents' });
-  await app.register(registerAdminEmailLogRoutes, { prefix: '/admin/email-logs' });
+
+  // Versioned business API
+  await app.register(registerAuthRoutes, { prefix: `${API_V1_PREFIX}/auth` });
+  await app.register(registerUploadRoutes, { prefix: `${API_V1_PREFIX}/upload` });
+  await app.register(registerAdminUploadRoutes, { prefix: `${API_V1_PREFIX}/admin/upload` });
+  await app.register(registerDocumentRoutes, { prefix: `${API_V1_PREFIX}/documents` });
+  await app.register(registerAdminDocumentRoutes, { prefix: `${API_V1_PREFIX}/admin/documents` });
+  await app.register(registerAdminEmailLogRoutes, { prefix: `${API_V1_PREFIX}/admin/email-logs` });
   await app.register(registerAdminContactSubmissionRoutes, {
-    prefix: '/admin/contact-submissions',
+    prefix: `${API_V1_PREFIX}/admin/contact-submissions`,
   });
-  await app.register(registerNotificationRoutes, { prefix: '/notifications' });
-  await app.register(registerSiteSettingsRoutes, { prefix: '/site-settings' });
-  await app.register(registerAdminSiteSettingsRoutes, { prefix: '/admin/site-settings' });
-  await app.register(registerMarketplaceRoutes, { prefix: '/marketplace' });
-  await app.register(registerUserRoutes, { prefix: '/user' });
-  await app.register(registerVendorRoutes, { prefix: '/vendor' });
-  await app.register(registerArtistRoutes, { prefix: '/artist' });
-  await app.register(registerPublicRoutes, { prefix: '/public' });
-  await app.register(registerAdminPromotionRoutes, { prefix: '/admin' });
-  await app.register(registerAdminContentRoutes, { prefix: '/admin' });
-  await app.register(registerAdminProfileRoutes, { prefix: '/admin' });
+  await app.register(registerNotificationRoutes, { prefix: `${API_V1_PREFIX}/notifications` });
+  await app.register(registerSiteSettingsRoutes, { prefix: `${API_V1_PREFIX}/site-settings` });
+  await app.register(registerAdminSiteSettingsRoutes, {
+    prefix: `${API_V1_PREFIX}/admin/site-settings`,
+  });
+  await app.register(registerMarketplaceRoutes, { prefix: `${API_V1_PREFIX}/marketplace` });
+  await app.register(registerUserRoutes, { prefix: `${API_V1_PREFIX}/user` });
+  await app.register(registerVendorRoutes, { prefix: `${API_V1_PREFIX}/vendor` });
+  await app.register(registerArtistRoutes, { prefix: `${API_V1_PREFIX}/artist` });
+  await app.register(registerPublicRoutes, { prefix: `${API_V1_PREFIX}/public` });
+  await app.register(registerAdminPromotionRoutes, { prefix: `${API_V1_PREFIX}/admin` });
+  await app.register(registerAdminContentRoutes, { prefix: `${API_V1_PREFIX}/admin` });
+  await app.register(registerAdminProfileRoutes, { prefix: `${API_V1_PREFIX}/admin` });
 
   app.setErrorHandler(errorHandler);
 
