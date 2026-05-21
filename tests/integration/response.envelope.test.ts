@@ -28,8 +28,8 @@ describe('API response envelope (integration)', () => {
 
     const record =
       body !== null && typeof body === 'object' ? (body as Record<string, unknown>) : {};
-    const detail = record.message ?? record.error;
 
-    expect(typeof detail === 'string' && detail.length > 0).toBe(true);
+    expect(typeof record.message === 'string' && record.message.length > 0).toBe(true);
+    expect(Array.isArray((record.data as { details?: unknown[] } | null)?.details)).toBe(true);
   });
 });
