@@ -17,7 +17,7 @@ describe('public route validation', () => {
   it('returns 400 for invalid query on GET /public/music', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/public/music?page=not-a-number',
+      url: '/api/v1/public/music?page=not-a-number',
     });
 
     expect(response.statusCode).toBe(400);

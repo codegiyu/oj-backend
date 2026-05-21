@@ -16,6 +16,8 @@ Run the full contract: `npm run test:unit && npm run test:integration && npm run
 
 Phase 1 adds `tests/integration/env.validation.test.ts` for production env fail-fast rules.
 
+Phase 3 migrates all business routes to `/api/v1` (`tests/integration/apiVersion.route.test.ts`).
+
 Phase 2 adds:
 
 - `GET /ready` — MongoDB + Redis checks (`tests/integration/ready.route.test.ts`)
