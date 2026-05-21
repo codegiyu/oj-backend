@@ -6,14 +6,13 @@ import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
+import { generateVendorProductSlug, parseString } from '../../utils/helpers';
+import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
-  generateVendorProductSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+  listAdminProductRows,
+  findAdminProductById,
+} from '../../repositories/admin/product.repository';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
 
@@ -22,10 +21,10 @@ function shapeProductItem(raw: Record<string, unknown>): Record<string, unknown>
   const category = raw.category;
   const subCategory = raw.subCategory;
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     name: raw.name,
     slug: raw.slug,
-    vendor: vendor != null ? String(vendor) : vendor,
+    vendor: vendor != null ? leanIdToString(vendor) : vendor,
     vendorName:
       (vendor as Record<string, unknown>)?.storeName ?? (vendor as Record<string, unknown>)?.name,
     vendorSlug: (vendor as Record<string, unknown>)?.slug,
@@ -62,70 +61,38 @@ export async function listAdminProducts(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
+  const result = await runAdminList(request, {
+    sortFields: SORT_FIELDS,
+    searchFields: ['name', 'description', 'slug'],
+    extendFilter: (filter, query) => {
+      const vendorId = parseString(query.vendor);
 
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  const vendorId = parseString(request.query.vendor);
-  if (status) filter.status = status;
-  if (vendorId && mongoose.Types.ObjectId.isValid(vendorId)) {
-    filter.vendor = new mongoose.Types.ObjectId(vendorId);
-  }
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Product.find(filter)
-      .sort(sortStr)
-      .populate('vendor', 'name slug storeName')
-      .populate('category', 'name slug')
-      .populate('subCategory', 'name slug')
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Product.countDocuments(filter),
-  ]);
-
-  const products = (items as unknown as Record<string, unknown>[]).map(shapeProductItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      products,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+      if (vendorId && mongoose.Types.ObjectId.isValid(vendorId)) {
+        filter.vendor = new mongoose.Types.ObjectId(vendorId);
+      }
     },
-    'Products list loaded.'
-  );
+    listRows: listAdminProductRows,
+    shapeItem: shapeProductItem,
+    collectionKey: 'products',
+    message: 'Products list loaded.',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminProduct(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Product.findById(id)
-    .populate('vendor', 'name slug storeName')
-    .populate('category', 'name slug')
-    .populate('subCategory', 'name slug')
-    .lean();
-  if (!doc) throw new AppError('Product not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { product: shapeProductItem(doc as unknown as Record<string, unknown>) },
-    'Product loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminProductById,
+    shapeItem: shapeProductItem,
+    itemKey: 'product',
+    message: 'Product loaded.',
+    notFoundMessage: 'Product not found',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminProduct(

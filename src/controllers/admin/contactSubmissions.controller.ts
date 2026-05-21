@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendResponse } from '../../utils/response';
 import { ContactSubmission } from '../../models/contactSubmission';
 import { parsePositiveInteger, parseSearch, normalizeSort } from '../../utils/helpers';
-import mongoose from 'mongoose';
+import { leanIdToString } from './admin.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'subject', 'email'];
 
@@ -43,7 +43,7 @@ export async function listContactSubmissions(
   const contactSubmissions = submissions.map(doc => {
     const d = doc as unknown as Record<string, unknown>;
     return {
-      _id: d._id != null ? (d._id as mongoose.Types.ObjectId | null)?.toString() : d._id,
+      _id: d._id != null ? leanIdToString(d._id) : d._id,
       name: d.name,
       phone: d.phone,
       email: d.email,

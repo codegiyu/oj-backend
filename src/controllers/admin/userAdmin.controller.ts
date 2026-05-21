@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { User } from '../../models/user';
 import { sendResponse } from '../../utils/response';
 import { parsePositiveInteger, parseSearch } from '../../utils/helpers';
+import { leanIdToString } from './admin.helpers';
 export async function searchAdminUsers(
   request: FastifyRequest<{ Querystring: { search?: string; limit?: string } }>,
   reply: FastifyReply
@@ -32,11 +33,11 @@ export async function searchAdminUsers(
       artistId?: unknown;
     }[]
   ).map(u => ({
-    _id: String(u._id),
+    _id: leanIdToString(u._id),
     email: u.email ?? '',
     firstName: u.firstName ?? '',
     lastName: u.lastName ?? '',
-    ...(u.artistId != null ? { artistId: String(u.artistId) } : {}),
+    ...(u.artistId != null ? { artistId: leanIdToString(u.artistId) } : {}),
   }));
 
   sendResponse(reply, 200, { users }, 'Users loaded.');

@@ -2,20 +2,17 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { PrayerRequest } from '../../models/prayerRequest';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
+import { generateUniqueSlug } from '../../utils/helpers';
+import { leanIdToString, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { parseObjectId } from './admin.helpers';
-
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
+  listAdminPrayerRequestRows,
+  findAdminPrayerRequestById,
+} from '../../repositories/admin/prayerRequest.repository';
 
 function shapePrayerRequestItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     content: raw.content,
@@ -39,58 +36,29 @@ export async function listAdminPrayerRequests(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { content: { $regex: search, $options: 'i' } },
-      { author: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    PrayerRequest.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    PrayerRequest.countDocuments(filter),
-  ]);
-
-  const prayerRequests = (items as unknown as Record<string, unknown>[]).map(
-    shapePrayerRequestItem
-  );
-
-  sendResponse(
-    reply,
-    200,
-    {
-      prayerRequests,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Prayer requests list loaded.'
-  );
+  const result = await runAdminList(request, {
+    sortFields: ['createdAt', 'updatedAt', 'title', 'status'],
+    searchFields: ['title', 'content', 'author'],
+    listRows: listAdminPrayerRequestRows,
+    shapeItem: shapePrayerRequestItem,
+    collectionKey: 'prayerRequests',
+    message: 'Prayer requests list loaded.',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminPrayerRequest(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await PrayerRequest.findById(id).lean();
-  if (!doc) throw new AppError('Prayer request not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { prayerRequest: shapePrayerRequestItem(doc as unknown as Record<string, unknown>) },
-    'Prayer request loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminPrayerRequestById,
+    shapeItem: shapePrayerRequestItem,
+    itemKey: 'prayerRequest',
+    message: 'Prayer request loaded.',
+    notFoundMessage: 'Prayer request not found',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminPrayerRequest(

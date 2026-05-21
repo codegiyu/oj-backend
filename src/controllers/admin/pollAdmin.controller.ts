@@ -3,20 +3,14 @@ import mongoose from 'mongoose';
 import { Poll } from '../../models/poll';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
-
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
+import { generateUniqueSlug } from '../../utils/helpers';
+import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
+import { listAdminPollRows, findAdminPollById } from '../../repositories/admin/poll.repository';
 
 function shapePollItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     question: raw.question,
     slug: raw.slug,
     description: raw.description,
@@ -39,55 +33,29 @@ export async function listAdminPolls(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { question: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Poll.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    Poll.countDocuments(filter),
-  ]);
-
-  const polls = (items as unknown as Record<string, unknown>[]).map(shapePollItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      polls,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Polls list loaded.'
-  );
+  const result = await runAdminList(request, {
+    sortFields: ['createdAt', 'updatedAt', 'question', 'status'],
+    searchFields: ['question', 'description'],
+    listRows: listAdminPollRows,
+    shapeItem: shapePollItem,
+    collectionKey: 'polls',
+    message: 'Polls list loaded.',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminPoll(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Poll.findById(id).lean();
-  if (!doc) throw new AppError('Poll not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { poll: shapePollItem(doc as unknown as Record<string, unknown>) },
-    'Poll loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminPollById,
+    shapeItem: shapePollItem,
+    itemKey: 'poll',
+    message: 'Poll loaded.',
+    notFoundMessage: 'Poll not found',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminPoll(

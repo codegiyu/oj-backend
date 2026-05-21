@@ -1,7 +1,10 @@
 import type { FastifyRequest } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { assertConsoleAccess } from '../../utils/consoleAccess';
+import { leanIdToString } from '../../utils/leanId';
 import mongoose from 'mongoose';
+
+export { leanIdToString };
 
 /** Same as route-level requireConsoleAccess after authenticate; use for userId or defense in depth. */
 export function requireAdmin(request: FastifyRequest): { userId: string } {

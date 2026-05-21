@@ -3,22 +3,19 @@ import mongoose from 'mongoose';
 import { Devotional } from '../../models/devotional';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
+import { generateUniqueSlug } from '../../utils/helpers';
+import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+  listAdminDevotionalRows,
+  findAdminDevotionalById,
+} from '../../repositories/admin/devotional.repository';
 import { toArtistSummary } from '../artist/artist.helpers';
 import {
   resolveArtistIdForAdminContent,
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
 import { DEVOTIONAL_TYPES, type DevotionalType } from '../../lib/types/constants';
-
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'date', 'views', 'plays'];
 
 const DEVOTIONAL_TYPES_SET = new Set<string>(DEVOTIONAL_TYPES);
 
@@ -58,9 +55,9 @@ function ownerApiFields(raw: Record<string, unknown>): {
   let ownerUserId: string | undefined;
 
   if (u != null && typeof u === 'object' && u !== null && '_id' in u) {
-    ownerUserId = u._id != null ? (u._id as mongoose.Types.ObjectId | null)?.toString() : undefined;
-  } else if (u != null && u._id != null && mongoose.Types.ObjectId.isValid(u._id.toString())) {
-    ownerUserId = u._id != null ? (u._id as mongoose.Types.ObjectId | null)?.toString() : undefined;
+    ownerUserId = u._id != null ? leanIdToString(u._id) : undefined;
+  } else if (u != null && u._id != null && mongoose.Types.ObjectId.isValid(leanIdToString(u._id))) {
+    ownerUserId = u._id != null ? leanIdToString(u._id) : undefined;
   }
 
   return { ownerLocked: true, ...(ownerUserId ? { ownerUserId } : {}) };
@@ -77,7 +74,7 @@ function shapeDevotionalItem(raw: Record<string, unknown>): Record<string, unkno
   );
   const owner = ownerApiFields(raw);
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     coverImage: raw.coverImage ?? '',
@@ -115,56 +112,29 @@ export async function listAdminDevotionals(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { content: { $regex: search, $options: 'i' } },
-      { excerpt: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Devotional.find(filter).sort(sortStr).populate(artistPopulate).skip(skip).limit(limit).lean(),
-    Devotional.countDocuments(filter),
-  ]);
-
-  const devotionals = (items as unknown as Record<string, unknown>[]).map(shapeDevotionalItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      devotionals,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Devotionals list loaded.'
-  );
+  const result = await runAdminList(request, {
+    sortFields: ['createdAt', 'updatedAt', 'title', 'status', 'date', 'views', 'plays'],
+    searchFields: ['title', 'content', 'excerpt', 'slug'],
+    listRows: listAdminDevotionalRows,
+    shapeItem: shapeDevotionalItem,
+    collectionKey: 'devotionals',
+    message: 'Devotionals list loaded.',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminDevotional(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Devotional.findById(id).populate(artistPopulate).lean();
-  if (!doc) throw new AppError('Devotional not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { devotional: shapeDevotionalItem(doc as unknown as Record<string, unknown>) },
-    'Devotional loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminDevotionalById,
+    shapeItem: shapeDevotionalItem,
+    itemKey: 'devotional',
+    message: 'Devotional loaded.',
+    notFoundMessage: 'Devotional not found',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminDevotional(

@@ -4,20 +4,16 @@ import { Vendor } from '../../models/vendor';
 import { User } from '../../models/user';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+import { generateUniqueSlug } from '../../utils/helpers';
+import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { runAdminList } from '../../services/admin/runAdminListGet';
+import { listAdminVendorRows } from '../../repositories/admin/vendor.repository';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
 
 function shapeVendorItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     name: raw.name,
     slug: raw.slug,
     email: raw.email,
@@ -44,41 +40,16 @@ export async function listAdminVendors(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
+  const result = await runAdminList(request, {
+    sortFields: SORT_FIELDS,
+    searchFields: ['name', 'storeName', 'email', 'slug'],
+    listRows: listAdminVendorRows,
+    shapeItem: shapeVendorItem,
+    collectionKey: 'vendors',
+    message: 'Vendors list loaded.',
+  });
 
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { storeName: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Vendor.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    Vendor.countDocuments(filter),
-  ]);
-
-  const vendors = (items as unknown as Record<string, unknown>[]).map(shapeVendorItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      vendors,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Vendors list loaded.'
-  );
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminVendor(

@@ -4,8 +4,12 @@ import { AskPastorQuestion } from '../../models/askPastorQuestion';
 import { Pastor } from '../../models/pastor';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
+import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
+import {
+  listAdminAskPastorRows,
+  findAdminAskPastorById,
+} from '../../repositories/admin/askPastor.repository';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
 
@@ -14,7 +18,7 @@ function toPastorSummary(
 ): Record<string, unknown> | null {
   if (!pastor) return null;
   return {
-    _id: pastor._id != null ? String(pastor._id) : pastor._id,
+    _id: pastor._id != null ? leanIdToString(pastor._id) : pastor._id,
     name: pastor.name,
     slug: pastor.slug,
     image: pastor.image,
@@ -26,7 +30,7 @@ function shapeAskPastorItem(raw: Record<string, unknown>): Record<string, unknow
     raw.pastor as { _id: unknown; name?: string; slug?: string; image?: string } | null
   );
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     question: raw.question,
     slug: raw.slug,
     author: raw.author,
@@ -55,63 +59,31 @@ export async function listAdminAskPastor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
+  const result = await runAdminList(request, {
+    sortFields: SORT_FIELDS,
+    searchFields: ['question', 'answer', 'author', 'slug'],
+    listRows: listAdminAskPastorRows,
+    shapeItem: shapeAskPastorItem,
+    collectionKey: 'questions',
+    message: 'Ask Pastor questions list loaded.',
+  });
 
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { question: { $regex: search, $options: 'i' } },
-      { answer: { $regex: search, $options: 'i' } },
-      { author: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    AskPastorQuestion.find(filter)
-      .sort(sortStr)
-      .populate('pastor', PASTOR_POPULATE_SELECT)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    AskPastorQuestion.countDocuments(filter),
-  ]);
-
-  const questions = (items as unknown as Record<string, unknown>[]).map(shapeAskPastorItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      questions,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Ask Pastor questions list loaded.'
-  );
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminAskPastor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await AskPastorQuestion.findById(id)
-    .populate('pastor', PASTOR_POPULATE_SELECT)
-    .lean();
-  if (!doc) throw new AppError('Ask Pastor question not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { question: shapeAskPastorItem(doc as unknown as Record<string, unknown>) },
-    'Ask Pastor question loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminAskPastorById,
+    shapeItem: shapeAskPastorItem,
+    itemKey: 'question',
+    message: 'Ask Pastor question loaded.',
+    notFoundMessage: 'Ask Pastor question not found',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function updateAdminAskPastor(
