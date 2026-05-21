@@ -20,15 +20,12 @@ const consoleFormat = winston.format.combine(
   })
 );
 
+/** Winston logger for workers, startup, and sockets. HTTP uses Fastify's built-in Pino. */
 export const logger = winston.createLogger({
   level: 'silly',
   format: logFormat,
   defaultMeta: { service: 'oj-backend' },
-  transports: [
-    new winston.transports.Console(),
-    // new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    // new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
+  transports: [new winston.transports.Console()],
 });
 
 if (ENVIRONMENT.nodeEnv !== 'production') {

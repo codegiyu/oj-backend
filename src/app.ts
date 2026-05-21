@@ -1,8 +1,5 @@
+import { randomUUID } from 'node:crypto';
 import Fastify, { FastifyInstance } from 'fastify';
-import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
-import rateLimit from '@fastify/rate-limit';
-import cookie from '@fastify/cookie';
 import { ENVIRONMENT } from './config/env';
 import { registerHealthRoutes } from './routes/health.route';
 import { registerAuthRoutes } from './routes/auth.route';
@@ -24,76 +21,25 @@ import { registerAdminPromotionRoutes } from './routes/promotionAdmin.route';
 import { registerAdminContentRoutes } from './routes/adminContent.route';
 import { registerAdminProfileRoutes } from './routes/adminProfile.route';
 import { API_V1_PREFIX } from './constants/apiVersion';
+import { registerPlugins } from './plugins';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { sendErrorResponse } from './utils/response';
-import { logger } from './utils/logger';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
   const app = Fastify({
-    logger: false, // We use winston instead
+    logger: {
+      level: ENVIRONMENT.nodeEnv === 'production' ? 'info' : 'debug',
+    },
+    genReqId: request => {
+      const header = request.headers['x-request-id'];
+
+      return (typeof header === 'string' && header.trim()) || randomUUID();
+    },
+    requestIdHeader: 'x-request-id',
+    requestIdLogLabel: 'requestId',
   });
 
-  app.addHook('onResponse', (request, reply) => {
-    logger.info('HTTP', {
-      method: request.method,
-      url: request.url,
-      statusCode: reply.statusCode,
-      responseTimeMs: reply.elapsedTime,
-    });
-  });
-
-  if (ENVIRONMENT.nodeEnv === 'development') {
-    app.addHook('onRequest', (request, _reply, done) => {
-      logger.debug('HTTP ingress headers snapshot', {
-        method: request.method,
-        url: request.url,
-        hasAuthorizationHeader: typeof request.headers.authorization === 'string',
-        authorizationIsBearer:
-          typeof request.headers.authorization === 'string' &&
-          request.headers.authorization.startsWith('Bearer '),
-        hasCookieHeader: typeof request.headers.cookie === 'string',
-        hasOriginHeader: typeof request.headers.origin === 'string',
-        hasRefererHeader: typeof request.headers.referer === 'string',
-        userAgentPresent: typeof request.headers['user-agent'] === 'string',
-      });
-      done();
-    });
-  }
-
-  // Security plugins
-  await app.register(helmet, {
-    contentSecurityPolicy: false,
-  });
-
-  const tokenHeaderAllowlist = [
-    ...new Set([
-      ENVIRONMENT.tokenNames.cookies.access,
-      ENVIRONMENT.tokenNames.cookies.refresh,
-      ENVIRONMENT.tokenNames.headers.access,
-      ENVIRONMENT.tokenNames.headers.refresh,
-    ]),
-  ];
-
-  await app.register(cors, {
-    origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', ...tokenHeaderAllowlist],
-    exposedHeaders: [
-      ...tokenHeaderAllowlist,
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Credentials',
-    ],
-  });
-
-  await app.register(cookie, {
-    secret: ENVIRONMENT.jwt.secret,
-  });
-
-  await app.register(rateLimit, {
-    max: ENVIRONMENT.rateLimit.max,
-    timeWindow: ENVIRONMENT.rateLimit.timeWindow,
-  });
+  await registerPlugins(app);
 
   // Liveness/readiness (unversioned for probes)
   await app.register(registerHealthRoutes);
@@ -124,7 +70,6 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
   app.setErrorHandler(errorHandler);
 
-  // Not found handler
   app.setNotFoundHandler((request, reply) => {
     sendErrorResponse(reply, 404, `Route ${request.method} ${request.url} not found`);
   });
