@@ -48,6 +48,14 @@ npm run start:dev
 
 ## Production
 
+Set `NODE_ENV=production` and provide strong, non-placeholder values for at least:
+
+- `DATABASE_URL`
+- `JWT_SECRET` (minimum 16 characters)
+- `REFRESH_TOKEN_SECRET` (minimum 16 characters)
+
+The server refuses to start in production when these are missing or use known default placeholders.
+
 ```bash
 # Build the project
 npm run build
@@ -55,6 +63,15 @@ npm run build
 # Start the server
 npm start
 ```
+
+## Release checklist
+
+Before deploy:
+
+- [ ] `npm run test:unit && npm run test:integration`
+- [ ] `npm run type-check && npm run lint && npm run format:check`
+- [ ] `npm run audit:ci` (fails on high or critical vulnerabilities)
+- [ ] Production env secrets verified (no placeholder JWT values)
 
 ## Scripts
 
@@ -67,6 +84,9 @@ npm start
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 - `npm run type-check` - Type check without building
+- `npm run test:unit` / `test:integration` / `test:e2e` / `test:phase:*` - Test suites (see `tests/README.md`)
+- `npm run audit` - Dependency vulnerability report
+- `npm run audit:ci` - Fail on high or critical vulnerabilities
 
 ## Project Structure
 

@@ -21,7 +21,9 @@
     "test:phase": "vitest run tests/phase",
     "test:phase:unit": "vitest run tests/phase/unit",
     "test:phase:integration": "vitest run tests/phase/integration",
-    "test:phase:e2e": "vitest run tests/phase/e2e"
+    "test:phase:e2e": "vitest run tests/phase/e2e",
+    "audit": "npm audit",
+    "audit:ci": "npm audit --audit-level=high"
   },
   "keywords": [
     "fastify",
