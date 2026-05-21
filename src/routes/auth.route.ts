@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-misused-promises -- Fastify preHandler async hooks */
 import { FastifyInstance } from 'fastify';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';

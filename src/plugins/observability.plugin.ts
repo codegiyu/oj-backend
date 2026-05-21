@@ -1,11 +1,33 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
+import { buildRequestCompletedLogFields } from '../observability/requestMetrics';
 import { wrapRootPlugin } from './wrapPlugin';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 async function observabilityPlugin(app: FastifyInstance): Promise<void> {
   app.addHook('onSend', async (request, reply) => {
     reply.header('x-request-id', request.id);
+  });
+
+  app.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
+    const durationMs = reply.elapsedTime;
+
+    if (durationMs == null || Number.isNaN(durationMs)) {
+      return;
+    }
+
+    const route = request.routeOptions?.url ?? request.url;
+
+    request.log.info(
+      buildRequestCompletedLogFields({
+        requestId: String(request.id),
+        method: request.method,
+        route,
+        statusCode: reply.statusCode,
+        durationMs,
+      }),
+      'request completed'
+    );
   });
 
   if (ENVIRONMENT.nodeEnv !== 'development') {

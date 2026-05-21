@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import type { FastifyInstance } from 'fastify';
 import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
@@ -37,8 +38,10 @@ import {
   updatePromotionPricingOptionBodySchema,
   updateResourceDownloadCategoryBodySchema,
 } from '../controllers/promotion/promotionAdmin.validation';
+import { registerPrivilegedAuditHook } from '../hooks/privilegedAudit.hook';
 
 export async function registerAdminPromotionRoutes(app: FastifyInstance): Promise<void> {
+  registerPrivilegedAuditHook(app);
   app.get<{ Querystring: { page?: string; limit?: string; includeInactive?: string } }>(
     '/featured-options',
     {

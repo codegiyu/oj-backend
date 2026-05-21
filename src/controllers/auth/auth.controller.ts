@@ -11,6 +11,7 @@ import { Admin } from '../../models/admin';
 import { User } from '../../models/user';
 import { unselectedFields as adminUnselected } from '../../models/admin';
 import { getAuthUser } from '../../utils/getAuthUser';
+import { recordAuditEvent } from '../../services/auditLog.service';
 import type { ModelAdmin, ModelUser } from '../../lib/types/constants';
 
 /** Admin sign-in only. Uses email and password; does not look up User (Google-only) accounts. */
@@ -69,6 +70,18 @@ export async function login(
 
   await addAdminToCache(sanitized as unknown as ModelAdmin);
 
+  await recordAuditEvent({
+    action: 'auth.login',
+    actorId: String(admin._id),
+    actorEmail: admin.email,
+    actorScope: 'console-access',
+    resourceType: 'admin',
+    requestId: String(request.id),
+    method: request.method,
+    path: request.url,
+    statusCode: 200,
+  });
+
   sendResponse(reply, 200, { user: sanitized }, 'Login successful.');
 }
 
@@ -126,6 +139,20 @@ export async function logout(request: FastifyRequest, reply: FastifyReply): Prom
     } else {
       await User.findByIdAndUpdate(user.userId, { 'auth.refreshTokenJTI': '' });
     }
+  }
+
+  if (user) {
+    await recordAuditEvent({
+      action: 'auth.logout',
+      actorId: user.userId,
+      actorEmail: user.email,
+      actorScope: user.scope,
+      resourceType: user.scope === 'console-access' ? 'admin' : 'user',
+      requestId: String(request.id),
+      method: request.method,
+      path: request.url,
+      statusCode: 200,
+    });
   }
 
   clearAuthCookies(reply, request);

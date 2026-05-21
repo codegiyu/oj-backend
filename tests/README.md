@@ -22,6 +22,19 @@ Phase 4 adds `src/plugins/`, repositories/services for public catalog lists, Pin
 
 Phase 5 adds `fastify-plugin` root registration, Pino app logger (`tests/unit/logger.test.ts`), `community.service` + `publicMedia.service` + `adminMusic.service` layering, and `tests/unit/community.service.test.ts`.
 
+Phase 6 (oj-backend validation and audit):
+
+- JSON Schema remains the single validation stack (`src/schemas/response.envelope.ts`); unused `zod` dependency removed.
+- Shared success/error response schema helpers in `src/schemas/response.envelope.ts` (contract + `withSuccessEnvelope` for future route wiring); runtime envelope enforced via `sendResponse` / `sendErrorResponse`.
+- Structured audit logs (`AuditLog` model) for auth login/logout/password change and admin DELETE/approve/reject via `registerPrivilegedAuditHook`.
+- Tests: `tests/unit/privilegedAudit.test.ts`, `response.envelope.test.ts`, `sendResponse.test.ts`, `auditLog.service.test.ts`, `tests/integration/response.envelope.test.ts`, `tests/phase/integration/phase6.contract.test.ts`.
+
+Phase 8 (observability & release readiness):
+
+- Request completion logs: `request completed` with `requestId`, `method`, `route`, `statusCode`, `durationMs` (`src/plugins/observability.plugin.ts`, `src/observability/requestMetrics.ts`).
+- Ops runbooks: `docs/runbooks/` (Redis, MongoDB, BullMQ backlog).
+- Tests: `tests/unit/requestMetrics.test.ts`, `tests/phase/integration/phase8.contract.test.ts`.
+
 Phase 2 adds:
 
 - `GET /ready` — MongoDB + Redis checks (`tests/integration/ready.route.test.ts`)
