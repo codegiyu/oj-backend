@@ -13,7 +13,15 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:phase": "vitest run tests/phase",
+    "test:phase:unit": "vitest run tests/phase/unit",
+    "test:phase:integration": "vitest run tests/phase/integration",
+    "test:phase:e2e": "vitest run tests/phase/e2e"
   },
   "keywords": [
     "fastify",
@@ -68,6 +76,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "nodemon": "^3.1.11",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "vitest": "^4.1.5"
   }
 }
