@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
+import { buildRouteLatencyKey, recordRequestLatency } from '../observability/latencyHistogram';
 import { buildRequestCompletedLogFields } from '../observability/requestMetrics';
 import { wrapRootPlugin } from './wrapPlugin';
 
@@ -17,6 +18,10 @@ async function observabilityPlugin(app: FastifyInstance): Promise<void> {
     }
 
     const route = request.routeOptions?.url ?? request.url;
+
+    const routeKey = buildRouteLatencyKey(request.method, route);
+
+    recordRequestLatency(routeKey, durationMs);
 
     request.log.info(
       buildRequestCompletedLogFields({

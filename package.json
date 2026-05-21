@@ -23,7 +23,8 @@
     "test:phase:integration": "vitest run tests/phase/integration",
     "test:phase:e2e": "vitest run tests/phase/e2e",
     "audit": "npm audit",
-    "audit:ci": "npm audit --audit-level=high"
+    "audit:ci": "npm audit --audit-level=high",
+    "release:check": "npm run type-check && npm run lint && npm run format:check && npm run test:unit && npm run test:integration && npm run test:phase:integration && npm run audit:ci"
   },
   "keywords": [
     "fastify",
