@@ -2,8 +2,10 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { HomeAdvert } from '../../models/homeAdvert';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { parsePositiveInteger, parseString, normalizeSort } from '../../utils/helpers';
-import { parseObjectId } from './admin.helpers';
+import { parseString } from '../../utils/helpers';
+import { leanIdToString, parseObjectId } from './admin.helpers';
+import { runAdminList } from '../../services/admin/runAdminListGet';
+import { listAdminHomeAdvertRows } from '../../repositories/admin/homeAdvertAdmin.repository';
 import type { HomeAdvertSlot } from '../../lib/types/constants';
 import { HOME_ADVERT_SLOTS } from '../../lib/types/constants';
 
@@ -11,7 +13,7 @@ const SORT_FIELDS = ['createdAt', 'updatedAt', 'displayOrder'];
 
 function shapeAdvert(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     slot: raw.slot,
     imageUrl: raw.imageUrl,
     linkUrl: raw.linkUrl,
@@ -28,27 +30,23 @@ export async function listAdminHomeAdverts(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-  const filter: Record<string, unknown> = {};
-  const slot = parseString(request.query.slot);
-  if (slot && (HOME_ADVERT_SLOTS as readonly string[]).includes(slot)) filter.slot = slot;
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, 'displayOrder');
-  const [items, total] = await Promise.all([
-    HomeAdvert.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    HomeAdvert.countDocuments(filter),
-  ]);
-  const adverts = (items as unknown as Record<string, unknown>[]).map(shapeAdvert);
-  sendResponse(
-    reply,
-    200,
-    {
-      adverts,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+  const result = await runAdminList(request, {
+    sortFields: SORT_FIELDS,
+    defaultSort: 'displayOrder',
+    extendFilter: (filter, query) => {
+      const slot = parseString(query.slot);
+
+      if (slot && (HOME_ADVERT_SLOTS as readonly string[]).includes(slot)) {
+        filter.slot = slot;
+      }
     },
-    'Home adverts loaded.'
-  );
+    listRows: listAdminHomeAdvertRows,
+    shapeItem: shapeAdvert,
+    collectionKey: 'adverts',
+    message: 'Home adverts loaded.',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminHomeAdvert(

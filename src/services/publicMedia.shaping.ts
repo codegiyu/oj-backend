@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import { toArtistSummary, type PopulatedArtistDoc } from '../controllers/artist/artist.helpers';
+import { leanIdToString } from '../utils/leanId';
 import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../utils/videoEmbed';
 
 export function shapeMusicListItem(
@@ -10,7 +10,7 @@ export function shapeMusicListItem(
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
 
   const item: Record<string, unknown> = {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     coverImage: raw.coverImage,
@@ -35,7 +35,7 @@ export function shapeMusicDetail(raw: Record<string, unknown>): Record<string, u
   const videoUrlStr = typeof raw.videoUrl === 'string' ? raw.videoUrl : '';
 
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     description: raw.description,
@@ -60,7 +60,7 @@ export function shapeVideoListItem(raw: Record<string, unknown>): Record<string,
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
 
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     thumbnail: raw.thumbnail,
@@ -83,7 +83,7 @@ export function shapeVideoDetail(raw: Record<string, unknown>): Record<string, u
   const embedUrl = embedField || (legacyUrl && isLikelyYoutubeUrl(legacyUrl) ? legacyUrl : '');
 
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     description: raw.description,
@@ -106,7 +106,7 @@ export function shapeArticleListItem(raw: Record<string, unknown>): Record<strin
   const excerpt = raw.excerpt ?? (typeof raw.content === 'string' ? raw.content.slice(0, 160) : '');
 
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     excerpt: excerpt || raw.excerpt,
@@ -122,7 +122,7 @@ export function shapeArticleDetail(raw: Record<string, unknown>): Record<string,
   const embedRaw = typeof raw.embedUrl === 'string' ? raw.embedUrl : '';
 
   return {
-    _id: raw._id != null ? (raw._id as mongoose.Types.ObjectId | null)?.toString() : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     content: raw.content,

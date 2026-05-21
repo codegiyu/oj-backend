@@ -2,8 +2,10 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { ContentCategory } from '../../models/contentCategory';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../../utils/helpers';
+import { parseString } from '../../utils/helpers';
 import { parseObjectId } from './admin.helpers';
+import { runAdminList } from '../../services/admin/runAdminListGet';
+import { listAdminContentCategoryRows } from '../../repositories/admin/contentCategoryAdmin.repository';
 import type { ContentCategoryScope } from '../../lib/types/constants';
 import { CONTENT_CATEGORY_SCOPES } from '../../lib/types/constants';
 
@@ -42,36 +44,24 @@ export async function listAdminContentCategories(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-  const filter: Record<string, unknown> = {};
-  const scope = parseString(request.query.scope);
-  if (scope && (CONTENT_CATEGORY_SCOPES as readonly string[]).includes(scope)) {
-    filter.scope = scope;
-  }
-  const search = parseSearch(request.query.search);
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, 'displayOrder');
-  const [items, total] = await Promise.all([
-    ContentCategory.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    ContentCategory.countDocuments(filter),
-  ]);
-  const categories = (items as unknown as Record<string, unknown>[]).map(shapeCategory);
-  sendResponse(
-    reply,
-    200,
-    {
-      categories,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+  const result = await runAdminList(request, {
+    sortFields: SORT_FIELDS,
+    searchFields: ['name', 'slug'],
+    defaultSort: 'displayOrder',
+    extendFilter: (filter, query) => {
+      const scope = parseString(query.scope);
+
+      if (scope && (CONTENT_CATEGORY_SCOPES as readonly string[]).includes(scope)) {
+        filter.scope = scope;
+      }
     },
-    'Content categories loaded.'
-  );
+    listRows: listAdminContentCategoryRows,
+    shapeItem: shapeCategory,
+    collectionKey: 'categories',
+    message: 'Content categories loaded.',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminContentCategory(

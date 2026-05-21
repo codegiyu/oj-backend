@@ -4,21 +4,9 @@
  * music/video list and single-item responses.
  */
 
-import mongoose from 'mongoose';
+import { leanIdToString } from '../../utils/leanId';
 
-/** Safe id string for lean docs and ObjectIds (satisfies no-base-to-string). */
-export function leanIdToString(id: unknown): string {
-  if (typeof id === 'string') return id;
-  if (id instanceof mongoose.Types.ObjectId) return id.toHexString();
-  if (typeof id === 'object' && id !== null && 'toString' in id) {
-    const fn = (id as { toString: () => unknown }).toString;
-    if (typeof fn === 'function') {
-      const s = fn.call(id);
-      if (typeof s === 'string' && s.length > 0 && s !== '[object Object]') return s;
-    }
-  }
-  return '';
-}
+export { leanIdToString };
 
 /** Fields to populate for artist ref: summary only (list/single item). */
 export const ARTIST_POPULATE_SELECT = '_id name slug image';

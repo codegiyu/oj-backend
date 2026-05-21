@@ -3,22 +3,15 @@ import mongoose from 'mongoose';
 import { Video } from '../../models/video';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { toArtistSummary } from '../artist/artist.helpers';
+import { generateUniqueSlug } from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 import { isLikelyYoutubeUrl } from '../../utils/videoEmbed';
+import * as adminVideoService from '../../services/adminVideo.service';
+import { shapeVideoItem } from '../../services/adminVideo.service';
 import {
   resolveArtistIdForAdminContent,
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
-
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views', 'plays', 'downloads'];
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -26,141 +19,24 @@ const artistPopulate = {
   populate: { path: 'user', select: '_id' },
 };
 
-function ownerApiFields(raw: Record<string, unknown>): {
-  ownerLocked: boolean;
-  ownerUserId?: string;
-} {
-  const artistVal = raw.artist;
-  if (artistVal == null) return { ownerLocked: false };
-  if (
-    typeof artistVal === 'object' &&
-    artistVal !== null &&
-    (artistVal as { _id?: unknown })._id == null
-  ) {
-    return { ownerLocked: false };
-  }
-  const u =
-    typeof artistVal === 'object' && artistVal !== null && 'user' in artistVal
-      ? (artistVal as { user?: { _id?: unknown } | unknown }).user
-      : undefined;
-  let ownerUserId: string | undefined;
-  if (u != null && typeof u === 'object' && u !== null && '_id' in u) {
-    ownerUserId = String((u as { _id: unknown })._id);
-  } else if (u != null && mongoose.Types.ObjectId.isValid(String(u))) {
-    ownerUserId = String(u);
-  }
-  return { ownerLocked: true, ...(ownerUserId ? { ownerUserId } : {}) };
-}
-
-function shapeVideoItem(raw: Record<string, unknown>): Record<string, unknown> {
-  const artist = toArtistSummary(
-    raw.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
-  );
-  const owner = ownerApiFields(raw);
-  return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
-    title: raw.title,
-    slug: raw.slug,
-    status: raw.status,
-    description: raw.description,
-    thumbnail: raw.thumbnail,
-    videoUrl: raw.videoUrl,
-    videoFileUrl: raw.videoFileUrl ?? '',
-    embedUrl: raw.embedUrl ?? '',
-    views: raw.views ?? 0,
-    plays: raw.plays ?? 0,
-    downloads: raw.downloads ?? 0,
-    ownerLocked: owner.ownerLocked,
-    ...(owner.ownerUserId ? { ownerUserId: owner.ownerUserId } : {}),
-    approvedAt: raw.approvedAt,
-    rejectedAt: raw.rejectedAt,
-    rejectionReason: raw.rejectionReason,
-    createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
-    updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
-    ...(artist && { artist }),
-  };
-}
-
 export async function listAdminVideos(
   request: FastifyRequest<{
     Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
+  const result = await adminVideoService.listAdminVideos(request);
 
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Video.find(filter).sort(sortStr).populate(artistPopulate).skip(skip).limit(limit).lean(),
-    Video.countDocuments(filter),
-  ]);
-
-  const videos = (items as unknown as Record<string, unknown>[]).map(shapeVideoItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      videos,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Videos list loaded.'
-  );
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminVideo(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Video.findById(id).populate(artistPopulate).lean();
-  if (!doc) throw new AppError('Video not found', 404);
-  const raw = doc as unknown as Record<string, unknown>;
-  const own = ownerApiFields(raw);
-  const video = {
-    _id: String(raw._id),
-    title: raw.title,
-    slug: raw.slug,
-    description: raw.description,
-    thumbnail: raw.thumbnail,
-    videoUrl: raw.videoUrl,
-    videoFileUrl: raw.videoFileUrl ?? '',
-    embedUrl: raw.embedUrl ?? '',
-    category: raw.category,
-    status: raw.status,
-    isMonetizable: raw.isMonetizable,
-    views: raw.views ?? 0,
-    plays: raw.plays ?? 0,
-    downloads: raw.downloads ?? 0,
-    ownerLocked: own.ownerLocked,
-    ...(own.ownerUserId ? { ownerUserId: own.ownerUserId } : {}),
-    approvedAt: raw.approvedAt,
-    approvedBy: raw.approvedBy,
-    rejectionReason: raw.rejectionReason,
-    rejectedAt: raw.rejectedAt,
-    rejectedBy: raw.rejectedBy,
-    createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
-    updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
-    artist: toArtistSummary(
-      raw.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
-    ),
-  };
-  sendResponse(reply, 200, { video }, 'Video loaded.');
+  const result = await adminVideoService.getAdminVideo(request);
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminVideo(

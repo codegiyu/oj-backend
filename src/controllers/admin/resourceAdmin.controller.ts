@@ -3,20 +3,17 @@ import mongoose from 'mongoose';
 import { Resource } from '../../models/resource';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
+import { generateUniqueSlug } from '../../utils/helpers';
+import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { requireAdmin, parseObjectId } from './admin.helpers';
-
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
+  listAdminResourceRows,
+  findAdminResourceById,
+} from '../../repositories/admin/resource.repository';
 
 function shapeResourceItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
     description: raw.description,
@@ -46,55 +43,29 @@ export async function listAdminResources(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Resource.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    Resource.countDocuments(filter),
-  ]);
-
-  const resources = (items as unknown as Record<string, unknown>[]).map(shapeResourceItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      resources,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Resources list loaded.'
-  );
+  const result = await runAdminList(request, {
+    sortFields: ['createdAt', 'updatedAt', 'title', 'status'],
+    searchFields: ['title', 'description', 'slug'],
+    listRows: listAdminResourceRows,
+    shapeItem: shapeResourceItem,
+    collectionKey: 'resources',
+    message: 'Resources list loaded.',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminResource(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Resource.findById(id).lean();
-  if (!doc) throw new AppError('Resource not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { resource: shapeResourceItem(doc as unknown as Record<string, unknown>) },
-    'Resource loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminResourceById,
+    shapeItem: shapeResourceItem,
+    itemKey: 'resource',
+    message: 'Resource loaded.',
+    notFoundMessage: 'Resource not found',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminResource(

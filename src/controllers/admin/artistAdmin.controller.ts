@@ -2,21 +2,20 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Artist } from '../../models/artist';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
+import { generateUniqueSlug, parseString } from '../../utils/helpers';
+import { leanIdToString, parseObjectId } from './admin.helpers';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
-import { parseObjectId } from './admin.helpers';
+  listAdminArtistRows,
+  findAdminArtistById,
+} from '../../repositories/admin/artist.repository';
 import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name'];
 
 function shapeArtistItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     name: raw.name,
     slug: raw.slug,
     bio: raw.bio,
@@ -38,56 +37,42 @@ export async function listAdminArtists(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
+  const result = await runAdminList(request, {
+    sortFields: SORT_FIELDS,
+    searchFields: ['name', 'slug', 'genre'],
+    extendFilter: (filter, query) => {
+      const status = parseString(query.status);
 
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status === 'active') filter.isActive = true;
-  else if (status === 'inactive') filter.isActive = false;
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-      { genre: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Artist.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    Artist.countDocuments(filter),
-  ]);
-
-  const artists = (items as unknown as Record<string, unknown>[]).map(shapeArtistItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      artists,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+      if (status === 'active') {
+        filter.isActive = true;
+        delete filter.status;
+      } else if (status === 'inactive') {
+        filter.isActive = false;
+        delete filter.status;
+      }
     },
-    'Artists list loaded.'
-  );
+    listRows: listAdminArtistRows,
+    shapeItem: shapeArtistItem,
+    collectionKey: 'artists',
+    message: 'Artists list loaded.',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminArtist(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Artist.findById(id).lean();
-  if (!doc) throw new AppError('Artist not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { artist: shapeArtistItem(doc as unknown as Record<string, unknown>) },
-    'Artist loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminArtistById,
+    shapeItem: shapeArtistItem,
+    itemKey: 'artist',
+    message: 'Artist loaded.',
+    notFoundMessage: 'Artist not found',
+  });
+
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminArtist(

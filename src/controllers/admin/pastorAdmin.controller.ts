@@ -2,20 +2,18 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Pastor } from '../../models/pastor';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import {
-  generateUniqueSlug,
-  parsePositiveInteger,
-  parseSearch,
-  parseString,
-  normalizeSort,
-} from '../../utils/helpers';
+import { generateUniqueSlug } from '../../utils/helpers';
 import { parseObjectId } from './admin.helpers';
-
-const SORT_FIELDS = ['createdAt', 'updatedAt', 'name'];
+import { leanIdToString } from '../../utils/leanId';
+import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
+import {
+  listAdminPastorRows,
+  findAdminPastorById,
+} from '../../repositories/admin/pastor.repository';
 
 function shapePastorItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
-    _id: raw._id != null ? String(raw._id) : raw._id,
+    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     name: raw.name,
     slug: raw.slug,
     title: raw.title,
@@ -39,57 +37,29 @@ export async function listAdminPastors(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-  if (status === 'active') filter.isActive = true;
-  else if (status === 'inactive') filter.isActive = false;
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-      { title: { $regex: search, $options: 'i' } },
-      { church: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-
-  const [items, total] = await Promise.all([
-    Pastor.find(filter).sort(sortStr).skip(skip).limit(limit).lean(),
-    Pastor.countDocuments(filter),
-  ]);
-
-  const pastors = (items as unknown as Record<string, unknown>[]).map(shapePastorItem);
-
-  sendResponse(
-    reply,
-    200,
-    {
-      pastors,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    'Pastors list loaded.'
-  );
+  const result = await runAdminList(request, {
+    sortFields: ['createdAt', 'updatedAt', 'name'],
+    searchFields: ['name', 'title', 'bio'],
+    listRows: listAdminPastorRows,
+    shapeItem: shapePastorItem,
+    collectionKey: 'pastors',
+    message: 'Pastors list loaded.',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function getAdminPastor(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = parseObjectId(request.params.id);
-  const doc = await Pastor.findById(id).lean();
-  if (!doc) throw new AppError('Pastor not found', 404);
-  sendResponse(
-    reply,
-    200,
-    { pastor: shapePastorItem(doc as unknown as Record<string, unknown>) },
-    'Pastor loaded.'
-  );
+  const result = await runAdminGet(request, {
+    findById: findAdminPastorById,
+    shapeItem: shapePastorItem,
+    itemKey: 'pastor',
+    message: 'Pastor loaded.',
+    notFoundMessage: 'Pastor not found',
+  });
+  sendResponse(reply, result.statusCode, result.data as Record<string, unknown>, result.message);
 }
 
 export async function createAdminPastor(

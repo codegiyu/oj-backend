@@ -3,6 +3,8 @@
  * GET/PATCH /user/me, wishlist list/add, and consistent serialization (IDs and dates as strings).
  */
 
+import { leanIdToString } from '../../utils/leanId';
+
 type LeanDoc = Record<string, unknown>;
 
 /**
@@ -11,7 +13,7 @@ type LeanDoc = Record<string, unknown>;
  */
 export function serializePopulatedUser(payload: LeanDoc): LeanDoc {
   const out = { ...payload } as LeanDoc;
-  if (out._id != null) out._id = String(out._id);
+  if (out._id != null) out._id = leanIdToString(out._id);
   ['createdAt', 'updatedAt'].forEach(key => {
     if (out[key] instanceof Date) out[key] = out[key].toISOString();
   });
@@ -19,14 +21,14 @@ export function serializePopulatedUser(payload: LeanDoc): LeanDoc {
   if (artist && typeof artist === 'object' && artist._id != null) {
     out.artist = {
       ...artist,
-      _id: String(artist._id),
+      _id: leanIdToString(artist._id),
     };
   }
   const vendor = out.vendor as LeanDoc | undefined;
   if (vendor && typeof vendor === 'object' && vendor._id != null) {
     out.vendor = {
       ...vendor,
-      _id: String(vendor._id),
+      _id: leanIdToString(vendor._id),
     };
   }
   return out;
@@ -78,7 +80,7 @@ export function shapeWishlistItem(item: {
       : '';
 
   return {
-    _id: item._id != null ? String(item._id) : '',
+    _id: item._id != null ? leanIdToString(item._id) : '',
     createdAt:
       item.createdAt instanceof Date
         ? item.createdAt.toISOString()
@@ -86,7 +88,7 @@ export function shapeWishlistItem(item: {
           ? item.createdAt
           : '',
     product: {
-      _id: product?._id != null ? String(product._id) : '',
+      _id: product?._id != null ? leanIdToString(product._id) : '',
       name: product?.name ?? '',
       slug: product?.slug ?? '',
       price: typeof product?.price === 'number' ? product.price : 0,

@@ -1,13 +1,12 @@
 import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
-import { Music } from '../models/music';
-import { Video } from '../models/video';
-import { NewsArticle } from '../models/newsArticle';
-import { ARTIST_POPULATE_SELECT } from '../controllers/artist/artist.helpers';
+import { leanIdToString } from '../utils/leanId';
 import { parsePositiveInteger, parseString } from '../utils/helpers';
 import { isLikelyYoutubeUrl } from '../utils/videoEmbed';
-import { findByIdOrSlug } from '../repositories/community/shared';
+import * as musicRepo from '../repositories/public/music.repository';
+import * as videoRepo from '../repositories/public/video.repository';
+import * as newsRepo from '../repositories/public/news.repository';
 import {
   shapeMusicListItem,
   shapeMusicDetail,
@@ -77,19 +76,9 @@ export async function listPublicMusic(
     // period: weekly/monthly/alltime - we don't have time-range data, so use all
   }
 
-  const [items, total] = await Promise.all([
-    Music.find(filter)
-      .sort(sort)
-      .populate('artist', ARTIST_POPULATE_SELECT)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Music.countDocuments(filter),
-  ]);
+  const { items, total } = await musicRepo.listPublishedMusic({ filter, sort, skip, limit });
 
-  const music = (items as unknown as Record<string, unknown>[]).map((doc, i) =>
-    shapeMusicListItem(doc, i, type ?? '')
-  );
+  const music = items.map((doc, i) => shapeMusicListItem(doc, i, type ?? ''));
 
   return {
     statusCode: 200,
@@ -109,9 +98,9 @@ export async function listPublicMusic(
 export async function getPublicMusicByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
-  const doc = await findByIdOrSlug(Music, request.params.idOrSlug, { status: 'published' });
+  const doc = await musicRepo.findPublishedMusicByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Music not found', 404);
-  const populated = await Music.findById(doc._id).populate('artist', ARTIST_POPULATE_SELECT).lean();
+  const populated = await musicRepo.findPublishedMusicByIdPopulated(doc._id);
   if (!populated) throw new AppError('Music not found', 404);
   const music = shapeMusicDetail(populated as unknown as Record<string, unknown>);
   return { statusCode: 200, data: { music }, message: 'Music loaded.' };
@@ -158,17 +147,9 @@ export async function listPublicVideos(
     sort = { createdAt: -1 };
   }
 
-  const [items, total] = await Promise.all([
-    Video.find(filter)
-      .sort(sort)
-      .populate('artist', ARTIST_POPULATE_SELECT)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Video.countDocuments(filter),
-  ]);
+  const { items, total } = await videoRepo.listPublishedVideos({ filter, sort, skip, limit });
 
-  const videos = (items as unknown as Record<string, unknown>[]).map(shapeVideoListItem);
+  const videos = items.map(shapeVideoListItem);
 
   return {
     statusCode: 200,
@@ -188,9 +169,9 @@ export async function listPublicVideos(
 export async function getPublicVideoByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
-  const doc = await findByIdOrSlug(Video, request.params.idOrSlug, { status: 'published' });
+  const doc = await videoRepo.findPublishedVideoByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Video not found', 404);
-  const populated = await Video.findById(doc._id).populate('artist', ARTIST_POPULATE_SELECT).lean();
+  const populated = await videoRepo.findPublishedVideoByIdPopulated(doc._id);
   if (!populated) throw new AppError('Video not found', 404);
   const video = shapeVideoDetail(populated as unknown as Record<string, unknown>);
   return { statusCode: 200, data: { video }, message: 'Video loaded.' };
@@ -242,12 +223,9 @@ export async function listPublicNews(
   else if (type === 'latest') sort = { createdAt: -1 };
   else if (type === 'video') sort = { createdAt: -1 };
 
-  const [items, total] = await Promise.all([
-    NewsArticle.find(filter).sort(sort).skip(skip).limit(limit).lean(),
-    NewsArticle.countDocuments(filter),
-  ]);
+  const { items, total } = await newsRepo.listPublishedNews({ filter, sort, skip, limit });
 
-  const articles = (items as unknown as Record<string, unknown>[]).map(shapeArticleListItem);
+  const articles = items.map(shapeArticleListItem);
 
   return {
     statusCode: 200,
@@ -267,7 +245,7 @@ export async function listPublicNews(
 export async function getPublicNewsByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
-  const doc = await findByIdOrSlug(NewsArticle, request.params.idOrSlug, { status: 'published' });
+  const doc = await newsRepo.findPublishedNewsByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Article not found', 404);
   const article = shapeArticleDetail(doc as unknown as Record<string, unknown>);
   return { statusCode: 200, data: { article }, message: 'Article loaded.' };
@@ -278,31 +256,31 @@ export async function getPublicNewsByIdOrSlug(
 export async function downloadPublicMusic(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
-  const doc = await findByIdOrSlug(Music, request.params.idOrSlug, { status: 'published' });
+  const doc = await musicRepo.findPublishedMusicByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Music not found', 404);
   const raw = doc;
-  const id = new mongoose.Types.ObjectId(String(raw._id));
+  const id = new mongoose.Types.ObjectId(leanIdToString(raw._id));
   const downloadUrl = typeof raw.downloadUrl === 'string' ? raw.downloadUrl.trim() : '';
   const audioUrl = typeof raw.audioUrl === 'string' ? raw.audioUrl.trim() : '';
   const target = downloadUrl || audioUrl;
   if (!target) throw new AppError('Download not available', 404);
-  await Music.updateOne({ _id: id }, { $inc: { downloads: 1 } });
+  await musicRepo.incrementMusicDownloads(id);
   return { statusCode: 302, message: 'Redirect', redirectUrl: target };
 }
 
 export async function downloadPublicVideo(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
-  const doc = await findByIdOrSlug(Video, request.params.idOrSlug, { status: 'published' });
+  const doc = await videoRepo.findPublishedVideoByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Video not found', 404);
   const raw = doc;
-  const id = new mongoose.Types.ObjectId(String(raw._id));
+  const id = new mongoose.Types.ObjectId(leanIdToString(raw._id));
   const fileField = typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl.trim() : '';
   const legacy = typeof raw.videoUrl === 'string' ? raw.videoUrl.trim() : '';
   const candidate = fileField || legacy;
   if (!candidate || isLikelyYoutubeUrl(candidate)) {
     throw new AppError('Download not available', 404);
   }
-  await Video.updateOne({ _id: id }, { $inc: { downloads: 1 } });
+  await videoRepo.incrementVideoDownloads(id);
   return { statusCode: 302, message: 'Redirect', redirectUrl: candidate };
 }

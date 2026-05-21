@@ -1,20 +1,18 @@
-import { Music } from '../../models/music';
+import { Video } from '../../models/video';
 import { paginatedFind, findByIdLean } from './paginatedList.repository';
 import { adminArtistPopulate } from './populate';
 
-export { adminArtistPopulate as adminMusicArtistPopulate };
-
-export type ListAdminMusicOptions = {
+export type ListAdminVideoOptions = {
   filter: Record<string, unknown>;
   sort: string;
   skip: number;
   limit: number;
 };
 
-export async function listAdminMusicRows(
-  options: ListAdminMusicOptions
+export async function listAdminVideoRows(
+  options: ListAdminVideoOptions
 ): Promise<{ items: Record<string, unknown>[]; total: number }> {
-  return paginatedFind(Music, {
+  return paginatedFind(Video, {
     filter: options.filter,
     sort: options.sort,
     skip: options.skip,
@@ -23,6 +21,6 @@ export async function listAdminMusicRows(
   });
 }
 
-export async function findAdminMusicById(id: string): Promise<Record<string, unknown> | null> {
-  return findByIdLean(Music, id, adminArtistPopulate);
+export async function findAdminVideoById(id: string): Promise<Record<string, unknown> | null> {
+  return findByIdLean(Video, id, adminArtistPopulate);
 }

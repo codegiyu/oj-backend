@@ -6,19 +6,18 @@ import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { parsePositiveInteger, parseString, generateUniqueSlug } from '../utils/helpers';
-import {
-  Devotional,
-  Testimony,
-  PrayerRequest,
-  AskPastorQuestion,
-  Pastor,
-  Poll,
-  PollVote,
-  Resource,
-} from '../models';
-import { Artist } from '../models/artist';
-import { ARTIST_POPULATE_SELECT } from '../controllers/artist/artist.helpers';
-import { findByIdOrSlug } from '../repositories/community/shared';
+import * as devotionalRepo from '../repositories/community/devotional.repository';
+import * as testimonyRepo from '../repositories/community/testimony.repository';
+import * as prayerRequestRepo from '../repositories/community/prayerRequest.repository';
+import * as askPastorRepo from '../repositories/community/askPastor.repository';
+import * as pastorRepo from '../repositories/community/pastor.repository';
+import * as pollRepo from '../repositories/community/poll.repository';
+import * as resourceRepo from '../repositories/community/resource.repository';
+import * as communityArtistRepo from '../repositories/community/artist.repository';
+import { PrayerRequest } from '../models/prayerRequest';
+import { AskPastorQuestion } from '../models/askPastorQuestion';
+import { Testimony } from '../models/testimony';
+import { Poll } from '../models/poll';
 import {
   shapeDevotionalListItem,
   shapeDevotionalDetail,
@@ -73,24 +72,17 @@ export async function getCommunity(): Promise<{
     pollsCount,
     resourcesCount,
   ] = await Promise.all([
-    Devotional.countDocuments({ status: 'published' }),
-    Testimony.countDocuments({ status: 'published' }),
-    PrayerRequest.countDocuments({}),
-    AskPastorQuestion.countDocuments({}),
-    Poll.countDocuments({}),
-    Resource.countDocuments({ status: 'published' }),
+    devotionalRepo.countPublishedDevotionals(),
+    testimonyRepo.countPublishedTestimonies(),
+    prayerRequestRepo.countPrayerRequests(),
+    askPastorRepo.countAskPastorQuestions(),
+    pollRepo.countPolls(),
+    resourceRepo.countPublishedResources(),
   ]);
 
   const [featuredTestimonies, trendingDevotionals] = await Promise.all([
-    Testimony.find({ status: 'published', isFeatured: true })
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .limit(FEATURED_TESTIMONIES_LIMIT)
-      .lean(),
-    Devotional.find({ status: 'published' })
-      .sort({ views: -1, createdAt: -1 })
-      .limit(TRENDING_DEVOTIONALS_LIMIT)
-      .populate('artist', ARTIST_POPULATE_SELECT)
-      .lean(),
+    testimonyRepo.findFeaturedTestimonies(FEATURED_TESTIMONIES_LIMIT),
+    devotionalRepo.findTrendingDevotionals(TRENDING_DEVOTIONALS_LIMIT),
   ]);
 
   return {
@@ -144,17 +136,14 @@ export async function listDevotionals(
   else if (type === 'latest') sort = { createdAt: -1 };
   else if (type) sort = { type: 1, createdAt: -1 };
 
-  const [items, total] = await Promise.all([
-    Devotional.find(filter)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .populate('artist', ARTIST_POPULATE_SELECT)
-      .lean(),
-    Devotional.countDocuments(filter),
-  ]);
+  const { items, total } = await devotionalRepo.listPublishedDevotionals({
+    filter,
+    sort,
+    skip,
+    limit,
+  });
 
-  const devotionals = (items as unknown as Record<string, unknown>[]).map(shapeDevotionalListItem);
+  const devotionals = items.map(shapeDevotionalListItem);
   return {
     statusCode: 200,
     data: { devotionals, pagination: pagination(page, limit, total) },
@@ -166,22 +155,20 @@ export async function listDevotionals(
 export async function getDevotionalByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(Devotional, request.params.idOrSlug, { status: 'published' });
+  const doc = await devotionalRepo.findPublishedDevotionalByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Devotional not found', 404);
 
   const docOid = new mongoose.Types.ObjectId(String(doc._id));
-  const populated = await Devotional.findById(docOid)
-    .populate('artist', ARTIST_POPULATE_SELECT)
-    .lean();
+  const populated = await devotionalRepo.findDevotionalByIdPopulated(String(docOid));
   const detailRaw = (populated ?? doc) as unknown as Record<string, unknown>;
 
   const category = doc.category as string | undefined;
   const related = category
-    ? await Devotional.find({ status: 'published', category, _id: { $ne: docOid } })
-        .sort({ createdAt: -1 })
-        .limit(RELATED_DEVOTIONALS_LIMIT)
-        .populate('artist', ARTIST_POPULATE_SELECT)
-        .lean()
+    ? await devotionalRepo.findRelatedDevotionals(
+        category,
+        String(docOid),
+        RELATED_DEVOTIONALS_LIMIT
+      )
     : [];
 
   return {
@@ -221,12 +208,14 @@ export async function listTestimonies(
   const sort: Record<string, 1 | -1> =
     type === 'latest' || type === 'all' ? { createdAt: -1 } : { isFeatured: -1, createdAt: -1 };
 
-  const [items, total] = await Promise.all([
-    Testimony.find(filter).sort(sort).skip(skip).limit(limit).lean(),
-    Testimony.countDocuments(filter),
-  ]);
+  const { items, total } = await testimonyRepo.listPublishedTestimonies({
+    filter,
+    sort,
+    skip,
+    limit,
+  });
 
-  const testimonies = (items as unknown as Record<string, unknown>[]).map(shapeTestimonyListItem);
+  const testimonies = items.map(shapeTestimonyListItem);
   return {
     statusCode: 200,
     data: { testimonies, pagination: pagination(page, limit, total) },
@@ -238,7 +227,7 @@ export async function listTestimonies(
 export async function getTestimonyByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(Testimony, request.params.idOrSlug, { status: 'published' });
+  const doc = await testimonyRepo.findPublishedTestimonyByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Testimony not found', 404);
   return {
     statusCode: 200,
@@ -263,14 +252,9 @@ export async function listPrayerRequests(
   if (status) filter.status = status;
   if (category && category !== 'all') filter.category = category;
 
-  const [items, total] = await Promise.all([
-    PrayerRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    PrayerRequest.countDocuments(filter),
-  ]);
+  const { items, total } = await prayerRequestRepo.listPrayerRequests({ filter, skip, limit });
 
-  const prayerRequests = (items as unknown as Record<string, unknown>[]).map(
-    shapePrayerRequestListItem
-  );
+  const prayerRequests = items.map(shapePrayerRequestListItem);
   return {
     statusCode: 200,
     data: { prayerRequests, pagination: pagination(page, limit, total) },
@@ -282,7 +266,7 @@ export async function listPrayerRequests(
 export async function getPrayerRequestByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(PrayerRequest, request.params.idOrSlug, {});
+  const doc = await prayerRequestRepo.findPrayerRequestByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Prayer request not found', 404);
   return {
     statusCode: 200,
@@ -307,17 +291,9 @@ export async function listAskAPastorQuestions(
   if (status) filter.status = status;
   if (category && category !== 'all') filter.category = category;
 
-  const [items, total] = await Promise.all([
-    AskPastorQuestion.find(filter)
-      .sort({ createdAt: -1 })
-      .populate('pastor')
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    AskPastorQuestion.countDocuments(filter),
-  ]);
+  const { items, total } = await askPastorRepo.listAskPastorQuestions({ filter, skip, limit });
 
-  const questions = (items as unknown as Record<string, unknown>[]).map(raw => {
+  const questions = items.map(raw => {
     const pastor = raw.pastor as Record<string, unknown> | null | undefined;
     return shapeQuestionListItem(raw, pastor ?? null);
   });
@@ -332,9 +308,9 @@ export async function listAskAPastorQuestions(
 export async function getAskAPastorQuestionByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(AskPastorQuestion, request.params.idOrSlug, {});
+  const doc = await askPastorRepo.findAskPastorQuestionByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Question not found', 404);
-  const populated = await AskPastorQuestion.findById(doc._id).populate('pastor').lean();
+  const populated = await askPastorRepo.findAskPastorQuestionByIdPopulated(doc._id);
   if (!populated) throw new AppError('Question not found', 404);
   const raw = populated as unknown as Record<string, unknown>;
   const pastor = raw.pastor as Record<string, unknown> | null | undefined;
@@ -353,16 +329,9 @@ export async function listAskAPastorPastors(
   const page = parsePositiveInteger(request.query?.page, 1, 1000);
   const skip = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
-    Pastor.find({ isActive: true })
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Pastor.countDocuments({ isActive: true }),
-  ]);
+  const { items, total } = await pastorRepo.listActivePastors({ skip, limit });
 
-  const pastors = (items as unknown as Record<string, unknown>[]).map(shapePastorListItem);
+  const pastors = items.map(shapePastorListItem);
   return {
     statusCode: 200,
     data: { pastors, pagination: pagination(page, limit, total) },
@@ -384,12 +353,9 @@ export async function listPolls(
   const filter: Record<string, unknown> = {};
   if (status) filter.status = status;
 
-  const [items, total] = await Promise.all([
-    Poll.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    Poll.countDocuments(filter),
-  ]);
+  const { items, total } = await pollRepo.listPolls({ filter, skip, limit });
 
-  const polls = (items as unknown as Record<string, unknown>[]).map(shapePollListItem);
+  const polls = items.map(shapePollListItem);
   return {
     statusCode: 200,
     data: { polls, pagination: pagination(page, limit, total) },
@@ -401,7 +367,7 @@ export async function listPolls(
 export async function getPollByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(Poll, request.params.idOrSlug, {});
+  const doc = await pollRepo.findPollByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Poll not found', 404);
   return { statusCode: 200, data: { poll: shapePollDetail(doc) }, message: 'Poll loaded.' };
 }
@@ -414,16 +380,9 @@ export async function listCommunityArtists(
   const page = parsePositiveInteger(request.query?.page, 1, 1000);
   const skip = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
-    Artist.find({ isActive: true })
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Artist.countDocuments({ isActive: true }),
-  ]);
+  const { items, total } = await communityArtistRepo.listActiveCommunityArtists({ skip, limit });
 
-  const artists = (items as unknown as Record<string, unknown>[]).map(shapeArtistListItem);
+  const artists = items.map(shapeArtistListItem);
   return {
     statusCode: 200,
     data: { artists, pagination: pagination(page, limit, total) },
@@ -435,7 +394,7 @@ export async function listCommunityArtists(
 export async function getCommunityArtistByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(Artist, request.params.idOrSlug, { isActive: true });
+  const doc = await communityArtistRepo.findActiveArtistByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Artist not found', 404);
   return { statusCode: 200, data: { artist: shapeArtistDetail(doc) }, message: 'Artist loaded.' };
 }
@@ -454,12 +413,9 @@ export async function listResources(
   const filter: Record<string, unknown> = { status: 'published' };
   if (type) filter.type = type;
 
-  const [items, total] = await Promise.all([
-    Resource.find(filter).sort({ displayOrder: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
-    Resource.countDocuments(filter),
-  ]);
+  const { items, total } = await resourceRepo.listPublishedResources({ filter, skip, limit });
 
-  const resources = (items as unknown as Record<string, unknown>[]).map(shapeResourceListItem);
+  const resources = items.map(shapeResourceListItem);
   return {
     statusCode: 200,
     data: { resources, pagination: pagination(page, limit, total) },
@@ -482,7 +438,7 @@ export async function submitPrayerRequest(
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const body = request.body ?? {};
   const slug = await generateUniqueSlug(PrayerRequest, body.title.trim().slice(0, 50) || 'prayer');
-  const doc = await PrayerRequest.create({
+  const raw = await prayerRequestRepo.createPrayerRequest({
     title: body.title,
     slug,
     content: body.content,
@@ -494,7 +450,6 @@ export async function submitPrayerRequest(
     urgent: !!body.urgent,
     status: 'active',
   });
-  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   return {
     statusCode: 201,
     data: { prayerRequest: shapePrayerRequestDetail(raw) },
@@ -511,7 +466,7 @@ export async function submitQuestion(
   const body = request.body ?? {};
   const baseSlug = body.question.trim().slice(0, 40) || 'question';
   const slug = await generateUniqueSlug(AskPastorQuestion, baseSlug);
-  const doc = await AskPastorQuestion.create({
+  const raw = await askPastorRepo.createAskPastorQuestion({
     question: body.question,
     slug,
     author: (body.name as string)?.trim() || 'Anonymous',
@@ -522,7 +477,6 @@ export async function submitQuestion(
     helpful: 0,
     urgent: false,
   });
-  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   return {
     statusCode: 201,
     data: { question: shapeQuestionDetail(raw, null) },
@@ -539,7 +493,7 @@ export async function submitTestimony(
   const body = request.body ?? {};
   const baseSlug = body.content.trim().slice(0, 30) || (body.name as string) || 'testimony';
   const slug = await generateUniqueSlug(Testimony, baseSlug);
-  const doc = await Testimony.create({
+  const raw = await testimonyRepo.createTestimony({
     slug,
     author: (body.name as string)?.trim() || 'Anonymous',
     content: body.content,
@@ -550,7 +504,6 @@ export async function submitTestimony(
     isFeatured: false,
     displayOrder: 0,
   });
-  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   return {
     statusCode: 201,
     data: { testimony: shapeTestimonyDetail(raw) },
@@ -570,7 +523,7 @@ export async function createPoll(
   if (optionTexts.length < 2) throw new AppError('At least 2 options are required', 400);
 
   const options = optionTexts.map(text => ({ _id: new mongoose.Types.ObjectId(), text, votes: 0 }));
-  const doc = await Poll.create({
+  const raw = await pollRepo.createPoll({
     question: body.question,
     slug,
     description: (body.description as string)?.trim() || '',
@@ -579,7 +532,6 @@ export async function createPoll(
     status: 'active',
     totalVotes: 0,
   });
-  const raw = (doc.toObject ? doc.toObject() : doc) as unknown as Record<string, unknown>;
   return { statusCode: 201, data: { poll: shapePollDetail(raw) }, message: 'Poll created.' };
 }
 
@@ -594,7 +546,7 @@ export async function votePoll(
   const { optionId } = request.body ?? {};
   if (!optionId) throw new AppError('optionId is required', 400);
 
-  const pollDoc = await findByIdOrSlug(Poll, idOrSlug, {});
+  const pollDoc = await pollRepo.findPollByIdOrSlug(idOrSlug);
   if (!pollDoc) throw new AppError('Poll not found', 404);
 
   const status = pollDoc.status as string;
@@ -608,29 +560,21 @@ export async function votePoll(
 
   const voterIdentifier = getVoterIdentifier(request);
   const pollOid = new mongoose.Types.ObjectId(String(pollDoc._id));
-  const existingVote = await PollVote.findOne({
-    poll: pollOid,
-    voterIdentifier,
-  });
+  const existingVote = await pollRepo.findPollVote(pollOid, voterIdentifier);
+
   if (existingVote) {
     throw new AppError('Already voted', 409);
   }
 
-  await PollVote.create({
+  await pollRepo.createPollVote({
     poll: pollOid,
     optionId: optionIdObj,
     voterIdentifier,
   });
 
-  const pollId = pollOid;
-  await Poll.updateOne(
-    { _id: pollId },
-    {
-      $inc: { totalVotes: 1, [`options.${optionIndex}.votes`]: 1 },
-    }
-  );
+  await pollRepo.incrementPollVote(pollOid, optionIndex);
 
-  const updated = await Poll.findById(pollId).lean();
+  const updated = await pollRepo.findPollById(String(pollOid));
   if (!updated) throw new AppError('Poll not found', 404);
 
   return {

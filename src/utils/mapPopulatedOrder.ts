@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { leanIdToString } from './leanId';
 import type {
   PopulatedOrder,
   PopulatedOrderProduct,
@@ -25,7 +26,7 @@ export function mapPopulatedOrderToApi(order: PopulatedOrder): Record<string, un
   const vendorDoc = isPopulatedVendor(order.vendor) ? order.vendor : undefined;
   const vendorIdStr =
     vendorDoc?._id != null
-      ? String(vendorDoc._id)
+      ? leanIdToString(vendorDoc._id)
       : order.vendor instanceof Types.ObjectId
         ? order.vendor.toHexString()
         : undefined;
@@ -41,7 +42,7 @@ export function mapPopulatedOrderToApi(order: PopulatedOrder): Record<string, un
     const product =
       isPopulatedProduct(productDoc) && productDoc._id != null
         ? {
-            _id: String(productDoc._id),
+            _id: leanIdToString(productDoc._id),
             name: productDoc.name,
             slug: productDoc.slug,
             price: productDoc.price,
@@ -76,7 +77,7 @@ export function mapPopulatedOrderToApi(order: PopulatedOrder): Record<string, un
   const updatedAt = order.updatedAt;
 
   return {
-    _id: order._id != null ? String(order._id) : undefined,
+    _id: order._id != null ? leanIdToString(order._id) : undefined,
     orderNumber: order.orderNumber,
     customer: order.customer,
     vendor: vendorSummary,
