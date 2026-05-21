@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import cookie from '@fastify/cookie';
 import { ENVIRONMENT } from '../config/env';
 import { getRedisClient } from '../config/redis';
+import { wrapRootPlugin } from './wrapPlugin';
 
 function tokenHeaderAllowlist(): string[] {
   return [
@@ -17,7 +18,7 @@ function tokenHeaderAllowlist(): string[] {
   ];
 }
 
-export async function securityPlugin(app: FastifyInstance): Promise<void> {
+async function securityPlugin(app: FastifyInstance): Promise<void> {
   await app.register(helmet, {
     contentSecurityPolicy: false,
   });
@@ -54,3 +55,5 @@ export async function securityPlugin(app: FastifyInstance): Promise<void> {
       : {}),
   });
 }
+
+export const ojSecurityPlugin = wrapRootPlugin(securityPlugin, 'oj-security-plugin');
