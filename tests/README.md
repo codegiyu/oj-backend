@@ -35,6 +35,12 @@ Phase 8 (observability & release readiness):
 - Ops runbooks: `docs/runbooks/` (Redis, MongoDB, BullMQ backlog).
 - Tests: `tests/unit/requestMetrics.test.ts`, `tests/phase/integration/phase8.contract.test.ts`.
 
+Phase 9 (observability completion):
+
+- Rolling latency histogram (p50/p95/p99 per route) in `src/observability/latencyHistogram.ts`; optional `GET /metrics` when `ENABLE_METRICS_ROUTE=1`.
+- Guide: `docs/observability.md`; workspace `docs/RELEASE.md`; `npm run release:check`.
+- Tests: `tests/unit/latencyHistogram.test.ts`, `tests/phase/integration/phase9.contract.test.ts` (enable `ENABLE_METRICS_ROUTE=1` manually to smoke `GET /metrics`).
+
 Phase 2 adds:
 
 - `GET /ready` — MongoDB + Redis checks (`tests/integration/ready.route.test.ts`)

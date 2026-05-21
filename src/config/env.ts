@@ -82,6 +82,9 @@ export type Environment = {
     readonly clientAppUrl: string;
   };
   readonly domain: string;
+  readonly observability: {
+    readonly enableMetricsRoute: boolean;
+  };
 };
 
 export class EnvironmentValidationError extends Error {
@@ -198,10 +201,7 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
       refreshSecret,
       refreshExpiresIn: raw.REFRESH_TOKEN_EXPIRES_IN || '30d',
       accessCookieMaxAge: parseInt(raw.ACCESS_COOKIE_MAX_AGE || String(7 * 24 * 60 * 60), 10),
-      refreshCookieMaxAge: parseInt(
-        raw.REFRESH_COOKIE_MAX_AGE || String(30 * 24 * 60 * 60),
-        10
-      ),
+      refreshCookieMaxAge: parseInt(raw.REFRESH_COOKIE_MAX_AGE || String(30 * 24 * 60 * 60), 10),
     },
     tokenNames: {
       cookies: {
@@ -270,6 +270,9 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
       clientAppUrl: raw.CLIENT_APP_URL || 'http://localhost:3000',
     },
     domain: raw.DOMAIN || 'localhost',
+    observability: {
+      enableMetricsRoute: raw.ENABLE_METRICS_ROUTE === '1' || raw.ENABLE_METRICS_ROUTE === 'true',
+    },
   };
 }
 

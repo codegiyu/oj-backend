@@ -12,8 +12,19 @@ Quick response guides for common production failures. Pair with `/health` (liven
 
 - Every HTTP response includes `x-request-id` (client may send `x-request-id` header; otherwise generated).
 - Successful request completions log `request completed` with `requestId`, `method`, `route`, `statusCode`, and `durationMs` for P95/P99 analysis in your log aggregator.
+- Optional rolling percentiles: `ENABLE_METRICS_ROUTE=1` → `GET /metrics` (see [observability.md](../observability.md)).
+
+## Alerts
+
+Wire paging or chat notifications when:
+
+- `/ready` is unhealthy for more than two probe intervals
+- Error rate on 5xx exceeds 0.5% on a stable release window
+- Log-based p95 on critical routes exceeds 300ms for 15+ minutes
+- Queue backlog runbook conditions trigger (see [queue-backlog.md](./queue-backlog.md))
 
 ## Related
 
+- [Observability guide](../observability.md) — logs, `/metrics`, alert hints
 - [Backend README](../../README.md) — release checklist and env requirements
 - [tests/README.md](../../tests/README.md) — verification commands

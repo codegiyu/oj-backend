@@ -82,6 +82,8 @@ Before deploy:
 - [ ] Runbooks reviewed: [docs/runbooks](./docs/runbooks/README.md) (Redis, MongoDB, BullMQ)
 - [ ] Migrations/seed steps documented; rollback path agreed for this release
 - [ ] Alerts configured for readiness failures, error spikes, and queue backlog
+- [ ] Optional internal `GET /metrics` reviewed when `ENABLE_METRICS_ROUTE=1` (see [docs/observability.md](./docs/observability.md))
+- [ ] Workspace [release guide](../docs/RELEASE.md) followed for coordinated deploy
 
 ## Scripts
 
@@ -97,6 +99,7 @@ Before deploy:
 - `npm run test:unit` / `test:integration` / `test:e2e` / `test:phase:*` - Test suites (see `tests/README.md`)
 - `npm run audit` - Dependency vulnerability report
 - `npm run audit:ci` - Fail on high or critical vulnerabilities
+- `npm run release:check` - Type-check, lint, format, tests, phase contract, audit (pre-deploy)
 
 ## Project Structure
 
