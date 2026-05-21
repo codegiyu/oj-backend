@@ -15,3 +15,10 @@ Scripts follow the workspace test contract:
 Run the full contract: `npm run test:unit && npm run test:integration && npm run test:e2e`.
 
 Phase 1 adds `tests/integration/env.validation.test.ts` for production env fail-fast rules.
+
+Phase 2 adds:
+
+- `GET /ready` — MongoDB + Redis checks (`tests/integration/ready.route.test.ts`)
+- `GET /admin/me` without auth → 401 (`tests/integration/auth.route.test.ts`)
+- Invalid `GET /public/music` query → 400 (`tests/integration/validation.route.test.ts`)
+- `tests/unit/readiness.service.test.ts`

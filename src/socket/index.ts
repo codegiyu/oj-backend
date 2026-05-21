@@ -50,7 +50,7 @@ export function sendRealTimeNotification(
 function initializeEventListeners(_io: Server, socket: Socket & { user: SocketUser }): void {
   socket.on(SOCKET_EVENTS.SUBSCRIBE, (roomId: string, ack?: (arg: unknown) => void) => {
     if (roomId && typeof roomId === 'string') {
-      socket.join(roomId);
+      void socket.join(roomId);
       sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
     } else {
       sendSocketResponse(socket, ack, {
@@ -63,7 +63,7 @@ function initializeEventListeners(_io: Server, socket: Socket & { user: SocketUs
 
   socket.on(SOCKET_EVENTS.UNSUBSCRIBE, (roomId: string, ack?: (arg: unknown) => void) => {
     if (roomId && typeof roomId === 'string') {
-      socket.leave(roomId);
+      void socket.leave(roomId);
       sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
     } else {
       sendSocketResponse(socket, ack, {
@@ -115,19 +115,25 @@ export function attachSocketServer(httpServer: HttpServer): Server {
     },
   });
 
-  io.use(async (socket, next) => {
-    const user = await authenticateSocket(socket);
-    if (!user) {
-      socket.emit(SOCKET_EVENTS.ERROR, {
-        success: false,
-        message: 'Unauthorized',
-        responseCode: 401,
+  io.use((socket, next) => {
+    void authenticateSocket(socket)
+      .then(user => {
+        if (!user) {
+          socket.emit(SOCKET_EVENTS.ERROR, {
+            success: false,
+            message: 'Unauthorized',
+            responseCode: 401,
+          });
+          socket.disconnect(true);
+          return;
+        }
+
+        (socket as Socket & { user: SocketUser }).user = user;
+        next();
+      })
+      .catch(error => {
+        next(error instanceof Error ? error : new Error('Socket authentication failed'));
       });
-      socket.disconnect(true);
-      return;
-    }
-    (socket as Socket & { user: SocketUser }).user = user;
-    next();
   });
 
   io.on('connection', socket => {
@@ -135,8 +141,8 @@ export function attachSocketServer(httpServer: HttpServer): Server {
     const userId = s.user._id;
     const userModel = s.user.userModel;
     const room = buildUserRoomId(userId, userModel);
-    socket.join(room);
-    socket.join(userId);
+    void socket.join(room);
+    void socket.join(userId);
     initializeEventListeners(io, s);
     logger.info('Socket connected', { socketId: socket.id, userId, userModel });
     socket.on('disconnect', reason => {
@@ -146,4 +152,17 @@ export function attachSocketServer(httpServer: HttpServer): Server {
 
   ioInstance = io;
   return io;
+}
+
+export async function closeSocketServer(): Promise<void> {
+  if (!ioInstance) {
+    return;
+  }
+
+  const io = ioInstance;
+  ioInstance = null;
+
+  await io.close();
+
+  logger.info('Socket.io closed');
 }

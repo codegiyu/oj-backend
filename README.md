@@ -68,7 +68,7 @@ npm start
 
 Before deploy:
 
-- [ ] `npm run test:unit && npm run test:integration`
+- [ ] `npm run test:unit && npm run test:integration` (includes `/health`, `/ready`, auth, validation)
 - [ ] `npm run type-check && npm run lint && npm run format:check`
 - [ ] `npm run audit:ci` (fails on high or critical vulnerabilities)
 - [ ] Production env secrets verified (no placeholder JWT values)
