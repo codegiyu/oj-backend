@@ -5,6 +5,7 @@ import { User } from '../../models/user';
 import { authService } from '../../services/auth.service';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { processPasswordChange } from './auth.helpers';
+import { recordAuditEvent } from '../../services/auditLog.service';
 import { IAdmin, IUser } from '../../lib/types/constants';
 
 export async function changePassword(
@@ -48,5 +49,17 @@ export async function changePassword(
     user: user as Parameters<typeof processPasswordChange>[0]['user'],
     password: password,
     accessType,
+  });
+
+  await recordAuditEvent({
+    action: 'auth.change_password',
+    actorId: authUser.userId,
+    actorEmail: authUser.email,
+    actorScope: authUser.scope,
+    resourceType: accessType === 'console' ? 'admin' : 'user',
+    requestId: String(request.id),
+    method: request.method,
+    path: request.url,
+    statusCode: 200,
   });
 }

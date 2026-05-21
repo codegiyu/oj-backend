@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import type { FastifyInstance } from 'fastify';
 import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
@@ -152,10 +153,12 @@ import {
   updateAdminHomeAdvert,
   deleteAdminHomeAdvert,
 } from '../controllers/admin/homeAdvertAdmin.controller';
+import { registerPrivilegedAuditHook } from '../hooks/privilegedAudit.hook';
 
 const opts = { preHandler: [authenticate, requireConsoleAccess] };
 
 export async function registerAdminContentRoutes(app: FastifyInstance): Promise<void> {
+  registerPrivilegedAuditHook(app);
   app.get(
     '/users',
     { ...opts, schema: adminUsersSearchQuerystringSchema },

@@ -72,10 +72,16 @@ npm start
 
 Before deploy:
 
-- [ ] `npm run test:unit && npm run test:integration` (includes `/health`, `/ready`, auth, validation)
+- [ ] `npm run test:unit && npm run test:integration && npm run test:phase:integration`
 - [ ] `npm run type-check && npm run lint && npm run format:check`
 - [ ] `npm run audit:ci` (fails on high or critical vulnerabilities)
 - [ ] Production env secrets verified (no placeholder JWT values)
+- [ ] `/ready` and `/health` probed in the target environment (MongoDB + Redis)
+- [ ] Log aggregator receives `request completed` events with `durationMs` for P95/P99 checks (target P95 ≤ 300ms on critical routes)
+- [ ] 5xx error rate within budget (< 0.5% on stable releases)
+- [ ] Runbooks reviewed: [docs/runbooks](./docs/runbooks/README.md) (Redis, MongoDB, BullMQ)
+- [ ] Migrations/seed steps documented; rollback path agreed for this release
+- [ ] Alerts configured for readiness failures, error spikes, and queue backlog
 
 ## Scripts
 
