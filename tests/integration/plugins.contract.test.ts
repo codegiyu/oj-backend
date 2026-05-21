@@ -19,6 +19,13 @@ describe('Fastify plugins', () => {
     expectAuthDecoratorsOnApp(app);
   });
 
+  it('applies helmet security headers on responses', async () => {
+    const response = await app.inject({ method: 'GET', url: '/health' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+  });
+
   it('echoes inbound x-request-id on responses', async () => {
     const response = await app.inject({
       method: 'GET',

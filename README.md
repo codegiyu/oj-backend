@@ -9,7 +9,7 @@ Fastify TypeScript backend for OJ Multimedia.
 - 📦 **Redis** - Caching and session management
 - 🚀 **BullMQ** - Job queue management
 - 📧 **Email Service** - Nodemailer integration
-- 📝 **Logging** - Winston logger
+- 📝 **Logging** - Pino (HTTP via Fastify; workers/startup via `src/utils/logger`)
 - ☁️ **S3 Management** - AWS S3 file storage
 - 🎨 **ESLint & Prettier** - Code quality and formatting
 - 📅 **date-fns** - Date manipulation utilities

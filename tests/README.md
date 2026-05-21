@@ -20,6 +20,8 @@ Phase 3 migrates all business routes to `/api/v1` (`tests/integration/apiVersion
 
 Phase 4 adds `src/plugins/`, repositories/services for public catalog lists, Pino request IDs, Redis-backed rate limits in production, and `tests/unit/pagination.test.ts`, `publicCatalog.service.test.ts`, `plugins.contract.test.ts`. Type-check/lint for tests uses `tsconfig.test.json` (see `tests/tsconfig.json`).
 
+Phase 5 adds `fastify-plugin` root registration, Pino app logger (`tests/unit/logger.test.ts`), `community.service` + `publicMedia.service` + `adminMusic.service` layering, and `tests/unit/community.service.test.ts`.
+
 Phase 2 adds:
 
 - `GET /ready` — MongoDB + Redis checks (`tests/integration/ready.route.test.ts`)

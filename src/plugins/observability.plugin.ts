@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
+import { wrapRootPlugin } from './wrapPlugin';
 
 // eslint-disable-next-line @typescript-eslint/require-await
-export async function observabilityPlugin(app: FastifyInstance): Promise<void> {
+async function observabilityPlugin(app: FastifyInstance): Promise<void> {
   app.addHook('onSend', async (request, reply) => {
     reply.header('x-request-id', request.id);
   });
@@ -28,3 +29,5 @@ export async function observabilityPlugin(app: FastifyInstance): Promise<void> {
     done();
   });
 }
+
+export const ojObservabilityPlugin = wrapRootPlugin(observabilityPlugin, 'oj-observability-plugin');

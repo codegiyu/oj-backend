@@ -2,31 +2,9 @@
  * Community API helpers: findByIdOrSlug, timeAgo, and response shapers for list/detail.
  */
 
-import mongoose from 'mongoose';
-import { toArtistSummary, type PopulatedArtistDoc } from '../artist/artist.helpers';
+import { leanIdToString, toArtistSummary, type PopulatedArtistDoc } from '../artist/artist.helpers';
 
-/** Resolve document by id (ObjectId) or slug. Returns null if not found. */
-export async function findByIdOrSlug<T>(
-  model: mongoose.Model<T>,
-  idOrSlug: string,
-  filter: Record<string, unknown> = {}
-): Promise<Record<string, unknown> | null> {
-  const q = { ...filter } as unknown as Record<string, unknown>;
-  if (
-    mongoose.Types.ObjectId.isValid(idOrSlug) &&
-    String(new mongoose.Types.ObjectId(idOrSlug)) === idOrSlug
-  ) {
-    q._id = new mongoose.Types.ObjectId(idOrSlug);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic filter at runtime
-    const byId = await model.findOne(q as any).lean();
-    if (byId) return byId as unknown as Record<string, unknown>;
-  }
-  delete q._id;
-  q.slug = idOrSlug;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic filter at runtime
-  const bySlug = await model.findOne(q as any).lean();
-  return bySlug as unknown as Record<string, unknown> | null;
-}
+export { findByIdOrSlug } from '../../repositories/community/shared';
 
 /** Format a date as a human-readable "time ago" string. */
 export function timeAgo(date: Date | string | undefined): string {
@@ -50,7 +28,10 @@ function toIso(date: Date | string | undefined): string | undefined {
 
 function idStr(v: unknown): string | undefined {
   if (v == null) return undefined;
-  return String(v);
+
+  const s = leanIdToString(v);
+
+  return s.length > 0 ? s : undefined;
 }
 
 /** Shape devotional for list item. */
