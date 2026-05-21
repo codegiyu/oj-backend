@@ -41,24 +41,23 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     });
   });
 
-  // Temporary ingress diagnostics: confirms whether auth-related headers
-  // reached Fastify before route preHandlers (no sensitive values logged).
-  app.addHook('onRequest', (request, _reply, done) => {
-    console.log('request.headers: ', JSON.stringify(request.headers, null, 2));
-    logger.debug('HTTP ingress headers snapshot', {
-      method: request.method,
-      url: request.url,
-      hasAuthorizationHeader: typeof request.headers.authorization === 'string',
-      authorizationIsBearer:
-        typeof request.headers.authorization === 'string' &&
-        request.headers.authorization.startsWith('Bearer '),
-      hasCookieHeader: typeof request.headers.cookie === 'string',
-      hasOriginHeader: typeof request.headers.origin === 'string',
-      hasRefererHeader: typeof request.headers.referer === 'string',
-      userAgentPresent: typeof request.headers['user-agent'] === 'string',
+  if (ENVIRONMENT.nodeEnv === 'development') {
+    app.addHook('onRequest', (request, _reply, done) => {
+      logger.debug('HTTP ingress headers snapshot', {
+        method: request.method,
+        url: request.url,
+        hasAuthorizationHeader: typeof request.headers.authorization === 'string',
+        authorizationIsBearer:
+          typeof request.headers.authorization === 'string' &&
+          request.headers.authorization.startsWith('Bearer '),
+        hasCookieHeader: typeof request.headers.cookie === 'string',
+        hasOriginHeader: typeof request.headers.origin === 'string',
+        hasRefererHeader: typeof request.headers.referer === 'string',
+        userAgentPresent: typeof request.headers['user-agent'] === 'string',
+      });
+      done();
     });
-    done();
-  });
+  }
 
   // Security plugins
   await app.register(helmet, {

@@ -13,3 +13,5 @@ Scripts follow the workspace test contract:
 | `npm run test:phase:e2e` | `tests/phase/e2e` |
 
 Run the full contract: `npm run test:unit && npm run test:integration && npm run test:e2e`.
+
+Phase 1 adds `tests/integration/env.validation.test.ts` for production env fail-fast rules.
