@@ -45,6 +45,7 @@ import {
   listPublicNewsQuerystringSchema,
   idOrSlugParamSchema,
   listPublicContentCategoriesQuerystringSchema,
+  listPublicHomeAdvertsQuerystringSchema,
   contentAnalyticsEventBodySchema,
 } from '../controllers/public/public.validation';
 import {
@@ -177,7 +178,11 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     catchAsync(listPublicContentCategories)
   );
 
-  app.get('/home-adverts', catchAsync(listPublicHomeAdverts));
+  app.get(
+    '/home-adverts',
+    { schema: listPublicHomeAdvertsQuerystringSchema },
+    catchAsync(listPublicHomeAdverts)
+  );
 
   // Community
   app.get('/community', catchAsync(getCommunity));

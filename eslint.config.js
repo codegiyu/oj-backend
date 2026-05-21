@@ -16,7 +16,10 @@ module.exports = [
     parserOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
-      project: path.join(__dirname, "tsconfig.json"),
+      project: [
+        path.join(__dirname, "tsconfig.json"),
+        path.join(__dirname, "tsconfig.test.json"),
+      ],
     },
     plugins: ["@typescript-eslint", "prettier"],
     extends: [

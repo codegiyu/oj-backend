@@ -1,18 +1,19 @@
-import { AuthUser } from '../lib/types/constants';
-
-export type RequestAuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-};
+import type { AuthUser } from '../lib/types/constants';
+import type {
+  authenticate,
+  optionalAuthenticate,
+  requireConsoleAccess,
+} from '../middleware/auth.middleware';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    /** Authenticated user payload (set by our auth middleware). */
     authUser?: AuthUser;
-    /**
-     * Tokens to echo on response headers (and set when issuing a session).
-     * Cleared to empty strings when cookies are cleared (e.g. logout).
-     */
-    authTokens?: RequestAuthTokens;
+    authTokens?: { accessToken: string; refreshToken: string };
+  }
+
+  interface FastifyInstance {
+    authenticate: typeof authenticate;
+    optionalAuthenticate: typeof optionalAuthenticate;
+    requireConsoleAccess: typeof requireConsoleAccess;
   }
 }

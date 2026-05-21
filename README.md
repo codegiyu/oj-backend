@@ -101,6 +101,9 @@ src/
 │   ├── redis.ts     # Redis client setup
 │   ├── bullmq.ts    # BullMQ queue setup
 │   └── s3.ts        # AWS S3 client setup
+├── plugins/         # Fastify plugins (security, auth decorators, observability)
+├── repositories/    # Data access layer (Mongoose queries)
+├── services/        # Business logic used by controllers
 ├── controllers/     # Route controllers
 ├── middleware/      # Custom middleware
 ├── routes/          # Route definitions

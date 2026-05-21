@@ -66,6 +66,17 @@ export const listPublicContentCategoriesQuerystringSchema: FastifySchema = {
         type: 'string',
         enum: CONTENT_CATEGORY_SCOPES,
       },
+      page: { type: 'string', pattern: '^[0-9]+$' },
+      limit: { type: 'string', pattern: '^[0-9]+$' },
+    },
+  },
+};
+
+export const listPublicHomeAdvertsQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'string', pattern: '^[0-9]+$' },
     },
   },
 };

@@ -10,13 +10,10 @@ import type { PopulatedArtistDoc } from '../artist/artist.helpers';
 import { ARTIST_POPULATE_SELECT } from '../artist/artist.helpers';
 import { parsePositiveInteger, parseString } from '../../utils/helpers';
 import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../../utils/videoEmbed';
-import { ContentCategory } from '../../models/contentCategory';
-import { HomeAdvert } from '../../models/homeAdvert';
 import {
-  ContentCategoryScope,
-  CONTENT_CATEGORY_SCOPES,
-  IContentCategory,
-} from '../../lib/types/constants';
+  listPublicContentCategoriesForApi,
+  listPublicHomeAdvertsForApi,
+} from '../../services/publicCatalog.service';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 100;
@@ -473,42 +470,19 @@ export async function downloadPublicVideo(
 // ----- Content categories & home adverts (public) -----
 
 export async function listPublicContentCategories(
-  request: FastifyRequest<{ Querystring: { scope?: string } }>,
+  request: FastifyRequest<{ Querystring: { scope?: string; page?: string; limit?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const scope = parseString(request.query.scope);
-  const filter: Record<string, unknown> = { isActive: true };
-
-  if (scope && CONTENT_CATEGORY_SCOPES.includes(scope as unknown as ContentCategoryScope)) {
-    filter.scope = scope;
-  }
-
-  const items = await ContentCategory.find(filter)
-    .sort({ displayOrder: 1, name: 1 })
-    .lean<IContentCategory[]>();
-
-  const categories = items.map(c => ({
-    _id: c._id != null ? String(c._id) : c._id,
-    name: c.name,
-    slug: c.slug,
-    scope: c.scope,
-  }));
+  const { categories } = await listPublicContentCategoriesForApi(request.query);
 
   sendResponse(reply, 200, { categories }, 'Content categories loaded.');
 }
 
 export async function listPublicHomeAdverts(
-  _request: FastifyRequest,
+  request: FastifyRequest<{ Querystring: { limit?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const items = await HomeAdvert.find({ isActive: true }).sort({ slot: 1, displayOrder: 1 }).lean();
+  const { adverts } = await listPublicHomeAdvertsForApi(request.query);
 
-  const adverts = items.map(a => ({
-    _id: a._id != null ? String(a._id) : a._id,
-    slot: a.slot,
-    imageUrl: a.imageUrl,
-    linkUrl: a.linkUrl,
-    displayOrder: a.displayOrder ?? 0,
-  }));
   sendResponse(reply, 200, { adverts }, 'Home adverts loaded.');
 }

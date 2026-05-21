@@ -18,6 +18,8 @@ Phase 1 adds `tests/integration/env.validation.test.ts` for production env fail-
 
 Phase 3 migrates all business routes to `/api/v1` (`tests/integration/apiVersion.route.test.ts`).
 
+Phase 4 adds `src/plugins/`, repositories/services for public catalog lists, Pino request IDs, Redis-backed rate limits in production, and `tests/unit/pagination.test.ts`, `publicCatalog.service.test.ts`, `plugins.contract.test.ts`. Type-check/lint for tests uses `tsconfig.test.json` (see `tests/tsconfig.json`).
+
 Phase 2 adds:
 
 - `GET /ready` — MongoDB + Redis checks (`tests/integration/ready.route.test.ts`)
