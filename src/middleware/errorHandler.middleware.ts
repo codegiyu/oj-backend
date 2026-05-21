@@ -16,6 +16,20 @@ type ErrorWithValidation = FastifyError & {
 
 const GENERIC_SERVER_ERROR_MESSAGE = 'An unexpected error occurred. Please try again later.';
 
+function isOperationalAppError(error: unknown): error is AppError {
+  if (error instanceof AppError) {
+    return true;
+  }
+
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'isOperational' in error &&
+    (error as AppError).isOperational === true &&
+    typeof (error as AppError).statusCode === 'number'
+  );
+}
+
 function buildValidationDetails(
   validation: ValidationErrorItem[]
 ): Array<{ message?: string; path?: string }> {
@@ -29,7 +43,7 @@ function buildValidationDetails(
 
 export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
   const err = error as ErrorWithValidation;
-  const statusCode = error instanceof AppError ? error.statusCode : (err.statusCode ?? 500);
+  const statusCode = isOperationalAppError(error) ? error.statusCode : (err.statusCode ?? 500);
   const internalMessage = error instanceof Error ? error.message : 'Internal Server Error';
 
   if (err.code === 'FST_ERR_VALIDATION') {
@@ -58,7 +72,7 @@ export function errorHandler(error: Error, request: FastifyRequest, reply: Fasti
     method: request.method,
   });
 
-  const isAppError = error instanceof AppError;
+  const isAppError = isOperationalAppError(error);
   const clientMessage = isAppError
     ? internalMessage
     : ENVIRONMENT.nodeEnv === 'production'

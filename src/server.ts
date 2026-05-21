@@ -3,13 +3,14 @@ import { ENVIRONMENT } from './config/env';
 import { logger } from './utils/logger';
 import { connectDb, disconnectDb } from './config/db';
 import { getRedisClient, closeRedisConnection } from './config/redis';
-import { attachSocketServer } from './socket';
+import { attachSocketServer, closeSocketServer } from './socket';
 import { seedDb } from './seed';
 import './queues/main.queue'; // register QueueEvents listeners
 import { mainWorker } from './queues/main.worker';
 import type { FastifyInstance } from 'fastify';
 
 let app: FastifyInstance | null = null;
+let isShuttingDown = false;
 
 const start = async (): Promise<void> => {
   try {
@@ -43,25 +44,67 @@ const start = async (): Promise<void> => {
   }
 };
 
-const shutdown = async (): Promise<void> => {
-  logger.info('Shutting down server...');
+const shutdown = async (signal: string): Promise<void> => {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  logger.info(`Shutting down server (${signal})...`);
+
+  let exitCode = 0;
+
+  if (app) {
+    try {
+      await app.close();
+      logger.info('HTTP server closed');
+    } catch (err) {
+      logger.error('Error closing HTTP server', err);
+      exitCode = 1;
+    } finally {
+      app = null;
+    }
+  }
+
+  try {
+    await closeSocketServer();
+  } catch (err) {
+    logger.error('Error closing Socket.io', err);
+    exitCode = 1;
+  }
+
   try {
     await mainWorker.close();
     logger.info('BullMQ worker closed');
   } catch (err) {
     logger.error('Error closing worker', err);
+    exitCode = 1;
   }
-  await closeRedisConnection();
-  await disconnectDb();
-  logger.info('MongoDB disconnected');
-  if (app) {
-    await app.close();
-    logger.info('HTTP server closed');
+
+  try {
+    await closeRedisConnection();
+  } catch (err) {
+    logger.error('Error closing Redis', err);
+    exitCode = 1;
   }
-  process.exit(0);
+
+  try {
+    await disconnectDb();
+    logger.info('MongoDB disconnected');
+  } catch (err) {
+    logger.error('Error disconnecting MongoDB', err);
+    exitCode = 1;
+  }
+
+  process.exit(exitCode);
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
 
-start();
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
+
+void start();
