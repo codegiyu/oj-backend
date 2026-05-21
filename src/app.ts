@@ -41,6 +41,13 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
   await registerPlugins(app);
 
+  // Register before routes so encapsulated plugin contexts inherit the API error envelope.
+  app.setErrorHandler(errorHandler);
+
+  app.setNotFoundHandler((request, reply) => {
+    sendErrorResponse(reply, 404, `Route ${request.method} ${request.url} not found`);
+  });
+
   // Liveness/readiness (unversioned for probes)
   await app.register(registerHealthRoutes);
 
@@ -67,12 +74,6 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerAdminPromotionRoutes, { prefix: `${API_V1_PREFIX}/admin` });
   await app.register(registerAdminContentRoutes, { prefix: `${API_V1_PREFIX}/admin` });
   await app.register(registerAdminProfileRoutes, { prefix: `${API_V1_PREFIX}/admin` });
-
-  app.setErrorHandler(errorHandler);
-
-  app.setNotFoundHandler((request, reply) => {
-    sendErrorResponse(reply, 404, `Route ${request.method} ${request.url} not found`);
-  });
 
   return app;
 };
