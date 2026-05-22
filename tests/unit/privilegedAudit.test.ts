@@ -54,6 +54,20 @@ describe('resolvePrivilegedAdminAction', () => {
     ).toBeNull();
   });
 
+  it('maps DELETE gospel-verses routes to admin.delete', () => {
+    expect(
+      resolvePrivilegedAdminAction({
+        method: 'DELETE',
+        routerPath: '/api/v1/admin/gospel-verses/:id',
+        params: { id: '507f1f77bcf86cd799439014' },
+      })
+    ).toEqual({
+      action: 'admin.delete',
+      resourceType: 'gospel-verses',
+      resourceId: '507f1f77bcf86cd799439014',
+    });
+  });
+
   it('returns null for admin GET list routes', () => {
     expect(
       resolvePrivilegedAdminAction({
