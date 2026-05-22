@@ -278,7 +278,7 @@ Same as **Get single music track**: `data.music` is the updated document.
 - **Key (frontend)**: `ARTIST_DELETE_MUSIC`
 - **Path**: `/artist/music/:id`
 - **Method**: `DELETE`
-- **Used by**: Artist Music list (optional delete action)
+- **Used by**: Not exposed in artist portal UI (returns 403; submissions via WhatsApp/admin)
 
 #### 8.1 Response
 
@@ -460,4 +460,4 @@ All `_id` and date fields should be serialized to strings for the client (e.g. J
 - **Single-item GET (edit)**: The frontend calls `ARTIST_GET_MUSIC_ITEM` and `ARTIST_GET_VIDEO_ITEM` with path `/artist/music` and `/artist/videos` and appends the id as query (e.g. `/${id}`), resulting in requests to `/artist/music/:id` and `/artist/videos/:id`. The backend should accept the id as a path parameter.
 - **Settings**: The Artist Settings form sends `IArtistUpdateMePayload` including optional `socials` (facebook, instagram, twitter, youtube, website). Backend should accept and persist these fields.
 - **Create music/video**: The frontend validates that `audioUrl` is present for new music and `videoUrl` for new video before submitting. Backend may still treat these as optional in the payload type; business rules can require them for publish.
-- **List delete actions**: The Music and Videos list pages call `ARTIST_DELETE_MUSIC` and `ARTIST_DELETE_VIDEO` with the item id (query `/${id}`). Return 403/404 when the item does not belong to the current artist; frontend shows a toast on error and refetches the list on success.
+- **Artist portal delete**: `ARTIST_DELETE_MUSIC` and `ARTIST_DELETE_VIDEO` are registered but return **403** (`rejectArtistMediaWrite`). The artist portal does not call them; use the upload/WhatsApp flow and admin publishing instead.
