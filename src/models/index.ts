@@ -26,3 +26,4 @@ export { PromotionPricingOption } from './promotionPricingOption';
 export { ResourceDownloadCategory } from './resourceDownloadCategory';
 export { ContactMethod } from './contactMethod';
 export { PartnershipBenefit } from './partnershipBenefit';
+export { GospelVerse } from './gospelVerse';

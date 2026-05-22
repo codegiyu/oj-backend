@@ -153,6 +153,14 @@ import {
   updateAdminHomeAdvert,
   deleteAdminHomeAdvert,
 } from '../controllers/admin/homeAdvertAdmin.controller';
+
+import {
+  listAdminGospelVerses,
+  getAdminGospelVerse,
+  createAdminGospelVerse,
+  updateAdminGospelVerse,
+  deleteAdminGospelVerse,
+} from '../controllers/admin/gospelVerseAdmin.controller';
 import { registerPrivilegedAuditHook } from '../hooks/privilegedAudit.hook';
 
 const opts = { preHandler: [authenticate, requireConsoleAccess] };
@@ -520,6 +528,33 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     '/home-adverts/:id',
     { ...opts, schema: idParamSchema },
     catchAsync(deleteAdminHomeAdvert)
+  );
+
+  // Gospel verses (daily verse schedule)
+  app.get(
+    '/gospel-verses',
+    { ...opts, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminGospelVerses)
+  );
+  app.post(
+    '/gospel-verses',
+    { ...opts, schema: createUpdateBodySchema },
+    catchAsync(createAdminGospelVerse)
+  );
+  app.get(
+    '/gospel-verses/:id',
+    { ...opts, schema: idParamSchema },
+    catchAsync(getAdminGospelVerse)
+  );
+  app.patch(
+    '/gospel-verses/:id',
+    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    catchAsync(updateAdminGospelVerse)
+  );
+  app.delete(
+    '/gospel-verses/:id',
+    { ...opts, schema: idParamSchema },
+    catchAsync(deleteAdminGospelVerse)
   );
 
   // Orders (read-only)

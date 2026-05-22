@@ -13,6 +13,7 @@ import { Role } from '../models/role';
 import { SiteSettings, defaultSiteSettings } from '../models/siteSettings';
 import { Admin } from '../models/admin';
 import { ContentCategory } from '../models/contentCategory';
+import { GospelVerse } from '../models/gospelVerse';
 import { authService } from '../services/auth.service';
 import { ICategory, IRole, ISubCategory, type ContentCategoryScope } from '../lib/types/constants';
 
@@ -512,4 +513,40 @@ export const seedAdmins = async (): Promise<void> => {
   }
 
   logger.info('seedAdmins: admin accounts seeded');
+};
+
+/** Idempotent sample gospel verses for admin dashboard / local dev. */
+export const seedGospelVerses = async (): Promise<void> => {
+  const samples = [
+    {
+      verse: 'For God so loved the world, that he gave his only begotten Son.',
+      reference: 'John 3:16',
+      date: new Date(),
+      isActive: true,
+    },
+    {
+      verse: 'I can do all things through Christ which strengtheneth me.',
+      reference: 'Philippians 4:13',
+      date: new Date(Date.now() + 86400000),
+      isActive: true,
+    },
+  ];
+
+  for (const sample of samples) {
+    const existing = await GospelVerse.findOne({
+      reference: sample.reference,
+      verse: sample.verse,
+    })
+      .select('_id')
+      .lean();
+
+    if (existing) {
+      await GospelVerse.updateOne({ _id: existing._id }, { $set: sample });
+      continue;
+    }
+
+    await GospelVerse.create(sample);
+  }
+
+  logger.info('seedGospelVerses: sample verses upserted');
 };

@@ -9,6 +9,7 @@ export {
   seedSiteSettings,
   seedAdmins,
   seedContentCategories,
+  seedGospelVerses,
 } from './functions';
 
 /**
@@ -25,6 +26,7 @@ export const seedDb = async (): Promise<void> => {
     // await seedMarketplaceCategories();
     // await seedPromotionContent();
     // await seedContentCategories();
+    // await seedGospelVerses();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;
