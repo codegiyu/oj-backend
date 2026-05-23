@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { FastifyInstance } from 'fastify';
 import { ENVIRONMENT } from './config/env';
+import { buildFastifyLoggerConfig } from './config/pino';
 import { registerHealthRoutes } from './routes/health.route';
 import { registerAuthRoutes } from './routes/auth.route';
 import { registerUploadRoutes, registerAdminUploadRoutes } from './routes/upload.route';
@@ -27,9 +28,9 @@ import { sendErrorResponse } from './utils/response';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
   const app = Fastify({
-    logger: {
-      level: ENVIRONMENT.nodeEnv === 'production' ? 'info' : 'debug',
-    },
+    logger: buildFastifyLoggerConfig(ENVIRONMENT.nodeEnv),
+    // Custom "request completed" log in observability plugin (avoids huge default req dumps).
+    disableRequestLogging: true,
     genReqId: request => {
       const header = request.headers['x-request-id'];
 

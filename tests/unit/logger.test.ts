@@ -10,13 +10,16 @@ describe('App logger (Pino)', () => {
     vi.stubEnv('NODE_ENV', 'production');
     const write = vi.fn();
     vi.doMock('pino', () => ({
-      default: vi.fn(() => ({
-        info: write,
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-        child: vi.fn(),
-      })),
+      default: Object.assign(
+        vi.fn(() => ({
+          info: write,
+          warn: vi.fn(),
+          error: vi.fn(),
+          debug: vi.fn(),
+          child: vi.fn(),
+        })),
+        { stdSerializers: { err: (err: Error) => err } }
+      ),
     }));
 
     const { logger } = await import('../../src/utils/logger');
@@ -30,13 +33,16 @@ describe('App logger (Pino)', () => {
     vi.stubEnv('NODE_ENV', 'production');
     const write = vi.fn();
     vi.doMock('pino', () => ({
-      default: vi.fn(() => ({
-        info: write,
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-        child: vi.fn(),
-      })),
+      default: Object.assign(
+        vi.fn(() => ({
+          info: write,
+          warn: vi.fn(),
+          error: vi.fn(),
+          debug: vi.fn(),
+          child: vi.fn(),
+        })),
+        { stdSerializers: { err: (err: Error) => err } }
+      ),
     }));
 
     const { logger } = await import('../../src/utils/logger');
@@ -50,13 +56,16 @@ describe('App logger (Pino)', () => {
     vi.stubEnv('NODE_ENV', 'production');
     const write = vi.fn();
     vi.doMock('pino', () => ({
-      default: vi.fn(() => ({
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: write,
-        debug: vi.fn(),
-        child: vi.fn(),
-      })),
+      default: Object.assign(
+        vi.fn(() => ({
+          info: vi.fn(),
+          warn: vi.fn(),
+          error: write,
+          debug: vi.fn(),
+          child: vi.fn(),
+        })),
+        { stdSerializers: { err: (err: Error) => err } }
+      ),
     }));
 
     const { logger } = await import('../../src/utils/logger');
