@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { resolveLogLevel, shouldUsePrettyLogs } from './pino';
 
 dotenv.config();
 
@@ -84,6 +85,10 @@ export type Environment = {
   readonly domain: string;
   readonly observability: {
     readonly enableMetricsRoute: boolean;
+  };
+  readonly logging: {
+    readonly pretty: boolean;
+    readonly level: string;
   };
 };
 
@@ -272,6 +277,10 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
     domain: raw.DOMAIN || 'localhost',
     observability: {
       enableMetricsRoute: raw.ENABLE_METRICS_ROUTE === '1' || raw.ENABLE_METRICS_ROUTE === 'true',
+    },
+    logging: {
+      pretty: shouldUsePrettyLogs(nodeEnv, raw),
+      level: resolveLogLevel(nodeEnv, raw),
     },
   };
 }

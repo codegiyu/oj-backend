@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { buildPinoLoggerOptions } from '../config/pino';
 import { ENVIRONMENT } from '../config/env';
 
 type LogBindings = Record<string, unknown>;
@@ -20,23 +21,7 @@ function toBindings(second: unknown): LogBindings | undefined {
 }
 
 function createRootLogger(): pino.Logger {
-  const isProduction = ENVIRONMENT.nodeEnv === 'production';
-
-  return pino({
-    level: isProduction ? 'info' : 'debug',
-    base: { service: 'oj-backend' },
-    ...(!isProduction
-      ? {
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              translateTime: 'SYS:standard',
-            },
-          },
-        }
-      : {}),
-  });
+  return pino(buildPinoLoggerOptions(ENVIRONMENT.nodeEnv));
 }
 
 const root = createRootLogger();
