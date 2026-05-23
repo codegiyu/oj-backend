@@ -42,6 +42,14 @@ import {
   TRENDING_DEVOTIONALS_LIMIT,
   RELATED_DEVOTIONALS_LIMIT,
 } from '../constants/pagination';
+import {
+  isCompleteDevotional,
+  isCompletePrayerRequest,
+  isCompleteTestimony,
+  mergePublicFilter,
+  publishedResourceCompletenessFilter,
+  publishedTextContentCompletenessFilter,
+} from '../utils/contentCompleteness';
 
 function pagination(page: number, limit: number, total: number) {
   return { page, limit, total, totalPages: Math.ceil(total / limit) };
@@ -127,9 +135,14 @@ export async function listDevotionals(
   const type = parseString(request.query.type);
   const category = parseString(request.query.category);
 
-  const filter: Record<string, unknown> = { status: 'published' };
-  if (category && category !== 'all') filter.category = category;
-  if (type) filter.type = type;
+  const filter = mergePublicFilter(
+    {
+      status: 'published',
+      ...(category && category !== 'all' ? { category } : {}),
+      ...(type ? { type } : {}),
+    },
+    publishedTextContentCompletenessFilter()
+  );
 
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
   if (type === 'popular') sort = { views: -1, createdAt: -1 };
@@ -156,7 +169,7 @@ export async function getDevotionalByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const doc = await devotionalRepo.findPublishedDevotionalByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Devotional not found', 404);
+  if (!doc || !isCompleteDevotional(doc)) throw new AppError('Devotional not found', 404);
 
   const docOid = new mongoose.Types.ObjectId(String(doc._id));
   const populated = await devotionalRepo.findDevotionalByIdPopulated(String(docOid));
@@ -201,9 +214,11 @@ export async function listTestimonies(
   const type = parseString(request.query.type);
   const category = parseString(request.query.category);
 
-  const filter: Record<string, unknown> = { status: 'published' };
-  if (category && category !== 'all') filter.category = category;
-  if (type === 'featured') filter.isFeatured = true;
+  const base: Record<string, unknown> = { status: 'published' };
+  if (category && category !== 'all') base.category = category;
+  if (type === 'featured') base.isFeatured = true;
+
+  const filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
 
   const sort: Record<string, 1 | -1> =
     type === 'latest' || type === 'all' ? { createdAt: -1 } : { isFeatured: -1, createdAt: -1 };
@@ -228,7 +243,7 @@ export async function getTestimonyByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const doc = await testimonyRepo.findPublishedTestimonyByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Testimony not found', 404);
+  if (!doc || !isCompleteTestimony(doc)) throw new AppError('Testimony not found', 404);
   return {
     statusCode: 200,
     data: { testimony: shapeTestimonyDetail(doc) },
@@ -248,9 +263,11 @@ export async function listPrayerRequests(
   const status = parseString(request.query.status);
   const category = parseString(request.query.category);
 
-  const filter: Record<string, unknown> = {};
-  if (status) filter.status = status;
-  if (category && category !== 'all') filter.category = category;
+  const base: Record<string, unknown> = {};
+  if (status) base.status = status;
+  if (category && category !== 'all') base.category = category;
+
+  const filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
 
   const { items, total } = await prayerRequestRepo.listPrayerRequests({ filter, skip, limit });
 
@@ -267,7 +284,7 @@ export async function getPrayerRequestByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const doc = await prayerRequestRepo.findPrayerRequestByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Prayer request not found', 404);
+  if (!doc || !isCompletePrayerRequest(doc)) throw new AppError('Prayer request not found', 404);
   return {
     statusCode: 200,
     data: { prayerRequest: shapePrayerRequestDetail(doc) },
@@ -410,8 +427,10 @@ export async function listResources(
   const skip = (page - 1) * limit;
   const type = parseString(request.query?.type);
 
-  const filter: Record<string, unknown> = { status: 'published' };
-  if (type) filter.type = type;
+  const base: Record<string, unknown> = { status: 'published' };
+  if (type) base.type = type;
+
+  const filter = mergePublicFilter(base, publishedResourceCompletenessFilter());
 
   const { items, total } = await resourceRepo.listPublishedResources({ filter, skip, limit });
 

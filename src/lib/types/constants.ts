@@ -454,6 +454,7 @@ export interface IMusic {
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   isMonetizable?: boolean;
+  price?: number;
   displayOrder: number;
   views?: number;
   plays?: number;
@@ -481,6 +482,7 @@ export interface IVideo {
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   isMonetizable?: boolean;
+  price?: number;
   displayOrder: number;
   views?: number;
   plays?: number;

@@ -1,12 +1,23 @@
 import { Testimony } from '../../models/testimony';
 import { findByIdOrSlug } from './shared';
+import {
+  mergePublicFilter,
+  publishedTextContentCompletenessFilter,
+} from '../../utils/contentCompleteness';
 
 export async function countPublishedTestimonies(): Promise<number> {
-  return Testimony.countDocuments({ status: 'published' });
+  return Testimony.countDocuments(
+    mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter())
+  );
 }
 
 export async function findFeaturedTestimonies(limit: number): Promise<Record<string, unknown>[]> {
-  const items = await Testimony.find({ status: 'published', isFeatured: true })
+  const items = await Testimony.find(
+    mergePublicFilter(
+      { status: 'published', isFeatured: true },
+      publishedTextContentCompletenessFilter()
+    )
+  )
     .sort({ displayOrder: 1, createdAt: -1 })
     .limit(limit)
     .lean();

@@ -98,6 +98,7 @@ export const createMusicBodySchema: FastifySchema = {
       videoUrl: { type: 'string' },
       category: { type: 'string' },
       isMonetizable: { type: 'boolean' },
+      price: { type: 'number', minimum: 0 },
     },
   },
 };
@@ -120,6 +121,7 @@ export const updateMusicSchema: FastifySchema = {
       category: { type: 'string' },
       status: { type: 'string', enum: statusEnum },
       isMonetizable: { type: 'boolean' },
+      price: { type: 'number', minimum: 0 },
     },
   },
 };
@@ -135,6 +137,7 @@ export const createVideoBodySchema: FastifySchema = {
       videoUrl: { type: 'string' },
       category: { type: 'string' },
       isMonetizable: { type: 'boolean' },
+      price: { type: 'number', minimum: 0 },
     },
   },
 };
@@ -155,6 +158,7 @@ export const updateVideoSchema: FastifySchema = {
       category: { type: 'string' },
       status: { type: 'string', enum: statusEnum },
       isMonetizable: { type: 'boolean' },
+      price: { type: 'number', minimum: 0 },
     },
   },
 };

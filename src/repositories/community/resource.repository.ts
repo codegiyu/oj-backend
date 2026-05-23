@@ -1,7 +1,13 @@
 import { Resource } from '../../models/resource';
+import {
+  mergePublicFilter,
+  publishedResourceCompletenessFilter,
+} from '../../utils/contentCompleteness';
 
 export async function countPublishedResources(): Promise<number> {
-  return Resource.countDocuments({ status: 'published' });
+  return Resource.countDocuments(
+    mergePublicFilter({ status: 'published' }, publishedResourceCompletenessFilter())
+  );
 }
 
 export async function listPublishedResources(options: {
