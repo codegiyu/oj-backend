@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-misused-promises -- Fastify route registration and async preHandler hooks */
 import { FastifyInstance } from 'fastify';
 import { authenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
