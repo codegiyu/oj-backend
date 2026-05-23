@@ -12,6 +12,10 @@ import {
   resolveArtistIdForAdminContent,
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
+import {
+  assertMonetizationPrice,
+  resolveMonetizationPrice,
+} from '../../utils/monetizationValidation';
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -50,6 +54,7 @@ export async function createAdminVideo(
       embedUrl?: string;
       category?: string;
       isMonetizable?: boolean;
+      price?: number;
       status?: 'draft' | 'published' | 'archived';
       artistId?: string;
       ownerUserId?: string;
@@ -58,6 +63,10 @@ export async function createAdminVideo(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body;
+  const isMonetizable = body.isMonetizable ?? false;
+
+  assertMonetizationPrice(isMonetizable, body.price ?? 0);
+
   const resolvedArtistId = await resolveArtistIdForAdminContent({
     ownerUserId: body.ownerUserId,
     artistId: body.artistId,
@@ -82,7 +91,8 @@ export async function createAdminVideo(
     videoUrl: fileStored || legacyVu,
     category: body.category ?? '',
     status: body.status ?? 'draft',
-    isMonetizable: body.isMonetizable ?? false,
+    isMonetizable,
+    price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
     isFeatured: false,
     displayOrder: 0,
     views: 0,
@@ -112,6 +122,7 @@ export async function updateAdminVideo(
       category?: string;
       status?: 'draft' | 'published' | 'archived';
       isMonetizable?: boolean;
+      price?: number;
       artistId?: string;
       ownerUserId?: string;
     };
@@ -123,6 +134,15 @@ export async function updateAdminVideo(
   if (!video) throw new AppError('Video not found', 404);
 
   const body = request.body ?? {};
+  const nextMonetizable = body.isMonetizable ?? video.isMonetizable ?? false;
+  const nextPrice =
+    body.price !== undefined
+      ? body.price
+      : body.isMonetizable !== undefined
+        ? video.price
+        : undefined;
+
+  assertMonetizationPrice(nextMonetizable, nextPrice ?? video.price ?? 0);
   const newArtistId = await applyContentOwnershipUpdate(video, body, 'Video');
   if (newArtistId) video.artist = newArtistId;
 
@@ -139,6 +159,9 @@ export async function updateAdminVideo(
   if (body.category !== undefined) video.category = body.category;
   if (body.status !== undefined) video.status = body.status;
   if (body.isMonetizable !== undefined) video.isMonetizable = body.isMonetizable;
+  if (body.price !== undefined || body.isMonetizable !== undefined) {
+    video.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? video.price, video.price);
+  }
 
   await video.save();
 

@@ -11,6 +11,10 @@ import {
   resolveArtistIdForAdminContent,
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
+import {
+  assertMonetizationPrice,
+  resolveMonetizationPrice,
+} from '../../utils/monetizationValidation';
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -51,6 +55,7 @@ export async function createAdminMusic(
       excerpt?: string;
       category?: string;
       isMonetizable?: boolean;
+      price?: number;
       status?: 'draft' | 'published' | 'archived';
       artistId?: string;
       ownerUserId?: string;
@@ -59,6 +64,10 @@ export async function createAdminMusic(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body;
+  const isMonetizable = body.isMonetizable ?? false;
+
+  assertMonetizationPrice(isMonetizable, body.price ?? 0);
+
   const resolvedArtistId = await resolveArtistIdForAdminContent({
     ownerUserId: body.ownerUserId,
     artistId: body.artistId,
@@ -79,7 +88,8 @@ export async function createAdminMusic(
     excerpt: body.excerpt ?? '',
     category: body.category ?? '',
     status: body.status ?? 'draft',
-    isMonetizable: body.isMonetizable ?? false,
+    isMonetizable,
+    price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
     isFeatured: false,
     displayOrder: 0,
     views: 0,
@@ -107,6 +117,7 @@ export async function updateAdminMusic(
       category?: string;
       status?: 'draft' | 'published' | 'archived';
       isMonetizable?: boolean;
+      price?: number;
       artistId?: string;
       ownerUserId?: string;
     };
@@ -118,6 +129,15 @@ export async function updateAdminMusic(
   if (!music) throw new AppError('Music not found', 404);
 
   const body = request.body ?? {};
+  const nextMonetizable = body.isMonetizable ?? music.isMonetizable ?? false;
+  const nextPrice =
+    body.price !== undefined
+      ? body.price
+      : body.isMonetizable !== undefined
+        ? music.price
+        : undefined;
+
+  assertMonetizationPrice(nextMonetizable, nextPrice ?? music.price ?? 0);
   const newArtistId = await applyContentOwnershipUpdate(music, body, 'Music');
   if (newArtistId) music.artist = newArtistId;
 
@@ -132,6 +152,9 @@ export async function updateAdminMusic(
   if (body.category !== undefined) music.category = body.category;
   if (body.status !== undefined) music.status = body.status;
   if (body.isMonetizable !== undefined) music.isMonetizable = body.isMonetizable;
+  if (body.price !== undefined || body.isMonetizable !== undefined) {
+    music.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? music.price, music.price);
+  }
 
   await music.save();
 

@@ -25,6 +25,10 @@ import {
   type PopulatedArtistDoc,
 } from './artist.helpers';
 import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
+import {
+  assertMonetizationPrice,
+  resolveMonetizationPrice,
+} from '../../utils/monetizationValidation';
 
 type MusicWithArtistLean = IMusic & {
   artist?: PopulatedArtistDoc | mongoose.Types.ObjectId | null;
@@ -346,6 +350,7 @@ export async function createMusic(
       videoUrl?: string;
       category?: string;
       isMonetizable?: boolean;
+      price?: number;
     };
   }>,
   reply: FastifyReply
@@ -356,6 +361,10 @@ export async function createMusic(
   const artistId = artist._id;
 
   const body = request.body;
+  const isMonetizable = body.isMonetizable ?? false;
+
+  assertMonetizationPrice(isMonetizable, body.price ?? 0);
+
   const baseSlug = slugify(body.title);
   let slug = baseSlug;
   let n = 0;
@@ -375,7 +384,8 @@ export async function createMusic(
     videoUrl: body.videoUrl ?? '',
     category: body.category ?? '',
     status: 'draft',
-    isMonetizable: body.isMonetizable ?? false,
+    isMonetizable,
+    price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
     isFeatured: false,
     displayOrder: 0,
     views: 0,
@@ -435,6 +445,7 @@ export async function updateMusic(
       category?: string;
       status?: string;
       isMonetizable?: boolean;
+      price?: number;
     };
   }>,
   reply: FastifyReply
@@ -455,6 +466,16 @@ export async function updateMusic(
   if (!music) throw new AppError('Music not found', 404);
 
   const body = request.body ?? {};
+  const nextMonetizable = body.isMonetizable ?? music.isMonetizable ?? false;
+  const nextPrice =
+    body.price !== undefined
+      ? body.price
+      : body.isMonetizable !== undefined
+        ? music.price
+        : undefined;
+
+  assertMonetizationPrice(nextMonetizable, nextPrice ?? music.price ?? 0);
+
   if (body.title !== undefined) music.title = body.title;
   if (body.description !== undefined) music.description = body.description;
   if (body.lyrics !== undefined) music.lyrics = body.lyrics;
@@ -464,6 +485,9 @@ export async function updateMusic(
   if (body.category !== undefined) music.category = body.category;
   if (body.status !== undefined) music.status = body.status as 'draft' | 'published' | 'archived';
   if (body.isMonetizable !== undefined) music.isMonetizable = body.isMonetizable;
+  if (body.price !== undefined || body.isMonetizable !== undefined) {
+    music.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? music.price, music.price);
+  }
 
   await music.save();
 
@@ -492,6 +516,7 @@ export async function updateMusic(
     category: populated.category,
     status: populated.status,
     isMonetizable: populated.isMonetizable,
+    price: populated.price ?? 0,
     views: populated.views ?? 0,
     plays: populated.plays ?? 0,
     downloads: populated.downloads ?? 0,
@@ -659,6 +684,7 @@ export async function createVideo(
       videoUrl?: string;
       category?: string;
       isMonetizable?: boolean;
+      price?: number;
     };
   }>,
   reply: FastifyReply
@@ -669,6 +695,10 @@ export async function createVideo(
   const artistId = artist._id;
 
   const body = request.body;
+  const isMonetizable = body.isMonetizable ?? false;
+
+  assertMonetizationPrice(isMonetizable, body.price ?? 0);
+
   const baseSlug = slugify(body.title);
   let slug = baseSlug;
   let n = 0;
@@ -686,7 +716,8 @@ export async function createVideo(
     videoUrl: body.videoUrl ?? '',
     category: body.category ?? '',
     status: 'draft',
-    isMonetizable: body.isMonetizable ?? false,
+    isMonetizable,
+    price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
     isFeatured: false,
     displayOrder: 0,
     views: 0,
@@ -742,6 +773,7 @@ export async function updateVideo(
       category?: string;
       status?: string;
       isMonetizable?: boolean;
+      price?: number;
     };
   }>,
   reply: FastifyReply
@@ -762,6 +794,16 @@ export async function updateVideo(
   if (!video) throw new AppError('Video not found', 404);
 
   const body = request.body ?? {};
+  const nextMonetizable = body.isMonetizable ?? video.isMonetizable ?? false;
+  const nextPrice =
+    body.price !== undefined
+      ? body.price
+      : body.isMonetizable !== undefined
+        ? video.price
+        : undefined;
+
+  assertMonetizationPrice(nextMonetizable, nextPrice ?? video.price ?? 0);
+
   if (body.title !== undefined) video.title = body.title;
   if (body.description !== undefined) video.description = body.description;
   if (body.thumbnail !== undefined) video.thumbnail = body.thumbnail;
@@ -769,6 +811,9 @@ export async function updateVideo(
   if (body.category !== undefined) video.category = body.category;
   if (body.status !== undefined) video.status = body.status as 'draft' | 'published' | 'archived';
   if (body.isMonetizable !== undefined) video.isMonetizable = body.isMonetizable;
+  if (body.price !== undefined || body.isMonetizable !== undefined) {
+    video.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? video.price, video.price);
+  }
 
   await video.save();
 

@@ -20,6 +20,21 @@ import { Artist } from '../../models/artist';
 import { toArtistSummary } from '../artist/artist.helpers';
 import type { PopulatedArtistDoc } from '../artist/artist.helpers';
 import { ARTIST_POPULATE_SELECT } from '../artist/artist.helpers';
+import {
+  isCompleteDevotional,
+  isCompleteMusic,
+  isCompleteNewsArticle,
+  isCompletePrayerRequest,
+  isCompleteResource,
+  isCompleteTestimony,
+  isCompleteVideo,
+  mergePublicFilter,
+  publishedMusicCompletenessFilter,
+  publishedResourceCompletenessFilter,
+  publishedTextContentCompletenessFilter,
+  publishedVideoCompletenessFilter,
+} from '../../utils/contentCompleteness';
+import { leanIdToString } from '../../utils/leanId';
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 50;
@@ -34,9 +49,14 @@ type SearchResultItem = {
   meta: string;
 };
 
-function idStr(v: unknown): string {
-  if (v == null) return '';
-  return String(v);
+/** Safe display string for lean search documents (avoids [object Object] stringification). */
+function searchDisplayStr(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Date) return value.toISOString();
+
+  return '';
 }
 
 function buildRegex(q: string): RegExp {
@@ -95,122 +115,161 @@ export async function search(
     : ['music', 'news', 'video', ...COMMUNITY_TYPES];
 
   if (searchTypes.includes('music')) {
-    const runMusic = await Music.find({
-      status: 'published',
-      $or: [{ title: regex }, { description: regex }, { category: regex }],
-    })
+    const runMusic = await Music.find(
+      mergePublicFilter(
+        {
+          status: 'published',
+          $or: [{ title: regex }, { description: regex }, { category: regex }],
+        },
+        publishedMusicCompletenessFilter()
+      )
+    )
       .populate('artist', ARTIST_POPULATE_SELECT)
       .limit(PER_TYPE_LIMIT)
       .lean();
 
     for (const doc of runMusic as unknown as Record<string, unknown>[]) {
+      if (!isCompleteMusic(doc)) continue;
       const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.title ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
         subtitle: artist?.name ?? '',
         type: 'music',
         image: doc.coverImage as string | undefined,
-        meta: String(doc.plays ?? doc.duration ?? ''),
+        meta: searchDisplayStr(doc.plays) || searchDisplayStr(doc.duration),
       });
     }
   }
 
   if (searchTypes.includes('news')) {
-    const docs = await NewsArticle.find({
-      $or: [{ title: regex }, { category: regex }, { content: regex }],
-    })
+    const docs = await NewsArticle.find(
+      mergePublicFilter(
+        {
+          status: 'published',
+          $or: [{ title: regex }, { category: regex }, { content: regex }],
+        },
+        publishedTextContentCompletenessFilter()
+      )
+    )
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
+      if (!isCompleteNewsArticle(doc)) continue;
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.title ?? ''),
-        subtitle: String(doc.category ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
+        subtitle: searchDisplayStr(doc.category),
         type: 'news',
         image: doc.image as string | undefined,
-        meta: String(doc.readTime ?? ''),
+        meta: searchDisplayStr(doc.readTime),
       });
     }
   }
 
   if (searchTypes.includes('video')) {
-    const docs = await Video.find({
-      status: 'published',
-      $or: [{ title: regex }, { description: regex }, { category: regex }],
-    })
+    const docs = await Video.find(
+      mergePublicFilter(
+        {
+          status: 'published',
+          $or: [{ title: regex }, { description: regex }, { category: regex }],
+        },
+        publishedVideoCompletenessFilter()
+      )
+    )
       .populate('artist', ARTIST_POPULATE_SELECT)
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
+      if (!isCompleteVideo(doc)) continue;
       const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.title ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
         subtitle: artist?.name ?? '',
         type: 'video',
         image: doc.thumbnail as string | undefined,
-        meta: String(doc.duration ?? doc.views ?? ''),
+        meta: searchDisplayStr(doc.duration) || searchDisplayStr(doc.views),
       });
     }
   }
 
   if (searchTypes.includes('devotional')) {
-    const docs = await Devotional.find({
-      status: 'published',
-      $or: [
-        { title: regex },
-        { excerpt: regex },
-        { content: regex },
-        { category: regex },
-        { author: regex },
-      ],
-    })
+    const docs = await Devotional.find(
+      mergePublicFilter(
+        {
+          status: 'published',
+          $or: [
+            { title: regex },
+            { excerpt: regex },
+            { content: regex },
+            { category: regex },
+            { author: regex },
+          ],
+        },
+        publishedTextContentCompletenessFilter()
+      )
+    )
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
+      if (!isCompleteDevotional(doc)) continue;
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.title ?? ''),
-        subtitle: String(doc.category ?? doc.author ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
+        subtitle: searchDisplayStr(doc.category) || searchDisplayStr(doc.author),
         type: 'devotional',
-        meta: String(doc.readingTime ?? doc.date ?? ''),
+        meta: searchDisplayStr(doc.readingTime) || searchDisplayStr(doc.date),
       });
     }
   }
 
   if (searchTypes.includes('testimony')) {
-    const docs = await Testimony.find({
-      status: 'published',
-      $or: [{ content: regex }, { author: regex }, { category: regex }],
-    })
+    const docs = await Testimony.find(
+      mergePublicFilter(
+        {
+          status: 'published',
+          $or: [{ content: regex }, { author: regex }, { category: regex }],
+        },
+        publishedTextContentCompletenessFilter()
+      )
+    )
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
+      if (!isCompleteTestimony(doc)) continue;
+      const testimonyPreview = typeof doc.content === 'string' ? doc.content.slice(0, 60) : '';
+
       results.push({
-        _id: idStr(doc._id),
-        title: String((doc.content as string)?.slice(0, 60) ?? doc.author ?? ''),
-        subtitle: String(doc.author ?? ''),
+        _id: leanIdToString(doc._id),
+        title: testimonyPreview || searchDisplayStr(doc.author),
+        subtitle: searchDisplayStr(doc.author),
         type: 'testimony',
         image: doc.avatar as string | undefined,
-        meta: String(doc.category ?? ''),
+        meta: searchDisplayStr(doc.category),
       });
     }
   }
 
   if (searchTypes.includes('prayer-request')) {
-    const docs = await PrayerRequest.find({
-      $or: [{ title: regex }, { content: regex }, { author: regex }, { category: regex }],
-    })
+    const docs = await PrayerRequest.find(
+      mergePublicFilter(
+        {
+          $or: [{ title: regex }, { content: regex }, { author: regex }, { category: regex }],
+        },
+        publishedTextContentCompletenessFilter()
+      )
+    )
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
+      if (!isCompletePrayerRequest(doc)) continue;
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.title ?? ''),
-        subtitle: String(doc.author ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
+        subtitle: searchDisplayStr(doc.author),
         type: 'prayer-request',
-        meta: String(doc.category ?? ''),
+        meta: searchDisplayStr(doc.category),
       });
     }
   }
@@ -223,11 +282,11 @@ export async function search(
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.question ?? ''),
-        subtitle: String(doc.author ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.question),
+        subtitle: searchDisplayStr(doc.author),
         type: 'question',
-        meta: String(doc.category ?? ''),
+        meta: searchDisplayStr(doc.category),
       });
     }
   }
@@ -239,11 +298,13 @@ export async function search(
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
-      const totalVotes = Number(doc.totalVotes) ?? 0;
+      const totalVotesRaw = Number(doc.totalVotes);
+      const totalVotes = Number.isFinite(totalVotesRaw) ? totalVotesRaw : 0;
+
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.question ?? ''),
-        subtitle: String(doc.category ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.question),
+        subtitle: searchDisplayStr(doc.category),
         type: 'poll',
         meta: `${totalVotes} votes`,
       });
@@ -258,9 +319,9 @@ export async function search(
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.name ?? ''),
-        subtitle: String(doc.genre ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.name),
+        subtitle: searchDisplayStr(doc.genre),
         type: 'artist',
         image: doc.image as string | undefined,
         meta: '',
@@ -269,20 +330,26 @@ export async function search(
   }
 
   if (searchTypes.includes('resource')) {
-    const docs = await Resource.find({
-      status: 'published',
-      $or: [{ title: regex }, { description: regex }, { type: regex }, { category: regex }],
-    })
+    const docs = await Resource.find(
+      mergePublicFilter(
+        {
+          status: 'published',
+          $or: [{ title: regex }, { description: regex }, { type: regex }, { category: regex }],
+        },
+        publishedResourceCompletenessFilter()
+      )
+    )
       .limit(PER_TYPE_LIMIT)
       .lean();
     for (const doc of docs as unknown as Record<string, unknown>[]) {
+      if (!isCompleteResource(doc)) continue;
       results.push({
-        _id: idStr(doc._id),
-        title: String(doc.title ?? ''),
-        subtitle: String(doc.type ?? doc.category ?? ''),
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
+        subtitle: searchDisplayStr(doc.type) || searchDisplayStr(doc.category),
         type: 'resource',
         image: (doc.coverImage ?? doc.cover) as string | undefined,
-        meta: String(doc.downloads ?? ''),
+        meta: searchDisplayStr(doc.downloads),
       });
     }
   }

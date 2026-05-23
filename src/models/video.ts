@@ -20,6 +20,7 @@ const videoSchema = new Schema<ModelVideo>(
     },
     isFeatured: { type: Boolean, default: false, index: true },
     isMonetizable: { type: Boolean, default: false },
+    price: { type: Number, default: 0, min: 0 },
     displayOrder: { type: Number, default: 0, index: true },
     views: { type: Number, default: 0 },
     plays: { type: Number, default: 0 },

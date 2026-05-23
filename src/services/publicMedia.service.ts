@@ -1,9 +1,19 @@
+/* eslint-disable no-extra-boolean-cast */
 import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { leanIdToString } from '../utils/leanId';
 import { parsePositiveInteger, parseString } from '../utils/helpers';
 import { isLikelyYoutubeUrl } from '../utils/videoEmbed';
+import {
+  isCompleteMusic,
+  isCompleteNewsArticle,
+  isCompleteVideo,
+  mergePublicFilter,
+  publishedMusicCompletenessFilter,
+  publishedTextContentCompletenessFilter,
+  publishedVideoCompletenessFilter,
+} from '../utils/contentCompleteness';
 import * as musicRepo from '../repositories/public/music.repository';
 import * as videoRepo from '../repositories/public/video.repository';
 import * as newsRepo from '../repositories/public/news.repository';
@@ -76,7 +86,13 @@ export async function listPublicMusic(
     // period: weekly/monthly/alltime - we don't have time-range data, so use all
   }
 
-  const { items, total } = await musicRepo.listPublishedMusic({ filter, sort, skip, limit });
+  const completeFilter = mergePublicFilter(filter, publishedMusicCompletenessFilter());
+  const { items, total } = await musicRepo.listPublishedMusic({
+    filter: completeFilter,
+    sort,
+    skip,
+    limit,
+  });
 
   const music = items.map((doc, i) => shapeMusicListItem(doc, i, type ?? ''));
 
@@ -99,9 +115,9 @@ export async function getPublicMusicByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
   const doc = await musicRepo.findPublishedMusicByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Music not found', 404);
+  if (!doc || !isCompleteMusic(doc)) throw new AppError('Music not found', 404);
   const populated = await musicRepo.findPublishedMusicByIdPopulated(doc._id);
-  if (!populated) throw new AppError('Music not found', 404);
+  if (!populated || !isCompleteMusic(populated)) throw new AppError('Music not found', 404);
   const music = shapeMusicDetail(populated as unknown as Record<string, unknown>);
   return { statusCode: 200, data: { music }, message: 'Music loaded.' };
 }
@@ -147,7 +163,13 @@ export async function listPublicVideos(
     sort = { createdAt: -1 };
   }
 
-  const { items, total } = await videoRepo.listPublishedVideos({ filter, sort, skip, limit });
+  const completeFilter = mergePublicFilter(filter, publishedVideoCompletenessFilter());
+  const { items, total } = await videoRepo.listPublishedVideos({
+    filter: completeFilter,
+    sort,
+    skip,
+    limit,
+  });
 
   const videos = items.map(shapeVideoListItem);
 
@@ -170,9 +192,9 @@ export async function getPublicVideoByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
   const doc = await videoRepo.findPublishedVideoByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Video not found', 404);
+  if (!doc || !isCompleteVideo(doc)) throw new AppError('Video not found', 404);
   const populated = await videoRepo.findPublishedVideoByIdPopulated(doc._id);
-  if (!populated) throw new AppError('Video not found', 404);
+  if (!populated || !isCompleteVideo(populated)) throw new AppError('Video not found', 404);
   const video = shapeVideoDetail(populated as unknown as Record<string, unknown>);
   return { statusCode: 200, data: { video }, message: 'Video loaded.' };
 }
@@ -199,25 +221,17 @@ export async function listPublicNews(
   const base: Record<string, unknown> = { status: 'published' };
   if (category && category !== 'all') base.category = category;
 
-  let filter: Record<string, unknown> = base;
+  let filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
+
   if (type === 'video') {
-    filter = {
-      $and: [
-        base,
-        {
-          $or: [
-            { hasVideo: true },
-            { videoFileUrl: { $regex: /\S/ } },
-            { embedUrl: { $regex: /\S/ } },
-          ],
-        },
-      ],
-    };
+    filter = mergePublicFilter(filter, {
+      $or: [{ hasVideo: true }, { videoFileUrl: { $regex: /\S/ } }, { embedUrl: { $regex: /\S/ } }],
+    });
   }
 
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
   if (type === 'featured') {
-    filter.isFeatured = true;
+    filter = mergePublicFilter(filter, { isFeatured: true });
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'trending') sort = { views: -1, createdAt: -1 };
   else if (type === 'latest') sort = { createdAt: -1 };
@@ -246,7 +260,7 @@ export async function getPublicNewsByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
   const doc = await newsRepo.findPublishedNewsByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Article not found', 404);
+  if (!doc || !isCompleteNewsArticle(doc)) throw new AppError('Article not found', 404);
   const article = shapeArticleDetail(doc as unknown as Record<string, unknown>);
   return { statusCode: 200, data: { article }, message: 'Article loaded.' };
 }
@@ -257,23 +271,34 @@ export async function downloadPublicMusic(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
   const doc = await musicRepo.findPublishedMusicByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Music not found', 404);
+  if (!doc || !isCompleteMusic(doc)) throw new AppError('Music not found', 404);
   const raw = doc;
+
+  if (Boolean(raw.isMonetizable)) {
+    throw new AppError('Download requires purchase', 403);
+  }
+
   const id = new mongoose.Types.ObjectId(leanIdToString(raw._id));
   const downloadUrl = typeof raw.downloadUrl === 'string' ? raw.downloadUrl.trim() : '';
-  const audioUrl = typeof raw.audioUrl === 'string' ? raw.audioUrl.trim() : '';
-  const target = downloadUrl || audioUrl;
-  if (!target) throw new AppError('Download not available', 404);
+
+  if (!downloadUrl) throw new AppError('Download not available', 404);
+
   await musicRepo.incrementMusicDownloads(id);
-  return { statusCode: 302, message: 'Redirect', redirectUrl: target };
+
+  return { statusCode: 302, message: 'Redirect', redirectUrl: downloadUrl };
 }
 
 export async function downloadPublicVideo(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<PublicMediaServiceResult> {
   const doc = await videoRepo.findPublishedVideoByIdOrSlug(request.params.idOrSlug);
-  if (!doc) throw new AppError('Video not found', 404);
+  if (!doc || !isCompleteVideo(doc)) throw new AppError('Video not found', 404);
   const raw = doc;
+
+  if (Boolean(raw.isMonetizable)) {
+    throw new AppError('Download requires purchase', 403);
+  }
+
   const id = new mongoose.Types.ObjectId(leanIdToString(raw._id));
   const fileField = typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl.trim() : '';
   const legacy = typeof raw.videoUrl === 'string' ? raw.videoUrl.trim() : '';

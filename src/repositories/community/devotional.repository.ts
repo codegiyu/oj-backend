@@ -1,13 +1,21 @@
 import { Devotional } from '../../models/devotional';
 import { ARTIST_POPULATE_SELECT } from '../../controllers/artist/artist.helpers';
 import { findByIdOrSlug } from './shared';
+import {
+  mergePublicFilter,
+  publishedTextContentCompletenessFilter,
+} from '../../utils/contentCompleteness';
 
 export async function countPublishedDevotionals(): Promise<number> {
-  return Devotional.countDocuments({ status: 'published' });
+  return Devotional.countDocuments(
+    mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter())
+  );
 }
 
 export async function findTrendingDevotionals(limit: number): Promise<Record<string, unknown>[]> {
-  const items = await Devotional.find({ status: 'published' })
+  const items = await Devotional.find(
+    mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter())
+  )
     .sort({ views: -1, createdAt: -1 })
     .limit(limit)
     .populate('artist', ARTIST_POPULATE_SELECT)
@@ -54,11 +62,16 @@ export async function findRelatedDevotionals(
   excludeId: string,
   limit: number
 ): Promise<Record<string, unknown>[]> {
-  const items = await Devotional.find({
-    status: 'published',
-    category,
-    _id: { $ne: excludeId },
-  })
+  const items = await Devotional.find(
+    mergePublicFilter(
+      {
+        status: 'published',
+        category,
+        _id: { $ne: excludeId },
+      },
+      publishedTextContentCompletenessFilter()
+    )
+  )
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate('artist', ARTIST_POPULATE_SELECT)
