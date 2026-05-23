@@ -6,7 +6,10 @@ export function isContentFavoriteEntityType(value: string): value is ContentFavo
   return (CONTENT_FAVORITE_ENTITY_TYPES as readonly string[]).includes(value);
 }
 
-export function contentFavoriteKey(entityType: ContentFavoriteEntityType, entityId: string): string {
+export function contentFavoriteKey(
+  entityType: ContentFavoriteEntityType,
+  entityId: string
+): string {
   return `${entityType}:${entityId}`;
 }
 

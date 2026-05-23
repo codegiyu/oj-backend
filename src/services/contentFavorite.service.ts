@@ -14,6 +14,29 @@ import {
 
 type LeanDoc = Record<string, unknown>;
 
+type FavoriteLean = {
+  _id: unknown;
+  entityType: ContentFavoriteEntityType;
+  entityId: unknown;
+  createdAt?: unknown;
+};
+
+function toLeanDoc(doc: unknown): LeanDoc {
+  return doc as LeanDoc;
+}
+
+function favoriteCreatedAtIso(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  return '';
+}
+
 export interface ContentFavoriteItemShape {
   _id: string;
   entityType: ContentFavoriteEntityType;
@@ -36,34 +59,31 @@ export async function assertPublishedContentExists(
         .populate('artist', 'name')
         .lean();
       if (!doc) throw new AppError('Music not found', 404);
-      return doc as LeanDoc;
+      return toLeanDoc(doc);
     }
     case 'video': {
       const doc = await Video.findOne({ _id: entityId, status: 'published' })
         .populate('artist', 'name')
         .lean();
       if (!doc) throw new AppError('Video not found', 404);
-      return doc as LeanDoc;
+      return toLeanDoc(doc);
     }
     case 'news': {
       const doc = await NewsArticle.findOne({ _id: entityId, status: 'published' }).lean();
       if (!doc) throw new AppError('News article not found', 404);
-      return doc as LeanDoc;
+      return toLeanDoc(doc);
     }
     case 'devotional': {
       const doc = await Devotional.findOne({ _id: entityId, status: 'published' }).lean();
       if (!doc) throw new AppError('Devotional not found', 404);
-      return doc as LeanDoc;
+      return toLeanDoc(doc);
     }
     default:
       throw new AppError('Invalid entity type', 400);
   }
 }
 
-function shapeFavoriteItem(
-  favorite: { _id: unknown; entityType: ContentFavoriteEntityType; entityId: unknown; createdAt?: unknown },
-  entity: LeanDoc
-): ContentFavoriteItemShape {
+function shapeFavoriteItem(favorite: FavoriteLean, entity: LeanDoc): ContentFavoriteItemShape {
   const entityId = leanIdToString(entityIdFromDoc(entity));
   const slug = typeof entity.slug === 'string' ? entity.slug : undefined;
   const title = typeof entity.title === 'string' ? entity.title : 'Untitled';
@@ -89,10 +109,7 @@ function shapeFavoriteItem(
     _id: leanIdToString(favorite._id),
     entityType: favorite.entityType,
     entityId,
-    createdAt:
-      favorite.createdAt instanceof Date
-        ? favorite.createdAt.toISOString()
-        : String(favorite.createdAt ?? ''),
+    createdAt: favoriteCreatedAtIso(favorite.createdAt),
     title,
     slug,
     image,
@@ -112,6 +129,24 @@ function artistNameFromEntity(entity: LeanDoc): string | undefined {
   return typeof name === 'string' ? name : undefined;
 }
 
+function toFavoriteLean(fav: {
+  _id: unknown;
+  entityType: string;
+  entityId: unknown;
+  createdAt?: unknown;
+}): FavoriteLean {
+  if (!isContentFavoriteEntityType(fav.entityType)) {
+    throw new AppError('Invalid entity type on favorite record', 500);
+  }
+
+  return {
+    _id: fav._id,
+    entityType: fav.entityType,
+    entityId: fav.entityId,
+    createdAt: fav.createdAt,
+  };
+}
+
 async function loadPublishedEntitiesByType(
   entityType: ContentFavoriteEntityType,
   ids: mongoose.Types.ObjectId[]
@@ -125,7 +160,8 @@ async function loadPublishedEntitiesByType(
         .populate('artist', 'name')
         .lean();
       for (const doc of docs) {
-        map.set(leanIdToString((doc as LeanDoc)._id), doc as LeanDoc);
+        const lean = toLeanDoc(doc);
+        map.set(leanIdToString(lean._id), lean);
       }
       break;
     }
@@ -134,21 +170,24 @@ async function loadPublishedEntitiesByType(
         .populate('artist', 'name')
         .lean();
       for (const doc of docs) {
-        map.set(leanIdToString((doc as LeanDoc)._id), doc as LeanDoc);
+        const lean = toLeanDoc(doc);
+        map.set(leanIdToString(lean._id), lean);
       }
       break;
     }
     case 'news': {
       const docs = await NewsArticle.find({ _id: { $in: ids }, status: 'published' }).lean();
       for (const doc of docs) {
-        map.set(leanIdToString((doc as LeanDoc)._id), doc as LeanDoc);
+        const lean = toLeanDoc(doc);
+        map.set(leanIdToString(lean._id), lean);
       }
       break;
     }
     case 'devotional': {
       const docs = await Devotional.find({ _id: { $in: ids }, status: 'published' }).lean();
       for (const doc of docs) {
-        map.set(leanIdToString((doc as LeanDoc)._id), doc as LeanDoc);
+        const lean = toLeanDoc(doc);
+        map.set(leanIdToString(lean._id), lean);
       }
       break;
     }
@@ -183,11 +222,10 @@ export async function listContentFavorites(params: {
 
   const grouped = new Map<ContentFavoriteEntityType, mongoose.Types.ObjectId[]>();
   for (const fav of favorites) {
-    const type = fav.entityType as ContentFavoriteEntityType;
-    const id = fav.entityId as mongoose.Types.ObjectId;
-    const list = grouped.get(type) ?? [];
-    list.push(id);
-    grouped.set(type, list);
+    const favoriteLean = toFavoriteLean(fav);
+    const list = grouped.get(favoriteLean.entityType) ?? [];
+    list.push(new mongoose.Types.ObjectId(leanIdToString(favoriteLean.entityId)));
+    grouped.set(favoriteLean.entityType, list);
   }
 
   const entityMaps = new Map<ContentFavoriteEntityType, Map<string, LeanDoc>>();
@@ -198,22 +236,12 @@ export async function listContentFavorites(params: {
   const items: ContentFavoriteItemShape[] = [];
 
   for (const fav of favorites) {
-    const type = fav.entityType as ContentFavoriteEntityType;
-    const entityId = leanIdToString(fav.entityId);
-    const entity = entityMaps.get(type)?.get(entityId);
+    const favoriteLean = toFavoriteLean(fav);
+    const entityId = leanIdToString(favoriteLean.entityId);
+    const entity = entityMaps.get(favoriteLean.entityType)?.get(entityId);
     if (!entity) continue;
 
-    items.push(
-      shapeFavoriteItem(
-        {
-          _id: fav._id,
-          entityType: type,
-          entityId: fav.entityId,
-          createdAt: fav.createdAt,
-        },
-        entity
-      )
-    );
+    items.push(shapeFavoriteItem(favoriteLean, entity));
   }
 
   return { items, total };
@@ -253,15 +281,7 @@ export async function addContentFavorite(params: {
 
   if (!favorite) throw new AppError('Failed to add favorite', 500);
 
-  return shapeFavoriteItem(
-    {
-      _id: favorite._id,
-      entityType: params.entityType,
-      entityId: favorite.entityId,
-      createdAt: favorite.createdAt,
-    },
-    entity
-  );
+  return shapeFavoriteItem(toFavoriteLean(favorite), entity);
 }
 
 export async function removeContentFavorite(params: {
@@ -289,7 +309,8 @@ export async function listContentFavoriteKeys(userId: mongoose.Types.ObjectId): 
     .select('entityType entityId')
     .lean();
 
-  return favorites.map(fav =>
-    `${fav.entityType as ContentFavoriteEntityType}:${leanIdToString(fav.entityId)}`
-  );
+  return favorites.map(fav => {
+    const favoriteLean = toFavoriteLean(fav);
+    return `${favoriteLean.entityType}:${leanIdToString(favoriteLean.entityId)}`;
+  });
 }
