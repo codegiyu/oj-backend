@@ -91,6 +91,39 @@ export const updateCartBodySchema: FastifySchema = {
   },
 };
 
+export const listFavoritesQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      page: { type: 'string', pattern: '^[0-9]+$' },
+      limit: { type: 'string', pattern: '^[0-9]+$' },
+      entityType: { type: 'string', enum: ['music', 'video', 'news', 'devotional'] },
+    },
+  },
+};
+
+export const addFavoriteBodySchema: FastifySchema = {
+  body: {
+    type: 'object',
+    required: ['entityType', 'entityId'],
+    properties: {
+      entityType: { type: 'string', enum: ['music', 'video', 'news', 'devotional'] },
+      entityId: { type: 'string' },
+    },
+  },
+};
+
+export const favoriteEntityParamsSchema: FastifySchema = {
+  params: {
+    type: 'object',
+    required: ['entityType', 'entityId'],
+    properties: {
+      entityType: { type: 'string', enum: ['music', 'video', 'news', 'devotional'] },
+      entityId: { type: 'string' },
+    },
+  },
+};
+
 export const cartProductIdParamSchema: FastifySchema = {
   params: {
     type: 'object',

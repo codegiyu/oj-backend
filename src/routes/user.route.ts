@@ -14,10 +14,18 @@ import {
   clearCart,
 } from '../controllers/user/user.controller';
 import {
+  listFavorites,
+  addFavorite,
+  removeFavorite,
+} from '../controllers/user/contentFavorite.controller';
+import {
   updateMeBodySchema,
   addToWishlistBodySchema,
   listWishlistQuerystringSchema,
   wishlistProductIdParamSchema,
+  listFavoritesQuerystringSchema,
+  addFavoriteBodySchema,
+  favoriteEntityParamsSchema,
   cartBodySchema,
   updateCartBodySchema,
   cartProductIdParamSchema,
@@ -48,6 +56,22 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     '/wishlist/:productId',
     { preHandler: authenticate, schema: wishlistProductIdParamSchema },
     catchAsync(removeFromWishlist)
+  );
+
+  app.get<{ Querystring: { page?: string; limit?: string; entityType?: string } }>(
+    '/favorites',
+    { preHandler: authenticate, schema: listFavoritesQuerystringSchema },
+    catchAsync(listFavorites)
+  );
+  app.post<{ Body: { entityType: string; entityId: string } }>(
+    '/favorites',
+    { preHandler: authenticate, schema: addFavoriteBodySchema },
+    catchAsync(addFavorite)
+  );
+  app.delete<{ Params: { entityType: string; entityId: string } }>(
+    '/favorites/:entityType/:entityId',
+    { preHandler: authenticate, schema: favoriteEntityParamsSchema },
+    catchAsync(removeFavorite)
   );
 
   app.get('/cart', { preHandler: authenticate }, catchAsync(getCart));
