@@ -37,8 +37,13 @@ const accountId = ENVIRONMENT.r2.accountId;
 const endpoint =
   accountId && accountId.trim() ? `https://${accountId}.r2.cloudflarestorage.com` : undefined;
 
+// AWS SDK v3.729+ defaults to checksums on PutObject; R2 + browser presigned PUTs break
+// when checksum query params are embedded (CORS preflight / signature mismatch). See:
+// https://community.cloudflare.com/t/aws-sdk-client-s3-v3-729-0-breaks-uploadpart-and-putobject-r2-s3-api-compatibility/758637
 export const r2Client = new S3Client({
   region: 'auto',
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED',
   ...(endpoint && {
     endpoint,
     forcePathStyle: false,
