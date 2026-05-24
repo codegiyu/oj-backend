@@ -5,6 +5,7 @@ import { sendResponse } from '../../utils/response';
 import { Document } from '../../models/document';
 import { headObjectInR2 } from '../../services/r2.service';
 import { DOCUMENT_STATUSES } from '../../lib/types/constants';
+import { parseSearch, parseString } from '../../utils/helpers';
 
 const MAX_VENDOR_PRODUCT_IMAGE_BYTES = 3 * 1024 * 1024;
 
@@ -31,6 +32,7 @@ export async function listDocuments(
       entityType?: string;
       entityId?: string;
       intent?: string;
+      search?: string;
       sort?: string;
     };
   }>,
@@ -44,14 +46,28 @@ export async function listDocuments(
 
   const status = parseStatus(request.query.status);
   if (status) filter.status = status;
-  if (typeof request.query.entityType === 'string') filter.entityType = request.query.entityType;
+
+  const entityType = parseString(request.query.entityType);
+  if (entityType && entityType !== 'all') filter.entityType = entityType;
+
   const entityId =
     typeof request.query.entityId === 'string' &&
     mongoose.Types.ObjectId.isValid(request.query.entityId)
       ? new mongoose.Types.ObjectId(request.query.entityId)
       : undefined;
   if (entityId) filter.entityId = entityId;
-  if (typeof request.query.intent === 'string') filter.intent = request.query.intent;
+
+  const intent = parseString(request.query.intent);
+  if (intent && intent !== 'all') filter.intent = intent;
+
+  const search = parseSearch(request.query.search);
+  if (search) {
+    filter.$or = [
+      { key: { $regex: search, $options: 'i' } },
+      { entityType: { $regex: search, $options: 'i' } },
+      { intent: { $regex: search, $options: 'i' } },
+    ];
+  }
 
   const sortField = typeof request.query.sort === 'string' ? request.query.sort : '-createdAt';
 

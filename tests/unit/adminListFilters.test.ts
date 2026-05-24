@@ -8,17 +8,16 @@ import {
 } from '../../src/services/admin/adminListFilters';
 
 describe('applyCategoryFilter', () => {
-  it('sets category ObjectId when valid', () => {
+  it('sets category slug when provided', () => {
     const filter: Record<string, unknown> = {};
-    const id = new mongoose.Types.ObjectId().toString();
-    applyCategoryFilter(filter, id);
-    expect(filter.category).toBeInstanceOf(mongoose.Types.ObjectId);
+    applyCategoryFilter(filter, 'worship');
+    expect(filter.category).toBe('worship');
   });
 
-  it('ignores all and invalid values', () => {
+  it('ignores all and empty values', () => {
     const filter: Record<string, unknown> = {};
     applyCategoryFilter(filter, 'all');
-    applyCategoryFilter(filter, 'not-an-id');
+    applyCategoryFilter(filter, '');
     expect(filter.category).toBeUndefined();
   });
 });
