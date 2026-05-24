@@ -8,7 +8,8 @@ const homeAdvertSchema = new Schema<ModelHomeAdvert>(
       required: true,
       enum: ['after_hero', 'before_cta'],
     },
-    imageUrl: { type: String, required: true, default: '' },
+    // Optional on create: admin UI creates with '' then patches after file upload.
+    imageUrl: { type: String, default: '' },
     linkUrl: { type: String, default: '' },
     displayOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
