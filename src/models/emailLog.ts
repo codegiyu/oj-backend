@@ -28,4 +28,6 @@ export const EmailLogSchema = new Schema<ModelEmailLog>(
   { timestamps: true }
 );
 
+EmailLogSchema.index({ status: 1, createdAt: -1 });
+
 export const EmailLog = model<ModelEmailLog>('EmailLog', EmailLogSchema);

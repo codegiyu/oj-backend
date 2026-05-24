@@ -3,6 +3,7 @@ import { AppError } from '../utils/AppError';
 import { leanIdToString, parseObjectId } from '../controllers/admin/admin.helpers';
 import { findAdminNewsById, listAdminNewsRows } from '../repositories/admin/news.repository';
 import { parseAdminListQuery } from './admin/adminListQuery';
+import { adminListServiceResult } from './admin/adminListResponse';
 import { applyCategoryFilter } from './admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views'];
@@ -58,14 +59,7 @@ export async function listAdminNews(
   const { items, total } = await listAdminNewsRows({ filter, sort, skip, limit });
   const news = items.map(shapeNewsItem);
 
-  return {
-    statusCode: 200,
-    data: {
-      news,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    message: 'News list loaded.',
-  };
+  return adminListServiceResult('news', 'News list loaded.', page, limit, total, news);
 }
 
 export async function getAdminNews(

@@ -5,6 +5,7 @@ import { leanIdToString, parseObjectId } from '../controllers/admin/admin.helper
 import { toArtistSummary } from '../controllers/artist/artist.helpers';
 import { findAdminVideoById, listAdminVideoRows } from '../repositories/admin/video.repository';
 import { parseAdminListQuery } from './admin/adminListQuery';
+import { adminListServiceResult } from './admin/adminListResponse';
 import { applyCategoryFilter, applyArtistFilter } from './admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views', 'plays', 'downloads'];
@@ -114,14 +115,7 @@ export async function listAdminVideos(
   const { items, total } = await listAdminVideoRows({ filter, sort, skip, limit });
   const videos = items.map(shapeVideoItem);
 
-  return {
-    statusCode: 200,
-    data: {
-      videos,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    message: 'Videos list loaded.',
-  };
+  return adminListServiceResult('videos', 'Videos list loaded.', page, limit, total, videos);
 }
 
 export async function getAdminVideo(

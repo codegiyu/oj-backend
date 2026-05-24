@@ -34,5 +34,7 @@ const orderSchema = new Schema<ModelOrder>(
 );
 
 orderSchema.index({ vendor: 1, createdAt: -1 });
+orderSchema.index({ vendor: 1, status: 1, createdAt: -1 });
+orderSchema.index({ customerId: 1, status: 1, createdAt: -1 });
 
 export const Order = model<ModelOrder>('Order', orderSchema);

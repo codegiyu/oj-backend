@@ -30,6 +30,7 @@ const newsArticleSchema = new Schema<ModelNewsArticle>(
 );
 
 newsArticleSchema.index({ status: 1, createdAt: -1 });
+newsArticleSchema.index({ status: 1, category: 1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, isFeatured: 1 });
 
 export const NewsArticle = model<ModelNewsArticle>('NewsArticle', newsArticleSchema);
