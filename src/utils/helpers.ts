@@ -119,10 +119,13 @@ export function parseString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-/** Search term: require at least 2 chars to avoid overly broad matches. */
+export const SEARCH_MAX_LENGTH = 100;
+
+/** Search term: require at least 2 chars; cap length to limit regex abuse. */
 export function parseSearch(value: unknown): string | undefined {
   const s = parseString(value);
-  return s && s.length > 1 ? s : undefined;
+  if (!s || s.length < 2) return undefined;
+  return s.length > SEARCH_MAX_LENGTH ? s.slice(0, SEARCH_MAX_LENGTH) : s;
 }
 
 /**
