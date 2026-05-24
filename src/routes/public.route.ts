@@ -3,6 +3,8 @@ import { catchAsync } from '../utils/catchAsync';
 import {
   listPublicMusic,
   getPublicMusicByIdOrSlug,
+  listPublicAlbums,
+  getPublicAlbumByIdOrSlug,
   downloadPublicMusic,
   listPublicVideos,
   getPublicVideoByIdOrSlug,
@@ -41,6 +43,7 @@ import { submitContactBodySchema } from '../controllers/public/contact.validatio
 import { searchQuerystringSchema } from '../controllers/public/search.validation';
 import {
   listPublicMusicQuerystringSchema,
+  listPublicAlbumsQuerystringSchema,
   listPublicVideosQuerystringSchema,
   listPublicNewsQuerystringSchema,
   idOrSlugParamSchema,
@@ -72,6 +75,7 @@ import {
   votePollBodySchema,
 } from '../controllers/public/community.validation';
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function registerPublicRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: Record<string, unknown> }>(
     '/analytics/content-event',
@@ -130,6 +134,22 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     '/music/:idOrSlug',
     { schema: idOrSlugParamSchema },
     catchAsync(getPublicMusicByIdOrSlug)
+  );
+
+  // Albums
+  app.get<{
+    Querystring: {
+      artist?: string;
+      page?: string;
+      limit?: string;
+      type?: string;
+    };
+  }>('/albums', { schema: listPublicAlbumsQuerystringSchema }, catchAsync(listPublicAlbums));
+
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/albums/:idOrSlug',
+    { schema: idOrSlugParamSchema },
+    catchAsync(getPublicAlbumByIdOrSlug)
   );
 
   // Videos

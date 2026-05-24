@@ -330,6 +330,7 @@ export const ENTITY_TYPES = [
   'gospel-verse',
   'artist',
   'music',
+  'album',
   'pastor',
   'devotional',
   'news-article',
@@ -443,6 +444,7 @@ export interface IMusic {
   title: string;
   slug: string;
   artist?: mongoose.Types.ObjectId | null;
+  album?: mongoose.Types.ObjectId | null;
   description?: string;
   lyrics?: string;
   coverImage?: string;
@@ -464,6 +466,24 @@ export interface IMusic {
   rejectionReason?: string;
   rejectedAt?: Date | null;
   rejectedBy?: mongoose.Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IAlbum {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  slug: string;
+  artist?: mongoose.Types.ObjectId | null;
+  description?: string;
+  excerpt?: string;
+  coverImage?: string;
+  releaseDate?: Date | null;
+  status: 'draft' | 'published' | 'archived';
+  isFeatured: boolean;
+  displayOrder: number;
+  views?: number;
+  plays?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -984,6 +1004,7 @@ export type ModelGospelVerse = IGospelVerse & IModelIndex & Document;
 export type ModelArtistProfile = IArtistProfile & IModelIndex & Document;
 export type ModelArtist = IArtist & IModelIndex & Document;
 export type ModelMusic = IMusic & IModelIndex & Document;
+export type ModelAlbum = IAlbum & IModelIndex & Document;
 export type ModelVideo = IVideo & IModelIndex & Document;
 export type ModelPastor = IPastor & IModelIndex & Document;
 export type ModelDevotional = IDevotional & IModelIndex & Document;

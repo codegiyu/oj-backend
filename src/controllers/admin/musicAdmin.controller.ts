@@ -12,6 +12,10 @@ import {
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
 import {
+  parseAlbumAssignmentInput,
+  resolveAlbumForMusicAssignment,
+} from '../../services/albumMusic.service';
+import {
   assertMonetizationPrice,
   resolveMonetizationPrice,
 } from '../../utils/monetizationValidation';
@@ -59,6 +63,7 @@ export async function createAdminMusic(
       status?: 'draft' | 'published' | 'archived';
       artistId?: string;
       ownerUserId?: string;
+      albumId?: string | null;
     };
   }>,
   reply: FastifyReply
@@ -75,10 +80,21 @@ export async function createAdminMusic(
   const slugFilter = resolvedArtistId ? { artist: resolvedArtistId } : { artist: null };
   const slug = await generateUniqueSlug(Music, body.title, slugFilter);
 
+  let albumRef: mongoose.Types.ObjectId | null = null;
+  const albumAssignment = parseAlbumAssignmentInput(body.albumId);
+
+  if (albumAssignment.action === 'set') {
+    albumRef = await resolveAlbumForMusicAssignment({
+      albumId: albumAssignment.albumId,
+      musicArtistId: resolvedArtistId ?? null,
+    });
+  }
+
   const music = await Music.create({
     title: body.title,
     slug,
     artist: resolvedArtistId ?? null,
+    album: albumRef,
     description: body.description ?? '',
     lyrics: body.lyrics ?? '',
     coverImage: body.coverImage ?? '',
@@ -120,6 +136,7 @@ export async function updateAdminMusic(
       price?: number;
       artistId?: string;
       ownerUserId?: string;
+      albumId?: string | null;
     };
   }>,
   reply: FastifyReply
@@ -140,6 +157,17 @@ export async function updateAdminMusic(
   assertMonetizationPrice(nextMonetizable, nextPrice ?? music.price ?? 0);
   const newArtistId = await applyContentOwnershipUpdate(music, body, 'Music');
   if (newArtistId) music.artist = newArtistId;
+
+  const albumAssignment = parseAlbumAssignmentInput(body.albumId);
+
+  if (albumAssignment.action === 'clear') {
+    music.album = null;
+  } else if (albumAssignment.action === 'set') {
+    music.album = await resolveAlbumForMusicAssignment({
+      albumId: albumAssignment.albumId,
+      musicArtistId: music.artist ?? null,
+    });
+  }
 
   if (body.title !== undefined) music.title = body.title;
   if (body.description !== undefined) music.description = body.description;

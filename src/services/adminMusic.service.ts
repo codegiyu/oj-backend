@@ -86,6 +86,7 @@ export function shapeMusicItem(raw: Record<string, unknown>): Record<string, unk
     ownerLocked: owner.ownerLocked,
     ...(owner.ownerUserId ? { ownerUserId: owner.ownerUserId } : {}),
     ...(artist && { artist }),
+    ...(raw.album != null ? { albumId: leanIdToString(raw.album) } : {}),
   };
 }
 

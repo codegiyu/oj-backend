@@ -25,6 +25,14 @@ import {
 } from '../controllers/admin/musicAdmin.controller';
 
 import {
+  listAdminAlbums,
+  getAdminAlbum,
+  createAdminAlbum,
+  updateAdminAlbum,
+  deleteAdminAlbum,
+} from '../controllers/admin/albumAdmin.controller';
+
+import {
   listAdminVideos,
   getAdminVideo,
   createAdminVideo,
@@ -189,6 +197,17 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminMusic)
   );
+
+  // Albums
+  app.get('/albums', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminAlbums));
+  app.post('/albums', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminAlbum));
+  app.get('/albums/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminAlbum));
+  app.patch(
+    '/albums/:id',
+    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    catchAsync(updateAdminAlbum)
+  );
+  app.delete('/albums/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminAlbum));
 
   // Videos
   app.get('/videos', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminVideos));

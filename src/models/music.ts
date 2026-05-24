@@ -6,6 +6,7 @@ const musicSchema = new Schema<ModelMusic>(
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
     artist: { type: Schema.Types.ObjectId, ref: 'Artist', default: null, index: true },
+    album: { type: Schema.Types.ObjectId, ref: 'Album', default: null, index: true },
     description: { type: String, default: '' },
     lyrics: { type: String, default: '' },
     coverImage: { type: String, default: '' },
@@ -38,5 +39,6 @@ const musicSchema = new Schema<ModelMusic>(
 );
 
 musicSchema.index({ artist: 1, status: 1, createdAt: -1 });
+musicSchema.index({ album: 1, displayOrder: 1 });
 
 export const Music = model<ModelMusic>('Music', musicSchema);
