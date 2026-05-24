@@ -50,6 +50,7 @@ export const DocumentSchema = new Schema<ModelDocument>(
 );
 
 DocumentSchema.index({ entityType: 1, entityId: 1, status: 1 });
+DocumentSchema.index({ entityType: 1, status: 1, createdAt: -1 });
 DocumentSchema.index({ expiresAt: 1 });
 
 // Exclude soft-deleted documents from queries by default

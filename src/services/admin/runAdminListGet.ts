@@ -2,6 +2,7 @@ import type { FastifyRequest } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { parseObjectId } from '../../controllers/admin/admin.helpers';
 import { parseAdminListQuery } from './adminListQuery';
+import { buildAdminListPayload } from './adminListResponse';
 
 export type AdminListGetResult = {
   statusCode: number;
@@ -52,10 +53,7 @@ export async function runAdminList<Q extends AdminListQuerystring>(
 
   return {
     statusCode: 200,
-    data: {
-      [config.collectionKey]: rows,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
+    data: buildAdminListPayload(config.collectionKey, page, limit, total, rows),
     message: config.message,
   };
 }

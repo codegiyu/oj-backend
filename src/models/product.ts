@@ -144,6 +144,7 @@ productSchema.pre('save', function (this: ModelProduct) {
 });
 
 productSchema.index({ vendor: 1, status: 1 });
+productSchema.index({ vendor: 1, status: 1, createdAt: -1 });
 productSchema.index({ category: 1, status: 1 });
 productSchema.index({ slug: 1, vendor: 1 }, { unique: true });
 

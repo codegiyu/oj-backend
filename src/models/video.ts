@@ -36,5 +36,6 @@ const videoSchema = new Schema<ModelVideo>(
 );
 
 videoSchema.index({ artist: 1, status: 1, createdAt: -1 });
+videoSchema.index({ status: 1, category: 1, createdAt: -1 });
 
 export const Video = model<ModelVideo>('Video', videoSchema);

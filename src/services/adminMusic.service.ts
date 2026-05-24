@@ -1,7 +1,8 @@
 import type { FastifyRequest } from 'fastify';
 import { AppError } from '../utils/AppError';
-import { parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../utils/helpers';
 import { applyCategoryFilter, applyArtistFilter } from './admin/adminListFilters';
+import { parseAdminListQuery } from './admin/adminListQuery';
+import { adminListServiceResult } from './admin/adminListResponse';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { leanIdToString, toArtistSummary } from '../controllers/artist/artist.helpers';
 import mongoose from 'mongoose';
@@ -105,41 +106,16 @@ export async function listAdminMusic(
     };
   }>
 ): Promise<AdminMusicServiceResult> {
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const limit = parsePositiveInteger(request.query.limit, 25, 100);
-  const skip = (page - 1) * limit;
-
-  const filter: Record<string, unknown> = {};
-  const search = parseSearch(request.query.search);
-  const status = parseString(request.query.status);
-
-  if (status) {
-    filter.status = status;
-  }
-
-  if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-    ];
-  }
-
+  const { page, limit, skip, filter, sort } = parseAdminListQuery(request.query, {
+    sortFields: SORT_FIELDS,
+    searchFields: ['title', 'description', 'slug'],
+  });
   applyCategoryFilter(filter, request.query.category);
   applyArtistFilter(filter, request.query.artist);
-
-  const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
-  const { items, total } = await listAdminMusicRows({ filter, sort: sortStr, skip, limit });
+  const { items, total } = await listAdminMusicRows({ filter, sort, skip, limit });
   const music = items.map(shapeMusicItem);
 
-  return {
-    statusCode: 200,
-    data: {
-      music,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
-    },
-    message: 'Music list loaded.',
-  };
+  return adminListServiceResult('music', 'Music list loaded.', page, limit, total, music);
 }
 
 export async function getAdminMusic(
