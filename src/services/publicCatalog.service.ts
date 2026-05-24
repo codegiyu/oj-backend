@@ -1,6 +1,10 @@
 import { CONTENT_CATEGORY_SCOPES, type ContentCategoryScope } from '../lib/types/constants';
 import { listActiveContentCategories } from '../repositories/contentCategory.repository';
-import { listActiveHomeAdverts } from '../repositories/homeAdvert.repository';
+import {
+  listActiveHomeAdverts,
+  mapPublicHomeAdvertRowToDto,
+  type PublicHomeAdvertDto,
+} from '../repositories/homeAdvert.repository';
 import { parsePositiveInteger, parseString } from '../utils/helpers';
 import { PUBLIC_CATALOG_MAX_ITEMS } from '../constants/pagination';
 
@@ -43,13 +47,7 @@ export async function listPublicContentCategoriesForApi(query: {
 }
 
 export async function listPublicHomeAdvertsForApi(query: { limit?: string }): Promise<{
-  adverts: Array<{
-    _id: string;
-    slot: string;
-    imageUrl: string;
-    linkUrl?: string;
-    displayOrder: number;
-  }>;
+  adverts: PublicHomeAdvertDto[];
 }> {
   const limit = parsePositiveInteger(
     query.limit,
@@ -58,14 +56,7 @@ export async function listPublicHomeAdvertsForApi(query: { limit?: string }): Pr
   );
 
   const items = await listActiveHomeAdverts(limit);
-
-  const adverts = items.map(a => ({
-    _id: a._id.toString(),
-    slot: a.slot,
-    imageUrl: a.imageUrl,
-    linkUrl: a.linkUrl,
-    displayOrder: a.displayOrder,
-  }));
+  const adverts = items.map(mapPublicHomeAdvertRowToDto);
 
   return { adverts };
 }

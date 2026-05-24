@@ -1,12 +1,42 @@
 import type mongoose from 'mongoose';
 import { HomeAdvert } from '../models/homeAdvert';
 import { clampPublicCatalogLimit } from '../constants/pagination';
-import type { IHomeAdvert } from '../lib/types/constants';
+import type { HomeAdvertSlot, IHomeAdvert } from '../lib/types/constants';
 
-export type PublicHomeAdvertRow = Pick<IHomeAdvert, 'slot' | 'imageUrl' | 'displayOrder'> & {
+export const PUBLIC_HOME_ADVERT_SORT = {
+  slot: 1,
+  displayOrder: 1,
+  createdAt: 1,
+} as const;
+
+export type PublicHomeAdvertRow = {
   _id: mongoose.Types.ObjectId;
+  slot: HomeAdvertSlot;
+  imageUrl: string;
   linkUrl?: string;
+  displayOrder: number;
+  createdAt: Date;
 };
+
+export type PublicHomeAdvertDto = {
+  _id: string;
+  slot: HomeAdvertSlot;
+  imageUrl: string;
+  linkUrl?: string;
+  displayOrder: number;
+  createdAt: string;
+};
+
+export function mapPublicHomeAdvertRowToDto(row: PublicHomeAdvertRow): PublicHomeAdvertDto {
+  return {
+    _id: row._id.toString(),
+    slot: row.slot,
+    imageUrl: row.imageUrl,
+    linkUrl: row.linkUrl,
+    displayOrder: row.displayOrder,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
 export async function listActiveHomeAdverts(limit?: number): Promise<PublicHomeAdvertRow[]> {
   const cappedLimit = clampPublicCatalogLimit(limit);
@@ -15,7 +45,7 @@ export async function listActiveHomeAdverts(limit?: number): Promise<PublicHomeA
     isActive: true,
     imageUrl: { $exists: true, $nin: ['', null] },
   })
-    .sort({ slot: 1, displayOrder: 1 })
+    .sort(PUBLIC_HOME_ADVERT_SORT)
     .limit(cappedLimit)
     .lean<IHomeAdvert[]>();
 
@@ -25,5 +55,6 @@ export async function listActiveHomeAdverts(limit?: number): Promise<PublicHomeA
     imageUrl: a.imageUrl,
     linkUrl: a.linkUrl,
     displayOrder: a.displayOrder ?? 0,
+    createdAt: a.createdAt,
   }));
 }

@@ -5,9 +5,13 @@ vi.mock('../../src/repositories/contentCategory.repository', () => ({
   listActiveContentCategories: vi.fn(),
 }));
 
-vi.mock('../../src/repositories/homeAdvert.repository', () => ({
-  listActiveHomeAdverts: vi.fn(),
-}));
+vi.mock('../../src/repositories/homeAdvert.repository', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../src/repositories/homeAdvert.repository')>();
+  return {
+    ...actual,
+    listActiveHomeAdverts: vi.fn(),
+  };
+});
 
 import { listActiveContentCategories } from '../../src/repositories/contentCategory.repository';
 import { listActiveHomeAdverts } from '../../src/repositories/homeAdvert.repository';
@@ -48,6 +52,7 @@ describe('publicCatalog.service', () => {
   });
 
   it('maps home adverts from the repository with a bounded limit', async () => {
+    const createdAt = new Date('2026-01-15T12:00:00.000Z');
     vi.mocked(listActiveHomeAdverts).mockResolvedValue([
       {
         _id: new mongoose.Types.ObjectId(),
@@ -55,6 +60,7 @@ describe('publicCatalog.service', () => {
         imageUrl: 'https://cdn.example/ad.jpg',
         linkUrl: 'https://example.com',
         displayOrder: 1,
+        createdAt,
       },
     ]);
 
@@ -62,5 +68,6 @@ describe('publicCatalog.service', () => {
 
     expect(listActiveHomeAdverts).toHaveBeenCalledWith(5);
     expect(result.adverts[0]?.slot).toBe('after_hero');
+    expect(result.adverts[0]?.createdAt).toBe('2026-01-15T12:00:00.000Z');
   });
 });
