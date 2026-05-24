@@ -3,6 +3,12 @@ import { Music } from '../../models/music';
 import { ARTIST_POPULATE_SELECT } from '../../controllers/artist/artist.helpers';
 import { findByIdOrSlug } from '../community/shared';
 
+const PUBLISHED_ALBUM_POPULATE = {
+  path: 'album' as const,
+  select: '_id title slug status',
+  match: { status: 'published' },
+};
+
 export async function listPublishedMusic(options: {
   filter: Record<string, unknown>;
   sort: Record<string, 1 | -1>;
@@ -13,6 +19,7 @@ export async function listPublishedMusic(options: {
     Music.find(options.filter)
       .sort(options.sort)
       .populate('artist', ARTIST_POPULATE_SELECT)
+      .populate(PUBLISHED_ALBUM_POPULATE)
       .skip(options.skip)
       .limit(options.limit)
       .lean(),
@@ -31,7 +38,10 @@ export async function findPublishedMusicByIdOrSlug(
 export async function findPublishedMusicByIdPopulated(
   id: unknown
 ): Promise<Record<string, unknown> | null> {
-  const doc = await Music.findById(id).populate('artist', ARTIST_POPULATE_SELECT).lean();
+  const doc = await Music.findById(id)
+    .populate('artist', ARTIST_POPULATE_SELECT)
+    .populate(PUBLISHED_ALBUM_POPULATE)
+    .lean();
 
   return doc as unknown as Record<string, unknown> | null;
 }

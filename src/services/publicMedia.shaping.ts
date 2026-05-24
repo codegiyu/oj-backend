@@ -1,6 +1,7 @@
 import { toArtistSummary, type PopulatedArtistDoc } from '../controllers/artist/artist.helpers';
 import { leanIdToString } from '../utils/leanId';
 import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../utils/videoEmbed';
+import { albumApiFieldsFromRaw } from '../utils/albumSummary';
 
 export function shapeMusicListItem(
   raw: Record<string, unknown>,
@@ -26,6 +27,8 @@ export function shapeMusicListItem(
     item.chartPosition = index + 1;
     item.rank = index + 1;
   }
+
+  Object.assign(item, albumApiFieldsFromRaw(raw, { requirePublished: true }));
 
   return item;
 }
@@ -55,6 +58,7 @@ export function shapeMusicDetail(raw: Record<string, unknown>): Record<string, u
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
     ...(artist && { artist }),
+    ...albumApiFieldsFromRaw(raw, { requirePublished: true }),
   };
 }
 
