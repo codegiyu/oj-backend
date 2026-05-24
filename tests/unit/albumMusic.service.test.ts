@@ -1,6 +1,12 @@
-import mongoose from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../src/utils/AppError';
+import {
+  MOCK_ALBUM_IDS,
+  MOCK_ARTIST_IDS,
+  mockAlbumAssignmentLean,
+  mockAlbumSummary,
+  toObjectId,
+} from '../helpers/albumMusicFixtures';
 
 const { albumFindById, musicUpdateMany } = vi.hoisted(() => ({
   albumFindById: vi.fn(),
@@ -25,6 +31,14 @@ import {
   clearMusicAlbumReferences,
 } from '../../src/services/albumMusic.service';
 
+function mockAlbumFindByIdLean(album: Record<string, unknown> | null) {
+  albumFindById.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      lean: vi.fn().mockResolvedValue(album),
+    }),
+  } as never);
+}
+
 describe('albumMusic.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,56 +54,48 @@ describe('albumMusic.service', () => {
   });
 
   it('parseAlbumAssignmentInput sets when albumId is a valid object id', () => {
-    const id = '507f1f77bcf86cd799439011';
-    const result = parseAlbumAssignmentInput(id);
+    const result = parseAlbumAssignmentInput(MOCK_ALBUM_IDS.primary);
 
     expect(result.action).toBe('set');
     if (result.action === 'set') {
-      expect(result.albumId.toString()).toBe(id);
+      expect(result.albumId.toString()).toBe(MOCK_ALBUM_IDS.primary);
     }
   });
 
   it('resolveAlbumForMusicAssignment rejects missing albums', async () => {
-    albumFindById.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue(null),
-      }),
-    } as never);
+    mockAlbumFindByIdLean(null);
 
     await expect(
       resolveAlbumForMusicAssignment({
-        albumId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
+        albumId: toObjectId(MOCK_ALBUM_IDS.primary),
       })
     ).rejects.toMatchObject({ statusCode: 404 } satisfies Partial<AppError>);
   });
 
   it('resolveAlbumForMusicAssignment rejects artist mismatch', async () => {
-    const albumArtist = new mongoose.Types.ObjectId('507f1f77bcf86cd799439012');
-    const musicArtist = new mongoose.Types.ObjectId('507f1f77bcf86cd799439013');
-
-    albumFindById.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue({ _id: '507f1f77bcf86cd799439011', artist: albumArtist }),
-      }),
-    } as never);
+    mockAlbumFindByIdLean(
+      mockAlbumAssignmentLean({
+        artistId: MOCK_ARTIST_IDS.primary,
+      })
+    );
 
     await expect(
       resolveAlbumForMusicAssignment({
-        albumId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
-        musicArtistId: musicArtist,
+        albumId: toObjectId(MOCK_ALBUM_IDS.primary),
+        musicArtistId: toObjectId(MOCK_ARTIST_IDS.alternate),
       })
     ).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('resolveAlbumForMusicAssignment accepts matching artists', async () => {
-    const artistId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439012');
-    const albumId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011');
+    const albumId = toObjectId(MOCK_ALBUM_IDS.primary);
+    const artistId = toObjectId(MOCK_ARTIST_IDS.primary);
+    const albumLean = mockAlbumAssignmentLean({
+      albumId: MOCK_ALBUM_IDS.primary,
+      artistId,
+    });
 
-    albumFindById.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue({ _id: albumId, artist: artistId }),
-      }),
-    } as never);
+    mockAlbumFindByIdLean(albumLean);
 
     const result = await resolveAlbumForMusicAssignment({
       albumId,
@@ -97,10 +103,15 @@ describe('albumMusic.service', () => {
     });
 
     expect(result.toString()).toBe(albumId.toString());
+    expect(albumLean).toMatchObject({
+      title: mockAlbumSummary.title,
+      slug: mockAlbumSummary.slug,
+      artist: artistId,
+    });
   });
 
   it('clearMusicAlbumReferences unsets album on related music rows', async () => {
-    const albumId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011');
+    const albumId = toObjectId(MOCK_ALBUM_IDS.primary);
     musicUpdateMany.mockResolvedValue({ modifiedCount: 2 } as never);
 
     await clearMusicAlbumReferences(albumId);
