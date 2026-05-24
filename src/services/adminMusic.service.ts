@@ -5,6 +5,7 @@ import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { leanIdToString, toArtistSummary } from '../controllers/artist/artist.helpers';
 import mongoose from 'mongoose';
 import { findAdminMusicById, listAdminMusicRows } from '../repositories/admin/music.repository';
+import { albumApiFieldsFromRaw } from '../utils/albumSummary';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'downloads', 'plays', 'views'];
 
@@ -57,24 +58,6 @@ function ownerApiFields(raw: Record<string, unknown>): {
   return { ownerLocked: true, ...(ownerUserId ? { ownerUserId } : {}) };
 }
 
-function toAlbumSummary(
-  albumVal: unknown
-): { _id: string; title: string; slug?: string } | undefined {
-  if (albumVal == null) return undefined;
-
-  if (typeof albumVal === 'object' && albumVal !== null && '_id' in albumVal) {
-    const a = albumVal as { _id: unknown; title?: string; slug?: string };
-
-    return {
-      _id: leanIdToString(a._id),
-      title: a.title ?? 'Untitled album',
-      ...(a.slug ? { slug: a.slug } : {}),
-    };
-  }
-
-  return undefined;
-}
-
 export function shapeMusicItem(raw: Record<string, unknown>): Record<string, unknown> {
   const artist = toArtistSummary(
     raw.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
@@ -104,19 +87,7 @@ export function shapeMusicItem(raw: Record<string, unknown>): Record<string, unk
     ownerLocked: owner.ownerLocked,
     ...(owner.ownerUserId ? { ownerUserId: owner.ownerUserId } : {}),
     ...(artist && { artist }),
-    ...(() => {
-      const album = toAlbumSummary(raw.album);
-
-      if (album) {
-        return { albumId: album._id, album };
-      }
-
-      if (raw.album != null) {
-        return { albumId: leanIdToString(raw.album) };
-      }
-
-      return {};
-    })(),
+    ...albumApiFieldsFromRaw(raw),
   };
 }
 
