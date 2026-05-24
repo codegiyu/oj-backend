@@ -104,7 +104,11 @@ export async function updateAdminHomeAdvert(
       throw new AppError('Invalid slot', 400);
     advert.slot = body.slot;
   }
-  if (body.imageUrl !== undefined) advert.imageUrl = body.imageUrl;
+  if (body.imageUrl !== undefined) {
+    const trimmed = body.imageUrl.trim();
+    if (!trimmed) throw new AppError('imageUrl cannot be empty', 400);
+    advert.imageUrl = trimmed;
+  }
   if (body.linkUrl !== undefined) advert.linkUrl = body.linkUrl;
   if (body.displayOrder !== undefined) advert.displayOrder = body.displayOrder;
   if (body.isActive !== undefined) advert.isActive = body.isActive;
