@@ -1,8 +1,8 @@
 import { Music } from '../../models/music';
 import { paginatedFind, findByIdLean } from './paginatedList.repository';
-import { adminArtistPopulate } from './populate';
+import { adminMusicPopulate } from './populate';
 
-export { adminArtistPopulate as adminMusicArtistPopulate };
+export { adminMusicPopulate as adminMusicArtistPopulate };
 
 export type ListAdminMusicOptions = {
   filter: Record<string, unknown>;
@@ -19,10 +19,10 @@ export async function listAdminMusicRows(
     sort: options.sort,
     skip: options.skip,
     limit: options.limit,
-    populate: adminArtistPopulate,
+    populate: adminMusicPopulate,
   });
 }
 
 export async function findAdminMusicById(id: string): Promise<Record<string, unknown> | null> {
-  return findByIdLean(Music, id, adminArtistPopulate);
+  return findByIdLean(Music, id, adminMusicPopulate);
 }

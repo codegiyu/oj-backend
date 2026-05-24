@@ -57,6 +57,24 @@ function ownerApiFields(raw: Record<string, unknown>): {
   return { ownerLocked: true, ...(ownerUserId ? { ownerUserId } : {}) };
 }
 
+function toAlbumSummary(
+  albumVal: unknown
+): { _id: string; title: string; slug?: string } | undefined {
+  if (albumVal == null) return undefined;
+
+  if (typeof albumVal === 'object' && albumVal !== null && '_id' in albumVal) {
+    const a = albumVal as { _id: unknown; title?: string; slug?: string };
+
+    return {
+      _id: leanIdToString(a._id),
+      title: a.title ?? 'Untitled album',
+      ...(a.slug ? { slug: a.slug } : {}),
+    };
+  }
+
+  return undefined;
+}
+
 export function shapeMusicItem(raw: Record<string, unknown>): Record<string, unknown> {
   const artist = toArtistSummary(
     raw.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
@@ -86,7 +104,19 @@ export function shapeMusicItem(raw: Record<string, unknown>): Record<string, unk
     ownerLocked: owner.ownerLocked,
     ...(owner.ownerUserId ? { ownerUserId: owner.ownerUserId } : {}),
     ...(artist && { artist }),
-    ...(raw.album != null ? { albumId: leanIdToString(raw.album) } : {}),
+    ...(() => {
+      const album = toAlbumSummary(raw.album);
+
+      if (album) {
+        return { albumId: album._id, album };
+      }
+
+      if (raw.album != null) {
+        return { albumId: leanIdToString(raw.album) };
+      }
+
+      return {};
+    })(),
   };
 }
 
@@ -139,36 +169,17 @@ export async function getAdminMusic(
     throw new AppError('Music not found', 404);
   }
 
-  const own = ownerApiFields(doc);
+  const shaped = shapeMusicItem(doc);
   const music = {
-    _id: String(doc._id),
-    title: doc.title,
-    slug: doc.slug,
-    description: doc.description,
+    ...shaped,
     lyrics: doc.lyrics,
-    coverImage: doc.coverImage,
-    audioUrl: doc.audioUrl,
-    videoUrl: doc.videoUrl,
-    downloadUrl: doc.downloadUrl ?? '',
-    excerpt: doc.excerpt ?? '',
-    category: doc.category,
-    status: doc.status,
     isMonetizable: doc.isMonetizable,
-    views: doc.views ?? 0,
-    plays: doc.plays ?? 0,
-    downloads: doc.downloads ?? 0,
-    ownerLocked: own.ownerLocked,
-    ...(own.ownerUserId ? { ownerUserId: own.ownerUserId } : {}),
+    price: doc.price,
     approvedAt: doc.approvedAt,
     approvedBy: doc.approvedBy,
     rejectionReason: doc.rejectionReason,
     rejectedAt: doc.rejectedAt,
     rejectedBy: doc.rejectedBy,
-    createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
-    updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
-    artist: toArtistSummary(
-      doc.artist as { _id: unknown; name?: string; slug?: string; image?: string } | null
-    ),
   };
 
   return { statusCode: 200, data: { music }, message: 'Music loaded.' };
