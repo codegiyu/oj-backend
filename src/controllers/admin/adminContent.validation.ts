@@ -15,6 +15,15 @@ const listQuerystringProperties = {
   search: { type: 'string' },
   status: { type: 'string' },
   sort: { type: 'string' },
+  category: { type: 'string' },
+  artist: { type: 'string' },
+  scope: { type: 'string' },
+  slot: { type: 'string' },
+  type: { type: 'string' },
+  entityType: { type: 'string' },
+  intent: { type: 'string' },
+  startDate: { type: 'string' },
+  endDate: { type: 'string' },
 };
 
 /** Querystring for list endpoints (music, videos, news, devotionals, etc.) */
@@ -33,6 +42,14 @@ export const listAdminQuerystringWithVendorSchema: FastifySchema = {
       ...listQuerystringProperties,
       vendor: { type: 'string' },
     },
+  },
+};
+
+/** Album list — artist filter in addition to standard params */
+export const listAdminQuerystringWithArtistSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: listQuerystringProperties,
   },
 };
 
