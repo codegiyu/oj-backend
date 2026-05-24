@@ -5,6 +5,7 @@ import {
   listPublicHomeAdvertsForApi,
 } from '../../services/publicCatalog.service';
 import * as publicMediaService from '../../services/publicMedia.service';
+import * as publicAlbumService from '../../services/publicAlbum.service';
 
 async function respond(
   reply: FastifyReply,
@@ -93,6 +94,41 @@ export async function getPublicNewsByIdOrSlug(
   reply: FastifyReply
 ): Promise<void> {
   await respond(reply, await publicMediaService.getPublicNewsByIdOrSlug(request));
+}
+
+export async function listPublicAlbums(
+  request: FastifyRequest<{
+    Querystring: {
+      artist?: string;
+      page?: string;
+      limit?: string;
+      type?: string;
+    };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const result = await publicAlbumService.listPublicAlbums(request);
+
+  sendResponse(
+    reply,
+    result.statusCode,
+    (result.data ?? null) as Record<string, unknown> | null,
+    result.message
+  );
+}
+
+export async function getPublicAlbumByIdOrSlug(
+  request: FastifyRequest<{ Params: { idOrSlug: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const result = await publicAlbumService.getPublicAlbumByIdOrSlug(request);
+
+  sendResponse(
+    reply,
+    result.statusCode,
+    (result.data ?? null) as Record<string, unknown> | null,
+    result.message
+  );
 }
 
 export async function downloadPublicMusic(

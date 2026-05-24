@@ -49,6 +49,18 @@ export const listPublicNewsQuerystringSchema: FastifySchema = {
   },
 };
 
+export const listPublicAlbumsQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      artist: { type: 'string' },
+      page: { type: 'string', pattern: '^[0-9]+$' },
+      limit: { type: 'string', pattern: '^[0-9]+$' },
+      type: { type: 'string', enum: ['featured'] },
+    },
+  },
+};
+
 /** idOrSlug: MongoDB ObjectId (24 hex) or any non-empty string slug */
 export const idOrSlugParamSchema: FastifySchema = {
   params: {

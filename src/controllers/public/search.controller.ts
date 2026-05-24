@@ -7,6 +7,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendResponse } from '../../utils/response';
 import { Music } from '../../models/music';
 import { Video } from '../../models/video';
+import { Album } from '../../models/album';
 import { NewsArticle } from '../../models/newsArticle';
 import {
   Devotional,
@@ -112,7 +113,7 @@ export async function search(
     ? typeFilter === 'community'
       ? [...COMMUNITY_TYPES]
       : [typeFilter]
-    : ['music', 'news', 'video', ...COMMUNITY_TYPES];
+    : ['music', 'album', 'news', 'video', ...COMMUNITY_TYPES];
 
   if (searchTypes.includes('music')) {
     const runMusic = await Music.find(
@@ -138,6 +139,28 @@ export async function search(
         type: 'music',
         image: doc.coverImage as string | undefined,
         meta: searchDisplayStr(doc.plays) || searchDisplayStr(doc.duration),
+      });
+    }
+  }
+
+  if (searchTypes.includes('album')) {
+    const docs = await Album.find({
+      status: 'published',
+      $or: [{ title: regex }, { description: regex }, { excerpt: regex }],
+    })
+      .populate('artist', ARTIST_POPULATE_SELECT)
+      .limit(PER_TYPE_LIMIT)
+      .lean();
+
+    for (const doc of docs as unknown as Record<string, unknown>[]) {
+      const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
+      results.push({
+        _id: leanIdToString(doc._id),
+        title: searchDisplayStr(doc.title),
+        subtitle: artist?.name ?? '',
+        type: 'album',
+        image: doc.coverImage as string | undefined,
+        meta: searchDisplayStr(doc.releaseDate),
       });
     }
   }
