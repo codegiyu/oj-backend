@@ -37,4 +37,19 @@ describe('Fastify plugins', () => {
 
     expect(response.headers['x-request-id']).toBe('test-req-123');
   });
+
+  it('allows Idempotency-Key on public analytics preflight', async () => {
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/public/analytics/content-event',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type, idempotency-key',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-headers']).toMatch(/idempotency-key/i);
+  });
 });

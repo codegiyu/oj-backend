@@ -29,7 +29,7 @@ async function securityPlugin(app: FastifyInstance): Promise<void> {
     origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', ...allowlist],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', ...allowlist],
     exposedHeaders: [
       ...allowlist,
       'Access-Control-Allow-Origin',
