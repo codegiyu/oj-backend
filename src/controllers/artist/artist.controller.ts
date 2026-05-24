@@ -232,6 +232,9 @@ function shapeMusicItem(raw: MusicWithArtistLean): Record<string, unknown> {
     views: raw.views ?? 0,
     plays: raw.plays ?? 0,
     downloads: raw.downloads ?? 0,
+    category: raw.category,
+    isMonetizable: Boolean(raw.isMonetizable),
+    price: typeof raw.price === 'number' ? raw.price : Number(raw.price) || 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
     ...(artist && { artist }),
@@ -328,6 +331,7 @@ export async function getMusicItem(
     category: doc.category,
     status: doc.status,
     isMonetizable: doc.isMonetizable,
+    price: doc.price ?? 0,
     views: doc.views ?? 0,
     plays: doc.plays ?? 0,
     downloads: doc.downloads ?? 0,
@@ -567,6 +571,11 @@ function shapeVideoItem(raw: VideoWithArtistLean): Record<string, unknown> {
     description: raw.description,
     thumbnail: raw.thumbnail,
     videoUrl: raw.videoUrl,
+    videoFileUrl: raw.videoFileUrl,
+    embedUrl: raw.embedUrl,
+    category: raw.category,
+    isMonetizable: Boolean(raw.isMonetizable),
+    price: typeof raw.price === 'number' ? raw.price : Number(raw.price) || 0,
     views: raw.views ?? 0,
     plays: raw.plays ?? 0,
     downloads: raw.downloads ?? 0,
@@ -661,9 +670,12 @@ export async function getVideoItem(
     description: doc.description,
     thumbnail: doc.thumbnail,
     videoUrl: doc.videoUrl,
+    videoFileUrl: doc.videoFileUrl,
+    embedUrl: doc.embedUrl,
     category: doc.category,
     status: doc.status,
     isMonetizable: doc.isMonetizable,
+    price: doc.price ?? 0,
     views: doc.views ?? 0,
     plays: doc.plays ?? 0,
     downloads: doc.downloads ?? 0,
@@ -682,6 +694,8 @@ export async function createVideo(
       description?: string;
       thumbnail?: string;
       videoUrl?: string;
+      videoFileUrl?: string;
+      embedUrl?: string;
       category?: string;
       isMonetizable?: boolean;
       price?: number;
@@ -714,6 +728,8 @@ export async function createVideo(
     description: body.description ?? '',
     thumbnail: body.thumbnail ?? '',
     videoUrl: body.videoUrl ?? '',
+    videoFileUrl: body.videoFileUrl ?? '',
+    embedUrl: body.embedUrl ?? '',
     category: body.category ?? '',
     status: 'draft',
     isMonetizable,
@@ -770,6 +786,8 @@ export async function updateVideo(
       description?: string;
       thumbnail?: string;
       videoUrl?: string;
+      videoFileUrl?: string;
+      embedUrl?: string;
       category?: string;
       status?: string;
       isMonetizable?: boolean;
@@ -808,6 +826,8 @@ export async function updateVideo(
   if (body.description !== undefined) video.description = body.description;
   if (body.thumbnail !== undefined) video.thumbnail = body.thumbnail;
   if (body.videoUrl !== undefined) video.videoUrl = body.videoUrl;
+  if (body.videoFileUrl !== undefined) video.videoFileUrl = body.videoFileUrl;
+  if (body.embedUrl !== undefined) video.embedUrl = body.embedUrl;
   if (body.category !== undefined) video.category = body.category;
   if (body.status !== undefined) video.status = body.status as 'draft' | 'published' | 'archived';
   if (body.isMonetizable !== undefined) video.isMonetizable = body.isMonetizable;
