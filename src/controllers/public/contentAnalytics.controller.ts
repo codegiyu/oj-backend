@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
+import { Album } from '../../models/album';
 import { Music } from '../../models/music';
 import { Video } from '../../models/video';
 import { Devotional } from '../../models/devotional';
@@ -10,7 +11,7 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { findByIdOrSlug } from './community.helpers';
 
-type EntityType = 'music' | 'video' | 'devotional' | 'news-article';
+type EntityType = 'music' | 'video' | 'devotional' | 'news-article' | 'album';
 type AnalyticsEvent = 'view' | 'play' | 'download';
 
 function buildDedupeKey(
@@ -55,7 +56,7 @@ export async function postPublicContentAnalyticsEvent(
     throw new AppError('entityType, entityIdOrSlug, and event are required', 400);
   }
 
-  const allowedTypes: EntityType[] = ['music', 'video', 'devotional', 'news-article'];
+  const allowedTypes: EntityType[] = ['music', 'video', 'devotional', 'news-article', 'album'];
   if (!allowedTypes.includes(body.entityType)) {
     throw new AppError('Invalid entityType', 400);
   }
@@ -115,6 +116,19 @@ export async function postPublicContentAnalyticsEvent(
       { _id: new mongoose.Types.ObjectId(String(doc._id)) },
       { $inc: inc }
     );
+  } else if (body.entityType === 'album') {
+    const doc = await findByIdOrSlug(Album, idOrSlug, { status: 'published' });
+
+    if (!doc) throw new AppError('Album not found', 404);
+
+    if (body.event === 'download') {
+      sendResponse(reply, 200, { ok: true }, 'No metric for this event type.');
+      return;
+    }
+
+    const inc: Record<string, number> = body.event === 'view' ? { views: 1 } : { plays: 1 };
+
+    await Album.updateOne({ _id: new mongoose.Types.ObjectId(String(doc._id)) }, { $inc: inc });
   } else {
     const doc = await findByIdOrSlug(NewsArticle, idOrSlug, { status: 'published' });
 

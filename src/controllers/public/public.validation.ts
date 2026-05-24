@@ -98,7 +98,10 @@ export const contentAnalyticsEventBodySchema: FastifySchema = {
     type: 'object',
     required: ['entityType', 'entityIdOrSlug', 'event'],
     properties: {
-      entityType: { type: 'string', enum: ['music', 'video', 'devotional', 'news-article'] },
+      entityType: {
+        type: 'string',
+        enum: ['music', 'video', 'devotional', 'news-article', 'album'],
+      },
       entityIdOrSlug: { type: 'string', minLength: 1 },
       event: { type: 'string', enum: ['view', 'play', 'download'] },
       clientSessionId: { type: 'string' },
