@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Pastor } from '../../models/pastor';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug } from '../../utils/helpers';
+import { generateUniqueSlug, parseString } from '../../utils/helpers';
 import { parseObjectId } from './admin.helpers';
 import { leanIdToString } from '../../utils/leanId';
 import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
@@ -40,6 +40,17 @@ export async function listAdminPastors(
   const result = await runAdminList(request, {
     sortFields: ['createdAt', 'updatedAt', 'name'],
     searchFields: ['name', 'title', 'bio'],
+    extendFilter: (filter, query) => {
+      const status = parseString(query.status);
+
+      if (status === 'active') {
+        filter.isActive = true;
+        delete filter.status;
+      } else if (status === 'inactive') {
+        filter.isActive = false;
+        delete filter.status;
+      }
+    },
     listRows: listAdminPastorRows,
     shapeItem: shapePastorItem,
     collectionKey: 'pastors',
