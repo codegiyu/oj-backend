@@ -65,10 +65,9 @@ export async function createAdminHomeAdvert(
   if (!body?.slot || !(HOME_ADVERT_SLOTS as readonly string[]).includes(body.slot)) {
     throw new AppError('Invalid slot', 400);
   }
-  if (!body.imageUrl?.trim()) throw new AppError('imageUrl is required', 400);
   const doc = await HomeAdvert.create({
     slot: body.slot,
-    imageUrl: body.imageUrl.trim(),
+    imageUrl: body.imageUrl?.trim() ?? '',
     linkUrl: body.linkUrl?.trim() ?? '',
     displayOrder: body.displayOrder ?? 0,
     isActive: body.isActive ?? true,
