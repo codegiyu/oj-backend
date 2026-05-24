@@ -11,7 +11,10 @@ export type PublicHomeAdvertRow = Pick<IHomeAdvert, 'slot' | 'imageUrl' | 'displ
 export async function listActiveHomeAdverts(limit?: number): Promise<PublicHomeAdvertRow[]> {
   const cappedLimit = clampPublicCatalogLimit(limit);
 
-  const items = await HomeAdvert.find({ isActive: true })
+  const items = await HomeAdvert.find({
+    isActive: true,
+    imageUrl: { $exists: true, $nin: ['', null] },
+  })
     .sort({ slot: 1, displayOrder: 1 })
     .limit(cappedLimit)
     .lean<IHomeAdvert[]>();
