@@ -10,6 +10,10 @@ import {
   listAdminTestimonyRows,
   findAdminTestimonyById,
 } from '../../repositories/admin/testimony.repository';
+import {
+  applyCategoryOnlyExtendFilters,
+  type ContentListQuery,
+} from '../../services/admin/adminListFilters';
 
 function shapeTestimonyItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -35,14 +39,13 @@ function shapeTestimonyItem(raw: Record<string, unknown>): Record<string, unknow
 }
 
 export async function listAdminTestimonies(
-  request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
-  }>,
+  request: FastifyRequest<{ Querystring: ContentListQuery }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: ['createdAt', 'updatedAt', 'author', 'status'],
     searchFields: ['author', 'content', 'category'],
+    extendFilter: applyCategoryOnlyExtendFilters,
     listRows: listAdminTestimonyRows,
     shapeItem: shapeTestimonyItem,
     collectionKey: 'testimonies',

@@ -6,13 +6,17 @@ import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateVendorProductSlug, parseString } from '../../utils/helpers';
+import { generateVendorProductSlug } from '../../utils/helpers';
 import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
 import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
   listAdminProductRows,
   findAdminProductById,
 } from '../../repositories/admin/product.repository';
+import {
+  applyMarketplaceCategoryFilter,
+  applyVendorFilter,
+} from '../../services/admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
 
@@ -56,6 +60,7 @@ export async function listAdminProducts(
       search?: string;
       status?: string;
       vendor?: string;
+      category?: string;
       sort?: string;
     };
   }>,
@@ -65,11 +70,8 @@ export async function listAdminProducts(
     sortFields: SORT_FIELDS,
     searchFields: ['name', 'description', 'slug'],
     extendFilter: (filter, query) => {
-      const vendorId = parseString(query.vendor);
-
-      if (vendorId && mongoose.Types.ObjectId.isValid(vendorId)) {
-        filter.vendor = new mongoose.Types.ObjectId(vendorId);
-      }
+      applyVendorFilter(filter, query.vendor);
+      applyMarketplaceCategoryFilter(filter, query.category);
     },
     listRows: listAdminProductRows,
     shapeItem: shapeProductItem,

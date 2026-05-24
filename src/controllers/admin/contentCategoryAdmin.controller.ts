@@ -8,6 +8,7 @@ import { runAdminList } from '../../services/admin/runAdminListGet';
 import { listAdminContentCategoryRows } from '../../repositories/admin/contentCategoryAdmin.repository';
 import type { ContentCategoryScope } from '../../lib/types/constants';
 import { CONTENT_CATEGORY_SCOPES } from '../../lib/types/constants';
+import { applyIsActiveQueryFilter } from '../../services/admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'displayOrder'];
 
@@ -40,7 +41,14 @@ function shapeCategory(raw: Record<string, unknown>): Record<string, unknown> {
 
 export async function listAdminContentCategories(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; scope?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      scope?: string;
+      isActive?: string;
+      sort?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -54,6 +62,8 @@ export async function listAdminContentCategories(
       if (scope && (CONTENT_CATEGORY_SCOPES as readonly string[]).includes(scope)) {
         filter.scope = scope;
       }
+
+      applyIsActiveQueryFilter(filter, query.isActive);
     },
     listRows: listAdminContentCategoryRows,
     shapeItem: shapeCategory,

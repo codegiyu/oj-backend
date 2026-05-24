@@ -10,6 +10,10 @@ import {
   listAdminAskPastorRows,
   findAdminAskPastorById,
 } from '../../repositories/admin/askPastor.repository';
+import {
+  applyCategoryOnlyExtendFilters,
+  type ContentListQuery,
+} from '../../services/admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
 
@@ -54,14 +58,13 @@ function shapeAskPastorItem(raw: Record<string, unknown>): Record<string, unknow
 const PASTOR_POPULATE_SELECT = 'name slug image';
 
 export async function listAdminAskPastor(
-  request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
-  }>,
+  request: FastifyRequest<{ Querystring: ContentListQuery }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: SORT_FIELDS,
     searchFields: ['question', 'answer', 'author', 'slug'],
+    extendFilter: applyCategoryOnlyExtendFilters,
     listRows: listAdminAskPastorRows,
     shapeItem: shapeAskPastorItem,
     collectionKey: 'questions',

@@ -26,13 +26,14 @@ function shapeAdvert(raw: Record<string, unknown>): Record<string, unknown> {
 
 export async function listAdminHomeAdverts(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; slot?: string; sort?: string };
+    Querystring: { page?: string; limit?: string; slot?: string; search?: string; sort?: string };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: SORT_FIELDS,
     defaultSort: 'displayOrder',
+    searchFields: ['linkUrl'],
     extendFilter: (filter, query) => {
       const slot = parseString(query.slot);
 

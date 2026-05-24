@@ -1,11 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import mongoose from 'mongoose';
 import { sendResponse } from '../../utils/response';
-import { parseString } from '../../utils/helpers';
 import { mapPopulatedOrderToApi } from '../../utils/mapPopulatedOrder';
 import type { PopulatedOrder } from '../../lib/types/constants';
 import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import { listAdminOrderRows, findAdminOrderById } from '../../repositories/admin/order.repository';
+import { applyDateRangeFilter, applyVendorFilter } from '../../services/admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'status', 'totalAmount'];
 
@@ -21,6 +20,8 @@ export async function listAdminOrders(
       search?: string;
       status?: string;
       vendor?: string;
+      startDate?: string;
+      endDate?: string;
       sort?: string;
     };
   }>,
@@ -30,11 +31,8 @@ export async function listAdminOrders(
     sortFields: SORT_FIELDS,
     searchFields: ['orderNumber', 'customer.name', 'customer.email', 'customer.phone'],
     extendFilter: (filter, query) => {
-      const vendorId = parseString(query.vendor);
-
-      if (vendorId && mongoose.Types.ObjectId.isValid(vendorId)) {
-        filter.vendor = new mongoose.Types.ObjectId(vendorId);
-      }
+      applyVendorFilter(filter, query.vendor);
+      applyDateRangeFilter(filter, query.startDate, query.endDate);
     },
     listRows: listAdminOrderRows,
     shapeItem: shapeOrderItem,
