@@ -8,6 +8,7 @@ export const listDocumentsQuerystringSchema = {
       entityType: { type: 'string' },
       entityId: { type: 'string' },
       intent: { type: 'string' },
+      search: { type: 'string' },
       sort: { type: 'string' },
     },
   },

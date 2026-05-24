@@ -3,6 +3,7 @@ import { AppError } from '../utils/AppError';
 import { leanIdToString, parseObjectId } from '../controllers/admin/admin.helpers';
 import { findAdminNewsById, listAdminNewsRows } from '../repositories/admin/news.repository';
 import { parseAdminListQuery } from './admin/adminListQuery';
+import { applyCategoryFilter } from './admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views'];
 
@@ -39,13 +40,21 @@ export function shapeNewsItem(raw: Record<string, unknown>): Record<string, unkn
 
 export async function listAdminNews(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      sort?: string;
+      category?: string;
+    };
   }>
 ): Promise<AdminNewsServiceResult> {
   const { page, limit, skip, filter, sort } = parseAdminListQuery(request.query, {
     sortFields: SORT_FIELDS,
     searchFields: ['title', 'content', 'excerpt', 'slug'],
   });
+  applyCategoryFilter(filter, request.query.category);
   const { items, total } = await listAdminNewsRows({ filter, sort, skip, limit });
   const news = items.map(shapeNewsItem);
 

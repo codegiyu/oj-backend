@@ -12,14 +12,17 @@ function parseFilterDate(value: string | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-/** Apply content-category filter when value is a valid ObjectId. */
+/**
+ * Apply content-category filter (music/video/news store category as slug string).
+ * Empty string matches uncategorized content when explicitly selected.
+ */
 export function applyCategoryFilter(
   filter: Record<string, unknown>,
   category: string | undefined
 ): void {
-  const id = category?.trim();
-  if (!id || id === FILTER_ALL || !isValidObjectId(id)) return;
-  filter.category = new mongoose.Types.ObjectId(id);
+  const slug = category?.trim();
+  if (!slug || slug === FILTER_ALL) return;
+  filter.category = slug;
 }
 
 /** Apply artist filter when value is a valid ObjectId. */

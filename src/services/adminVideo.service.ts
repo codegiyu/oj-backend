@@ -5,6 +5,7 @@ import { leanIdToString, parseObjectId } from '../controllers/admin/admin.helper
 import { toArtistSummary } from '../controllers/artist/artist.helpers';
 import { findAdminVideoById, listAdminVideoRows } from '../repositories/admin/video.repository';
 import { parseAdminListQuery } from './admin/adminListQuery';
+import { applyCategoryFilter } from './admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views', 'plays', 'downloads'];
 
@@ -93,13 +94,21 @@ export function shapeVideoItem(raw: Record<string, unknown>): Record<string, unk
 
 export async function listAdminVideos(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      sort?: string;
+      category?: string;
+    };
   }>
 ): Promise<AdminVideoServiceResult> {
   const { page, limit, skip, filter, sort } = parseAdminListQuery(request.query, {
     sortFields: SORT_FIELDS,
     searchFields: ['title', 'description', 'slug'],
   });
+  applyCategoryFilter(filter, request.query.category);
   const { items, total } = await listAdminVideoRows({ filter, sort, skip, limit });
   const videos = items.map(shapeVideoItem);
 

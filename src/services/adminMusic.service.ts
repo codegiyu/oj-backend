@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { AppError } from '../utils/AppError';
 import { parsePositiveInteger, parseSearch, parseString, normalizeSort } from '../utils/helpers';
+import { applyCategoryFilter } from './admin/adminListFilters';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { leanIdToString, toArtistSummary } from '../controllers/artist/artist.helpers';
 import mongoose from 'mongoose';
@@ -93,7 +94,14 @@ export function shapeMusicItem(raw: Record<string, unknown>): Record<string, unk
 
 export async function listAdminMusic(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      sort?: string;
+      category?: string;
+    };
   }>
 ): Promise<AdminMusicServiceResult> {
   const page = parsePositiveInteger(request.query.page, 1, 1000);
@@ -115,6 +123,8 @@ export async function listAdminMusic(
       { slug: { $regex: search, $options: 'i' } },
     ];
   }
+
+  applyCategoryFilter(filter, request.query.category);
 
   const sortStr = normalizeSort(request.query.sort, SORT_FIELDS, '-createdAt');
   const { items, total } = await listAdminMusicRows({ filter, sort: sortStr, skip, limit });
