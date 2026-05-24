@@ -4,6 +4,8 @@ import {
   applyArtistFilter,
   applyCategoryFilter,
   applyDateRangeFilter,
+  applyIsActiveQueryFilter,
+  applyMarketplaceCategoryFilter,
   applyVendorFilter,
 } from '../../src/services/admin/adminListFilters';
 
@@ -37,6 +39,27 @@ describe('applyVendorFilter', () => {
     const id = new mongoose.Types.ObjectId().toString();
     applyVendorFilter(filter, id);
     expect(filter.vendor).toBeInstanceOf(mongoose.Types.ObjectId);
+  });
+});
+
+describe('applyMarketplaceCategoryFilter', () => {
+  it('sets category ObjectId when valid', () => {
+    const filter: Record<string, unknown> = {};
+    const id = new mongoose.Types.ObjectId().toString();
+    applyMarketplaceCategoryFilter(filter, id);
+    expect(filter.category).toBeInstanceOf(mongoose.Types.ObjectId);
+  });
+});
+
+describe('applyIsActiveQueryFilter', () => {
+  it('maps active and inactive query values', () => {
+    const active: Record<string, unknown> = {};
+    applyIsActiveQueryFilter(active, 'active');
+    expect(active.isActive).toBe(true);
+
+    const inactive: Record<string, unknown> = {};
+    applyIsActiveQueryFilter(inactive, 'inactive');
+    expect(inactive.isActive).toBe(false);
   });
 });
 

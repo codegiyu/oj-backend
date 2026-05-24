@@ -45,6 +45,58 @@ export function applyVendorFilter(
   filter.vendor = new mongoose.Types.ObjectId(id);
 }
 
+/** Standard admin list query params plus optional content filters. */
+export type AdminListQuerystring = {
+  page?: string;
+  limit?: string;
+  search?: string;
+  status?: string;
+  sort?: string;
+};
+
+export type ContentListQuery = AdminListQuerystring & {
+  category?: string;
+  artist?: string;
+  type?: string;
+};
+
+/** Category slug + optional artist ObjectId (music, video, devotional). */
+export function applyContentListExtendFilters(
+  filter: Record<string, unknown>,
+  query: ContentListQuery
+): void {
+  applyCategoryFilter(filter, query.category);
+  applyArtistFilter(filter, query.artist);
+}
+
+/** Category slug only (polls, resources, testimonies, etc.). */
+export function applyCategoryOnlyExtendFilters(
+  filter: Record<string, unknown>,
+  query: ContentListQuery
+): void {
+  applyCategoryFilter(filter, query.category);
+}
+
+/** Marketplace product category (ObjectId on Product.category). */
+export function applyMarketplaceCategoryFilter(
+  filter: Record<string, unknown>,
+  category: string | undefined
+): void {
+  const id = category?.trim();
+  if (!id || id === FILTER_ALL || !isValidObjectId(id)) return;
+  filter.category = new mongoose.Types.ObjectId(id);
+}
+
+/** Content category admin list: isActive query (active | inactive). */
+export function applyIsActiveQueryFilter(
+  filter: Record<string, unknown>,
+  isActive: string | undefined
+): void {
+  const value = isActive?.trim();
+  if (value === 'active') filter.isActive = true;
+  else if (value === 'inactive') filter.isActive = false;
+}
+
 /** Apply createdAt range for list endpoints that support startDate/endDate query params. */
 export function applyDateRangeFilter(
   filter: Record<string, unknown>,

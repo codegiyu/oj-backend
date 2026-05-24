@@ -7,6 +7,10 @@ import { generateUniqueSlug } from '../../utils/helpers';
 import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
 import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import { listAdminPollRows, findAdminPollById } from '../../repositories/admin/poll.repository';
+import {
+  applyCategoryOnlyExtendFilters,
+  type ContentListQuery,
+} from '../../services/admin/adminListFilters';
 
 function shapePollItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -28,14 +32,13 @@ function shapePollItem(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 export async function listAdminPolls(
-  request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
-  }>,
+  request: FastifyRequest<{ Querystring: ContentListQuery }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: ['createdAt', 'updatedAt', 'question', 'status'],
     searchFields: ['question', 'description'],
+    extendFilter: applyCategoryOnlyExtendFilters,
     listRows: listAdminPollRows,
     shapeItem: shapePollItem,
     collectionKey: 'polls',

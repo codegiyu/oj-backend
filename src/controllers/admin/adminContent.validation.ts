@@ -24,6 +24,7 @@ const listQuerystringProperties = {
   intent: { type: 'string' },
   startDate: { type: 'string' },
   endDate: { type: 'string' },
+  isActive: { type: 'string' },
 };
 
 /** Querystring for list endpoints (music, videos, news, devotionals, etc.) */

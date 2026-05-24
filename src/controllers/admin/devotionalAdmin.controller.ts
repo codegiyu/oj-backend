@@ -16,6 +16,10 @@ import {
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
 import { DEVOTIONAL_TYPES, type DevotionalType } from '../../lib/types/constants';
+import {
+  applyContentListExtendFilters,
+  type ContentListQuery,
+} from '../../services/admin/adminListFilters';
 
 const DEVOTIONAL_TYPES_SET = new Set<string>(DEVOTIONAL_TYPES);
 
@@ -107,14 +111,13 @@ function shapeDevotionalItem(raw: Record<string, unknown>): Record<string, unkno
 }
 
 export async function listAdminDevotionals(
-  request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
-  }>,
+  request: FastifyRequest<{ Querystring: ContentListQuery }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: ['createdAt', 'updatedAt', 'title', 'status', 'date', 'views', 'plays'],
     searchFields: ['title', 'content', 'excerpt', 'slug'],
+    extendFilter: applyContentListExtendFilters,
     listRows: listAdminDevotionalRows,
     shapeItem: shapeDevotionalItem,
     collectionKey: 'devotionals',

@@ -10,6 +10,11 @@ import {
   listAdminResourceRows,
   findAdminResourceById,
 } from '../../repositories/admin/resource.repository';
+import {
+  applyCategoryOnlyExtendFilters,
+  type ContentListQuery,
+} from '../../services/admin/adminListFilters';
+import { parseString } from '../../utils/helpers';
 
 function shapeResourceItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -38,14 +43,17 @@ function shapeResourceItem(raw: Record<string, unknown>): Record<string, unknown
 }
 
 export async function listAdminResources(
-  request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
-  }>,
+  request: FastifyRequest<{ Querystring: ContentListQuery }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: ['createdAt', 'updatedAt', 'title', 'status'],
     searchFields: ['title', 'description', 'slug'],
+    extendFilter: (filter, query) => {
+      applyCategoryOnlyExtendFilters(filter, query);
+      const type = parseString(query.type);
+      if (type && type !== 'all') filter.type = type;
+    },
     listRows: listAdminResourceRows,
     shapeItem: shapeResourceItem,
     collectionKey: 'resources',

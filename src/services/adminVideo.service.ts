@@ -5,7 +5,7 @@ import { leanIdToString, parseObjectId } from '../controllers/admin/admin.helper
 import { toArtistSummary } from '../controllers/artist/artist.helpers';
 import { findAdminVideoById, listAdminVideoRows } from '../repositories/admin/video.repository';
 import { parseAdminListQuery } from './admin/adminListQuery';
-import { applyCategoryFilter } from './admin/adminListFilters';
+import { applyCategoryFilter, applyArtistFilter } from './admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status', 'views', 'plays', 'downloads'];
 
@@ -101,6 +101,7 @@ export async function listAdminVideos(
       status?: string;
       sort?: string;
       category?: string;
+      artist?: string;
     };
   }>
 ): Promise<AdminVideoServiceResult> {
@@ -109,6 +110,7 @@ export async function listAdminVideos(
     searchFields: ['title', 'description', 'slug'],
   });
   applyCategoryFilter(filter, request.query.category);
+  applyArtistFilter(filter, request.query.artist);
   const { items, total } = await listAdminVideoRows({ filter, sort, skip, limit });
   const videos = items.map(shapeVideoItem);
 
