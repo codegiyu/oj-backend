@@ -3,23 +3,42 @@ import { addToCache } from '../../utils/cache';
 import { addJobToQueue } from '../../queues/main.queue';
 import { generateRandomString } from '../../utils/helpers';
 import { ENVIRONMENT } from '../../config/env';
+import {
+  buildPasswordAuthUrl,
+  RESET_LINK_EXPIRATION_SECONDS,
+  type AuthAccessType,
+  type PasswordAuthLinkTarget,
+} from '../../utils/authLinks';
 
-export type AccessType = 'client' | 'console';
+export type AccessType = AuthAccessType;
 
-export const RESET_LINK_EXPIRATION_SECONDS = 60 * 30; // 30 minutes
+export { RESET_LINK_EXPIRATION_SECONDS };
 
 export async function sendPasswordResetLink(options: {
   email: string;
   name: string;
   accessType: AccessType;
+  linkTarget?: PasswordAuthLinkTarget;
   expirationTime?: number;
 }): Promise<void> {
-  const { email, name, accessType, expirationTime = RESET_LINK_EXPIRATION_SECONDS } = options;
+  const {
+    email,
+    name,
+    accessType,
+    linkTarget = 'reset',
+    expirationTime = RESET_LINK_EXPIRATION_SECONDS,
+  } = options;
 
   const baseUrl =
     accessType === 'console' ? ENVIRONMENT.appUrls.adminAppUrl : ENVIRONMENT.appUrls.clientAppUrl;
   const resetToken = generateRandomString(10);
-  const resetLink = `${baseUrl.replace(/\/$/, '')}/auth/reset-password?email=${encodeURIComponent(email)}&scopeToken=${encodeURIComponent(resetToken)}`;
+  const resetLink = buildPasswordAuthUrl({
+    baseUrl,
+    accessType,
+    linkTarget,
+    email,
+    scopeToken: resetToken,
+  });
 
   const token = createOtpToken({ code: resetToken, scope: 'reset-password' }, expirationTime);
   await addToCache(`pers:${email}:reset-password` as `pers:${string}`, token, expirationTime);
