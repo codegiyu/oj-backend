@@ -11,7 +11,8 @@ import {
   listAdminQuerystringSchema,
   listAdminQuerystringWithVendorSchema,
   rejectBodySchema,
-  adminUsersSearchQuerystringSchema,
+  adminUsersQuerystringSchema,
+  adminUserPatchBodySchema,
 } from '../controllers/admin/adminContent.validation';
 
 import {
@@ -107,7 +108,13 @@ import {
   getAdminArtistDashboardStats,
 } from '../controllers/admin/artistAdmin.controller';
 
-import { searchAdminUsers } from '../controllers/admin/userAdmin.controller';
+import {
+  listOrSearchAdminUsers,
+  getAdminUser,
+  updateAdminUser,
+  approveAdminUserDeletion,
+  rejectAdminUserDeletion,
+} from '../controllers/admin/userAdmin.controller';
 
 import {
   listAdminResources,
@@ -177,8 +184,24 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
   registerPrivilegedAuditHook(app);
   app.get(
     '/users',
-    { ...opts, schema: adminUsersSearchQuerystringSchema },
-    catchAsync(searchAdminUsers)
+    { ...opts, schema: adminUsersQuerystringSchema },
+    catchAsync(listOrSearchAdminUsers)
+  );
+  app.get('/users/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminUser));
+  app.patch(
+    '/users/:id',
+    { ...opts, schema: { ...idParamSchema, ...adminUserPatchBodySchema } },
+    catchAsync(updateAdminUser)
+  );
+  app.post(
+    '/users/:id/approve-deletion',
+    { ...opts, schema: idParamSchema },
+    catchAsync(approveAdminUserDeletion)
+  );
+  app.post(
+    '/users/:id/reject-deletion',
+    { ...opts, schema: idParamSchema },
+    catchAsync(rejectAdminUserDeletion)
   );
 
   // Music

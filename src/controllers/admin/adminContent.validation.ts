@@ -101,13 +101,32 @@ export const createUpdateBodySchema: FastifySchema = {
   },
 };
 
-/** GET /admin/users — search platform users for content owner linking */
-export const adminUsersSearchQuerystringSchema: FastifySchema = {
+/** GET /admin/users — search (no page) or paginated list (page present) */
+export const adminUsersQuerystringSchema: FastifySchema = {
   querystring: {
     type: 'object',
     properties: {
       search: { type: 'string' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
+      page: { type: 'string', pattern: '^[0-9]+$' },
+      status: { type: 'string' },
+      sort: { type: 'string' },
     },
   },
 };
+
+/** PATCH /admin/users/:id */
+export const adminUserPatchBodySchema: FastifySchema = {
+  body: {
+    type: 'object',
+    properties: {
+      accountStatus: { type: 'string' },
+      artistId: { type: ['string', 'null'] },
+      vendorId: { type: ['string', 'null'] },
+    },
+    additionalProperties: false,
+  },
+};
+
+/** @deprecated use adminUsersQuerystringSchema */
+export const adminUsersSearchQuerystringSchema = adminUsersQuerystringSchema;
