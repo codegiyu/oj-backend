@@ -1,4 +1,5 @@
 import type { AppBranding } from '../../utils/branding';
+import { RESET_LINK_EXPIRATION_MINUTES } from '../../utils/authLinks';
 import type { ResetPasswordJobData } from '../../lib/types/queues';
 import { Body, Container, Head, Hr, Html, Img, Section, Text } from '@react-email/components';
 import { CodeOrLinkDisplay } from './components/CodeOrLinkDisplay';
@@ -60,9 +61,14 @@ export function ResetPasswordLink({
               Hello, {name ?? 'User'}!
             </Text>
             <Text style={paragraph}>
-              Use the link below to change your password. This link will expire in 10 minutes.
+              Use the link below to change your password. This link will expire in{' '}
+              {RESET_LINK_EXPIRATION_MINUTES} minutes.
             </Text>
-            <CodeOrLinkDisplay type="link" content={link} expiresIn={10} />
+            <CodeOrLinkDisplay
+              type="link"
+              content={link}
+              expiresIn={RESET_LINK_EXPIRATION_MINUTES}
+            />
             <Text style={signature}>
               Cheers, <br />
               ❤️
