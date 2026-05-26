@@ -36,6 +36,12 @@ export async function login(
   const valid = await authService.comparePassword(password, hasPassword);
 
   if (!valid) throw new AppError('Invalid email or password', 401);
+  if (admin.accountStatus === 'invited') {
+    throw new AppError(
+      'Your account invitation is pending. Use the link in your invitation email to set your password.',
+      403
+    );
+  }
   if (admin.accountStatus === 'suspended')
     throw new AppError('Your account has been suspended', 403);
   if (admin.accountStatus === 'deleted') throw new AppError('Account not found', 401);

@@ -1,5 +1,6 @@
 import type { InviteAdminJobData } from '../../lib/types/queues';
 import type { AppBranding } from '../../utils/branding';
+import { RESET_LINK_EXPIRATION_MINUTES } from '../../utils/authLinks';
 import { Body, Container, Head, Hr, Html, Img, Section, Text } from '@react-email/components';
 import { CodeOrLinkDisplay } from './components/CodeOrLinkDisplay';
 import {
@@ -122,9 +123,13 @@ export function InviteAdminTemplate({
             )}
             <Text style={paragraph}>
               Click the link below to accept your invitation and set up your account password. This
-              link will expire in 1 hour.
+              link will expire in {RESET_LINK_EXPIRATION_MINUTES} minutes.
             </Text>
-            <CodeOrLinkDisplay type="link" content={inviteLink} expiresIn={60} />
+            <CodeOrLinkDisplay
+              type="link"
+              content={inviteLink}
+              expiresIn={RESET_LINK_EXPIRATION_MINUTES}
+            />
             <Text style={signature}>
               Cheers, <br />
               ❤️ The {branding.name} Team

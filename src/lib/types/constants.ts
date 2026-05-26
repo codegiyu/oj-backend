@@ -45,6 +45,7 @@ export interface UserAuth {
     passwordChangedAt?: Date;
   };
   roles: AuthUserRole[];
+  permissions?: Permission[];
   lastLogin?: Date;
   refreshTokenJTI?: string;
   pushToken?: string;
@@ -290,6 +291,7 @@ export type Gender = (typeof GENDERS)[number];
 
 export const ACCOUNT_STATUSES = [
   'unverified',
+  'invited',
   'active',
   'suspended',
   'deleted',
