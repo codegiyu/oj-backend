@@ -20,7 +20,10 @@ vi.mock('../../src/config/env', () => ({
   },
 }));
 
-import { sendPasswordResetLink } from '../../src/controllers/auth/sendPasswordResetLink';
+import {
+  sendAdminInviteLink,
+  sendPasswordResetLink,
+} from '../../src/controllers/auth/sendPasswordResetLink';
 
 describe('sendPasswordResetLink', () => {
   beforeEach(() => {
@@ -44,6 +47,25 @@ describe('sendPasswordResetLink', () => {
     expect(createOtpToken).toHaveBeenCalledWith(
       { code: 'scope-token-10', scope: 'reset-password' },
       1800
+    );
+  });
+
+  it('enqueues invite email with accept-invite admin path', async () => {
+    await sendAdminInviteLink({
+      email: 'invite@oj.test',
+      firstName: 'Inv',
+      lastName: 'ited',
+      role: 'admin',
+      permissions: ['admin:read'],
+    });
+
+    expect(addJobToQueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'inviteAdmin',
+        to: 'invite@oj.test',
+        inviteLink:
+          'https://admin.oj.test/admin/auth/accept-invite/create-password?email=invite%40oj.test&scopeToken=scope-token-10',
+      })
     );
   });
 

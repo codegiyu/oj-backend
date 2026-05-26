@@ -141,8 +141,11 @@ export async function processPasswordChange(options: {
   const hashedPassword = await authService.hashPassword(password);
   if (!hashedPassword) throw new AppError('Failed to create password', 500);
 
+  const isInvitedAdmin =
+    accessType === 'console' && (user as ModelAdmin).accountStatus === 'invited';
   const currentHash = user.auth?.password?.value;
-  if (currentHash) {
+
+  if (currentHash && !isInvitedAdmin) {
     const same = await authService.comparePassword(password, currentHash);
     if (same) throw new AppError('New password cannot be the same as the current password', 400);
   }
@@ -155,14 +158,17 @@ export async function processPasswordChange(options: {
   await invalidateAuthCache(email, accessType === 'console' ? 'admin' : 'user');
 
   if (accessType === 'console') {
-    await Admin.findOneAndUpdate(
-      { email },
-      {
-        'auth.refreshTokenJTI': jti,
-        'auth.password.value': hashedPassword,
-        'auth.password.passwordChangedAt': new Date(),
-      }
-    );
+    const adminUpdate: Record<string, unknown> = {
+      'auth.refreshTokenJTI': jti,
+      'auth.password.value': hashedPassword,
+      'auth.password.passwordChangedAt': new Date(),
+    };
+
+    if (isInvitedAdmin) {
+      adminUpdate.accountStatus = 'active';
+    }
+
+    await Admin.findOneAndUpdate({ email }, adminUpdate);
   } else {
     await User.findOneAndUpdate(
       { email },

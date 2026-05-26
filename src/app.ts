@@ -21,6 +21,7 @@ import { registerPublicRoutes } from './routes/public.route';
 import { registerAdminPromotionRoutes } from './routes/promotionAdmin.route';
 import { registerAdminContentRoutes } from './routes/adminContent.route';
 import { registerAdminProfileRoutes } from './routes/adminProfile.route';
+import { registerAdminStaffRoutes } from './routes/adminStaff.route';
 import { API_V1_PREFIX } from './constants/apiVersion';
 import { registerPlugins } from './plugins';
 import { errorHandler } from './middleware/errorHandler.middleware';
@@ -75,6 +76,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerAdminPromotionRoutes, { prefix: `${API_V1_PREFIX}/admin` });
   await app.register(registerAdminContentRoutes, { prefix: `${API_V1_PREFIX}/admin` });
   await app.register(registerAdminProfileRoutes, { prefix: `${API_V1_PREFIX}/admin` });
+  await app.register(registerAdminStaffRoutes, { prefix: `${API_V1_PREFIX}/admin` });
 
   return app;
 };

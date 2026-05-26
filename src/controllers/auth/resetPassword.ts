@@ -39,9 +39,6 @@ export async function resetPassword(
   const user = await User.findOne({ email: emailLower }).lean();
 
   if (admin) {
-    if (!admin.auth?.password?.value) {
-      throw new AppError('Admin account does not have a password set yet', 400);
-    }
     await processPasswordChange({
       reply,
       request,
