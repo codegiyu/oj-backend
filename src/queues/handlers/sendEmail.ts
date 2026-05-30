@@ -11,12 +11,14 @@ import { EmailLog } from '../../models/emailLog';
 import { createEmailLog, updateEmailStatus } from '../../utils/emailTracking';
 import { logger } from '../../utils/logger';
 import { ENVIRONMENT } from '../../config/env';
-import type { JOB_TYPE, JobData } from '../../lib/types/queues';
+import type { JobData } from '../../lib/types/queues';
+
+type EmailJobType = 'verificationCode' | 'resetPassword' | 'notificationEmail' | 'inviteAdmin';
 
 type EmailTemplateProps = JobData & { branding: ReturnType<typeof getAppBranding> };
 
 const TEMPLATES: Record<
-  JOB_TYPE,
+  EmailJobType,
   {
     subject: string;
     template: (data: EmailTemplateProps) => ReactNode;
@@ -42,18 +44,19 @@ const TEMPLATES: Record<
 
 export async function sendEmail(job: Job<JobData>): Promise<void> {
   const data = job.data as JobData & { emailLogId?: string };
-  const { type, to, emailLogId } = data;
+  const emailType = data.type as EmailJobType;
+  const { to, emailLogId } = data as JobData & { to: string; emailLogId?: string };
   const jobId = job.id?.toString();
   const branding = getAppBranding();
   const from = `"${branding.email.fromName}" <${branding.email.from}>`;
-  const options = TEMPLATES[type];
+  const options = TEMPLATES[emailType];
 
   if (!options) {
-    logger.warn(`No email template for type: ${type}`);
+    logger.warn(`No email template for type: ${emailType}`);
     return;
   }
 
-  const subject = data.subject ?? options.subject;
+  const subject = (data as { subject?: string }).subject ?? options.subject;
   let emailLog: Awaited<ReturnType<typeof EmailLog.findOne>> = null;
 
   if (emailLogId) {
@@ -72,7 +75,7 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
   if (!emailLog && jobId) {
     emailLog = (await createEmailLog({
       jobId,
-      type: type,
+      type: emailType,
       to,
       from,
       subject,

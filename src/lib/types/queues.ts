@@ -3,6 +3,7 @@ export const JOB_TYPES = [
   'resetPassword',
   'notificationEmail',
   'inviteAdmin',
+  'extractMediaMetadata',
 ] as const;
 
 export type JOB_TYPE = (typeof JOB_TYPES)[number];
@@ -54,8 +55,20 @@ export interface InviteAdminJobData extends BaseEmailJobData {
   avatar?: string;
 }
 
+export type MediaMetadataEntityType = 'music' | 'video';
+export type MediaKind = 'audio' | 'video';
+
+export interface ExtractMediaMetadataJobData extends BaseJobData {
+  type: 'extractMediaMetadata';
+  entityType: MediaMetadataEntityType;
+  entityId: string;
+  mediaUrl: string;
+  mediaKind: MediaKind;
+}
+
 export type JobData =
   | OTPJobData
   | ResetPasswordJobData
   | NotificationEmailJobData
-  | InviteAdminJobData;
+  | InviteAdminJobData
+  | ExtractMediaMetadataJobData;
