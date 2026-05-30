@@ -41,6 +41,7 @@ import {
   FEATURED_TESTIMONIES_LIMIT,
   TRENDING_DEVOTIONALS_LIMIT,
   RELATED_DEVOTIONALS_LIMIT,
+  RECENT_PRAYER_REQUESTS_LIMIT,
 } from '../constants/pagination';
 import {
   isCompleteDevotional,
@@ -50,6 +51,7 @@ import {
   publishedResourceCompletenessFilter,
   publishedTextContentCompletenessFilter,
 } from '../utils/contentCompleteness';
+import { getAuthUser } from '../utils/getAuthUser';
 
 function pagination(page: number, limit: number, total: number) {
   return { page, limit, total, totalPages: Math.ceil(total / limit) };
@@ -66,6 +68,14 @@ function getVoterIdentifier(request: FastifyRequest): string {
   return `${ip}-${ua}`.slice(0, 200);
 }
 
+/** Prefer authenticated user id for dedupe; fall back to session voter id. */
+function getSolidarityIdentifier(request: FastifyRequest): string {
+  const auth = getAuthUser(request);
+  if (auth?.userId) return `user:${auth.userId}`;
+
+  return getVoterIdentifier(request);
+}
+
 // ----- GET /public/community -----
 export async function getCommunity(): Promise<{
   statusCode: number;
@@ -79,6 +89,7 @@ export async function getCommunity(): Promise<{
     questionsCount,
     pollsCount,
     resourcesCount,
+    artistsCount,
   ] = await Promise.all([
     devotionalRepo.countPublishedDevotionals(),
     testimonyRepo.countPublishedTestimonies(),
@@ -86,11 +97,13 @@ export async function getCommunity(): Promise<{
     askPastorRepo.countAskPastorQuestions(),
     pollRepo.countPolls(),
     resourceRepo.countPublishedResources(),
+    communityArtistRepo.countActiveCommunityArtists(),
   ]);
 
-  const [featuredTestimonies, trendingDevotionals] = await Promise.all([
+  const [featuredTestimonies, trendingDevotionals, recentPrayerRequests] = await Promise.all([
     testimonyRepo.findFeaturedTestimonies(FEATURED_TESTIMONIES_LIMIT),
     devotionalRepo.findTrendingDevotionals(TRENDING_DEVOTIONALS_LIMIT),
+    prayerRequestRepo.findRecentActivePrayerRequests(RECENT_PRAYER_REQUESTS_LIMIT),
   ]);
 
   return {
@@ -103,6 +116,7 @@ export async function getCommunity(): Promise<{
         askAPastor: questionsCount,
         polls: pollsCount,
         resources: resourcesCount,
+        artists: artistsCount,
         promoteYourContent: 0,
       },
       featuredTestimonies: (featuredTestimonies as unknown as Record<string, unknown>[]).map(
@@ -111,7 +125,9 @@ export async function getCommunity(): Promise<{
       trendingDevotionals: (trendingDevotionals as unknown as Record<string, unknown>[]).map(
         shapeDevotionalListItem
       ),
-      activeDiscussions: [],
+      recentPrayerRequests: (recentPrayerRequests as unknown as Record<string, unknown>[]).map(
+        shapePrayerRequestListItem
+      ),
     },
     message: 'Community data loaded.',
   };
@@ -600,5 +616,40 @@ export async function votePoll(
     statusCode: 200,
     data: { poll: shapePollDetail(updated as unknown as Record<string, unknown>) },
     message: 'Vote recorded.',
+  };
+}
+
+// ----- POST /public/prayer-requests/:idOrSlug/pray -----
+export async function sendPrayerForRequest(
+  request: FastifyRequest<{ Params: { idOrSlug: string } }>
+): Promise<{ statusCode: number; data: unknown; message: string }> {
+  const { idOrSlug } = request.params;
+
+  const prayerDoc = await prayerRequestRepo.findPrayerRequestByIdOrSlug(idOrSlug);
+  if (!prayerDoc) throw new AppError('Prayer request not found', 404);
+
+  const status = prayerDoc.status as string;
+  if (status !== 'active') throw new AppError('Prayer request is not active', 400);
+
+  const prayerRequestId = new mongoose.Types.ObjectId(String(prayerDoc._id));
+  const voterIdentifier = getSolidarityIdentifier(request);
+  const existing = await prayerRequestRepo.findPrayerSolidarity(prayerRequestId, voterIdentifier);
+
+  if (existing) {
+    throw new AppError('Already sent a prayer for this request', 409);
+  }
+
+  await prayerRequestRepo.createPrayerSolidarity({
+    prayerRequest: prayerRequestId,
+    voterIdentifier,
+  });
+
+  const prayers = await prayerRequestRepo.incrementPrayerCount(prayerRequestId);
+  if (prayers == null) throw new AppError('Prayer request not found', 404);
+
+  return {
+    statusCode: 200,
+    data: { prayers },
+    message: 'Prayer sent.',
   };
 }

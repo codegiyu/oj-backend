@@ -197,3 +197,10 @@ export async function votePoll(
 ): Promise<void> {
   await respond(reply, await communityService.votePoll(request));
 }
+
+export async function sendPrayerForRequest(
+  request: FastifyRequest<{ Params: { idOrSlug: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.sendPrayerForRequest(request));
+}
