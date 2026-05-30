@@ -1,23 +1,27 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import { Vendor } from '../../models/vendor';
+import { User } from '../../models/user';
 import { addJobToQueue } from '../../queues/main.queue';
 import { Product } from '../../models/product';
 import { Order } from '../../models/order';
 import { Category } from '../../models/category';
 import { SubCategory } from '../../models/subCategory';
-import { ModelProduct, PopulatedOrder } from '../../lib/types/constants';
+import { ModelProduct, PopulatedOrder, IVendor, IUser } from '../../lib/types/constants';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { mapPopulatedOrderToApi } from '../../utils/mapPopulatedOrder';
 import {
-  slugify,
+  generateUniqueSlug,
   parsePositiveInteger,
   parseSearch,
   parseString,
   normalizeSort,
 } from '../../utils/helpers';
+import { shapeMarketplaceProductRow } from '../../utils/marketplaceProductShape';
+import { serializeDocIds } from '../artist/artist.helpers';
+import { findVariantBySku } from '../../utils/marketplaceProduct';
 
 function buildWhatsappMessage(order: PopulatedOrder): { message: string; link?: string } {
   const customer = order.customer;
@@ -116,22 +120,61 @@ export async function getSubCategories(
   sendResponse(reply, 200, { subcategories }, 'Subcategories loaded.');
 }
 
-export async function getVendors(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const vendors = await Vendor.find({ status: 'active' })
-    .lean()
-    .then(async list => {
-      const withCount = await Promise.all(
-        list.map(async v => {
-          const count = await Product.countDocuments({
-            vendor: v._id,
-            status: 'published',
-          });
-          return { ...v, productCount: count };
-        })
-      );
-      return withCount;
-    });
-  sendResponse(reply, 200, { vendors }, 'Vendors loaded.');
+export async function getVendors(
+  request: FastifyRequest<{
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      q?: string;
+    };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const limit = parsePositiveInteger(request.query.limit, 20, 50);
+  const page = parsePositiveInteger(request.query.page, 1, 1000);
+  const skip = (page - 1) * limit;
+  const search = parseSearch(request.query.search ?? request.query.q);
+
+  const filter: Record<string, unknown> = { status: 'active' };
+  if (search) {
+    filter.$or = [
+      { storeName: { $regex: search, $options: 'i' } },
+      { name: { $regex: search, $options: 'i' } },
+      { slug: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  const [vendors, total] = await Promise.all([
+    Vendor.find(filter).sort({ storeName: 1, name: 1 }).skip(skip).limit(limit).lean(),
+    Vendor.countDocuments(filter),
+  ]);
+
+  const list = await Promise.all(
+    vendors.map(async v => {
+      const productCount = await Product.countDocuments({
+        vendor: v._id,
+        status: 'published',
+      });
+      return { ...v, productCount };
+    })
+  );
+
+  sendResponse(
+    reply,
+    200,
+    {
+      vendors: list,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+    },
+    'Vendors loaded.'
+  );
 }
 
 export async function getVendorBySlug(
@@ -159,6 +202,7 @@ export async function getProducts(
     Querystring: {
       category?: string;
       subCategory?: string;
+      vendor?: string;
       featured?: string;
       limit?: string;
       page?: string;
@@ -171,6 +215,7 @@ export async function getProducts(
 ): Promise<void> {
   const categorySlugOrId = request.query.category;
   const subCategorySlugOrId = request.query.subCategory;
+  const vendorSlugOrId = request.query.vendor;
   const featured = request.query.featured === 'true';
   const limit = parsePositiveInteger(request.query.limit, 20, 50);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
@@ -229,6 +274,41 @@ export async function getProducts(
     filter.subCategory = subCategoryId;
   }
   if (featured) filter.isFeatured = true;
+
+  if (vendorSlugOrId) {
+    let vendorId: mongoose.Types.ObjectId | undefined;
+
+    if (mongoose.Types.ObjectId.isValid(vendorSlugOrId)) {
+      vendorId = new mongoose.Types.ObjectId(vendorSlugOrId);
+    } else {
+      const vendor = await Vendor.findOne({ slug: vendorSlugOrId, status: 'active' })
+        .select('_id')
+        .lean<{ _id: mongoose.Types.ObjectId } | null>();
+
+      if (!vendor) {
+        sendResponse(
+          reply,
+          200,
+          {
+            products: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+              totalPages: 1,
+            },
+          },
+          'Products loaded.'
+        );
+        return;
+      }
+
+      vendorId = vendor._id;
+    }
+
+    filter.vendor = vendorId;
+  }
+
   if (search) {
     filter.$or = [
       { name: { $regex: search, $options: 'i' } },
@@ -249,48 +329,9 @@ export async function getProducts(
     Product.countDocuments(filter),
   ]);
 
-  const list = products.map(p => {
-    const row = p;
-    const v = row.vendor as {
-      _id?: mongoose.Types.ObjectId;
-      storeName?: string;
-      slug?: string;
-      whatsapp?: string;
-    } | null;
-    const c = row.category as {
-      _id?: mongoose.Types.ObjectId;
-      name?: string;
-      slug?: string;
-    } | null;
-    const s = row.subCategory as {
-      _id?: mongoose.Types.ObjectId;
-      name?: string;
-      slug?: string;
-      category?: mongoose.Types.ObjectId;
-    } | null;
-    return {
-      ...row,
-      vendorName: v?.storeName,
-      vendorSlug: v?.slug,
-      vendorWhatsapp: v?.whatsapp,
-      vendor: (v?._id ?? row.vendor)?.toString(),
-      category: c
-        ? {
-            _id: c._id?.toString(),
-            name: c.name,
-            slug: c.slug,
-          }
-        : undefined,
-      subCategory: s
-        ? {
-            _id: s._id?.toString(),
-            name: s.name,
-            slug: s.slug,
-            category: s.category?.toString(),
-          }
-        : undefined,
-    };
-  });
+  const list = products.map(p =>
+    shapeMarketplaceProductRow(p as unknown as Record<string, unknown>)
+  );
 
   sendResponse(
     reply,
@@ -321,40 +362,11 @@ export async function getProductBySlug(
     .populate('subCategory', 'name slug category')
     .lean();
   if (!product) throw new AppError('Product not found', 404);
-  const p = product as unknown as Record<string, unknown>;
-  const v = p.vendor as { storeName?: string; slug?: string; whatsapp?: string } | null;
-  const c = p.category as { _id?: mongoose.Types.ObjectId; name?: string; slug?: string } | null;
-  const s = p.subCategory as {
-    _id?: mongoose.Types.ObjectId;
-    name?: string;
-    slug?: string;
-    category?: mongoose.Types.ObjectId;
-  } | null;
+
   sendResponse(
     reply,
     200,
-    {
-      ...p,
-      vendorName: v?.storeName,
-      vendorSlug: v?.slug,
-      vendorWhatsapp: v?.whatsapp,
-      vendor: (p.vendor as mongoose.Types.ObjectId)?.toString(),
-      category: c
-        ? {
-            _id: c._id?.toString(),
-            name: c.name,
-            slug: c.slug,
-          }
-        : undefined,
-      subCategory: s
-        ? {
-            _id: s._id?.toString(),
-            name: s.name,
-            slug: s.slug,
-            category: s.category?.toString(),
-          }
-        : undefined,
-    },
+    shapeMarketplaceProductRow(product as unknown as Record<string, unknown>),
     'Product loaded.'
   );
 }
@@ -375,23 +387,48 @@ export async function becomeVendor(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const body = request.body;
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const baseSlug = slugify(body.storeName);
-  let slug = baseSlug;
-  let n = 0;
-  while (await Vendor.findOne({ slug })) {
-    n += 1;
-    slug = `${baseSlug}-${n}`;
+  if (!mongoose.Types.ObjectId.isValid(auth.userId)) {
+    throw new AppError('Invalid user id', 400);
   }
-  const vendor = await Vendor.create({
-    name: body.storeName,
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+  const body = request.body;
+  const storeName = typeof body.storeName === 'string' ? body.storeName.trim() : '';
+  if (!storeName) {
+    throw new AppError('Store name is required', 400);
+  }
+
+  const user = await User.findById(userId)
+    .select('vendorId')
+    .lean<Pick<IUser, '_id' | 'vendorId'> | null>();
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  if (user.vendorId) {
+    throw new AppError('You already have a vendor profile', 409);
+  }
+
+  const linkedVendor = await Vendor.findOne({ user: userId }).lean<IVendor | null>();
+  if (linkedVendor) {
+    await User.updateOne({ _id: userId }, { $set: { vendorId: linkedVendor._id } });
+    const serialized = serializeDocIds(linkedVendor as unknown as Record<string, unknown>);
+    sendResponse(reply, 200, { vendor: serialized }, 'Vendor profile linked.');
+    return;
+  }
+
+  const slug = await generateUniqueSlug(Vendor, storeName);
+
+  const vendorDoc = await Vendor.create({
+    user: userId,
+    name: storeName,
     slug,
     email: body.email.toLowerCase(),
     phone: body.phone,
-    storeName: body.storeName,
+    storeName,
     storeDescription: body.storeDescription ?? '',
     whatsapp: body.whatsapp ?? '',
     address: body.address ?? '',
@@ -401,32 +438,48 @@ export async function becomeVendor(
     status: 'pending',
     isVerified: false,
   });
-  sendResponse(reply, 201, { vendor: vendor.toObject() }, 'Application received.');
+
+  const linked = await User.findOneAndUpdate(
+    { _id: userId, vendorId: null },
+    { $set: { vendorId: vendorDoc._id } },
+    { new: true }
+  );
+
+  if (!linked) {
+    await Vendor.deleteOne({ _id: vendorDoc._id });
+    throw new AppError('You already have a vendor profile', 409);
+  }
+
+  const serialized = serializeDocIds(vendorDoc.toObject() as unknown as Record<string, unknown>);
+  sendResponse(reply, 201, { vendor: serialized }, 'Application received.');
 }
 
-function findVariantBySku(
-  product: ModelProduct,
-  sku: string | undefined
-): { sku: string; price: number; inStock: boolean; options: Record<string, string> } | null {
-  if (!product.variants?.length || !sku || String(sku).trim() === '') {
-    return null;
+async function setBooleanInventoryAfterOrder(
+  orderItems: Array<{ product: mongoose.Types.ObjectId; sku?: string }>
+): Promise<void> {
+  for (const { product: productId, sku } of orderItems) {
+    const doc = await Product.findById(productId);
+    if (!doc) continue;
+
+    if (doc.variants?.length && sku) {
+      const skuUpper = String(sku).toUpperCase();
+      const idx = doc.variants.findIndex(v => (v.sku ?? '').toUpperCase() === skuUpper);
+      if (idx < 0) continue;
+
+      doc.variants[idx].inStock = false;
+      await doc.save();
+    } else if (!doc.variants?.length) {
+      doc.inStock = false;
+      await doc.save();
+    }
   }
-  const skuUpper = String(sku).toUpperCase();
-  const variant = product.variants.find(v => (v.sku ?? '').toUpperCase() === skuUpper);
-  return variant
-    ? {
-        sku: variant.sku ?? skuUpper,
-        price: variant.price,
-        inStock: variant.inStock,
-        options: variant.options,
-      }
-    : null;
 }
 
 export async function placeOrder(
   request: FastifyRequest<{
     Body: {
       customer: { name: string; email: string; phone: string; address?: string };
+      notes?: string;
       items: Array<{
         productId: string;
         productName?: string;
@@ -438,7 +491,7 @@ export async function placeOrder(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { customer, items } = request.body;
+  const { customer, items, notes } = request.body;
   if (!items.length) throw new AppError('At least one item is required', 400);
 
   const productIds = items.map(i => i.productId);
@@ -446,7 +499,7 @@ export async function placeOrder(
     _id: { $in: productIds.map(id => new mongoose.Types.ObjectId(id)) },
     status: 'published',
   })
-    .populate('vendor', 'name storeName slug phone whatsapp')
+    .populate('vendor', 'name storeName slug phone whatsapp email')
     .lean<ModelProduct[]>();
 
   const productMap = new Map<string, ModelProduct>();
@@ -520,6 +573,17 @@ export async function placeOrder(
         selectedOptions: variant.options,
       });
     } else {
+      const dbPrice = Number(prod.price);
+      if (item.price !== dbPrice) {
+        throw new AppError(
+          `Price for product ${item.productId} does not match. Expected ${dbPrice}, got ${item.price}.`,
+          400
+        );
+      }
+      if (prod.inStock === false) {
+        throw new AppError(`Product ${item.productId} is not in stock.`, 400);
+      }
+
       const itemTotal = item.price * item.quantity;
       bucket.totalAmount += itemTotal;
       bucket.items.push({
@@ -557,11 +621,15 @@ export async function placeOrder(
       vendor: vendorId,
       items: vendorItems,
       totalAmount,
+      notes: notes?.trim() ? notes.trim() : '',
       status: 'pending',
       paymentStatus: 'pending',
     });
+
+    await setBooleanInventoryAfterOrder(vendorItems);
+
     const created = await Order.findById(order._id)
-      .populate('vendor', 'name storeName slug phone whatsapp')
+      .populate('vendor', 'name storeName slug phone whatsapp email')
       .populate('items.product', 'name slug images')
       .lean<PopulatedOrder | null>();
 
@@ -570,13 +638,21 @@ export async function placeOrder(
     }
 
     const { message, link } = buildWhatsappMessage(created);
-    const v = created?.vendor as { whatsapp?: string } | mongoose.Types.ObjectId | null | undefined;
+    const v = created?.vendor as
+      | { email?: string; whatsapp?: string }
+      | mongoose.Types.ObjectId
+      | null
+      | undefined;
+    const vendorEmail =
+      v && typeof v === 'object' && !(v instanceof mongoose.Types.ObjectId) && v.email
+        ? String(v.email).trim()
+        : '';
 
-    if (v && typeof v === 'object' && 'whatsapp' in v && v.whatsapp) {
+    if (vendorEmail && vendorEmail.includes('@')) {
       try {
         await addJobToQueue({
           type: 'notificationEmail',
-          to: (v as { whatsapp: string }).whatsapp,
+          to: vendorEmail,
           userModel: 'User',
           title: 'New marketplace order',
           message,
@@ -639,7 +715,7 @@ export async function getMyOrders(
 
   const [orders, total] = await Promise.all([
     Order.find(filter)
-      .populate('vendor', 'name storeName slug')
+      .populate('vendor', 'name storeName slug phone whatsapp')
       .populate('items.product', 'name slug price images')
       .sort(sortStr)
       .skip(skip)
@@ -648,7 +724,15 @@ export async function getMyOrders(
     Order.countDocuments(filter),
   ]);
 
-  const list = orders.map(o => mapPopulatedOrderToApi(o));
+  const list = orders.map(o => {
+    const shaped = mapPopulatedOrderToApi(o);
+    const { link } = buildWhatsappMessage(o);
+
+    return {
+      ...shaped,
+      whatsappLink: link ?? null,
+    };
+  });
   sendResponse(
     reply,
     200,

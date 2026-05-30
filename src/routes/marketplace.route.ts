@@ -15,6 +15,7 @@ import {
 } from '../controllers/marketplace/marketplace.controller';
 import {
   listProductsQuerystringSchema,
+  listVendorsQuerystringSchema,
   listOrdersQuerystringSchema,
   becomeVendorBodySchema,
   placeOrderBodySchema,
@@ -23,10 +24,27 @@ import {
 export function registerMarketplaceRoutes(app: FastifyInstance): void {
   app.get('/categories', catchAsync(getCategories));
   app.get('/subcategories', catchAsync(getSubCategories));
-  app.get('/vendors', catchAsync(getVendors));
+  app.get<{
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      q?: string;
+    };
+  }>('/vendors', { schema: listVendorsQuerystringSchema }, catchAsync(getVendors));
   app.get<{ Params: { slug: string } }>('/vendors/:slug', catchAsync(getVendorBySlug));
   app.get<{
-    Querystring: { category?: string; featured?: string; limit?: string; page?: string };
+    Querystring: {
+      category?: string;
+      subCategory?: string;
+      vendor?: string;
+      featured?: string;
+      limit?: string;
+      page?: string;
+      search?: string;
+      q?: string;
+      sort?: string;
+    };
   }>('/products', { schema: listProductsQuerystringSchema }, catchAsync(getProducts));
   app.get<{ Params: { slug: string } }>('/products/:slug', catchAsync(getProductBySlug));
   app.post<{
@@ -41,7 +59,11 @@ export function registerMarketplaceRoutes(app: FastifyInstance): void {
       bankAccountNumber?: string;
       bankName?: string;
     };
-  }>('/become-vendor', { schema: becomeVendorBodySchema }, catchAsync(becomeVendor));
+  }>(
+    '/become-vendor',
+    { preHandler: [authenticatePreHandler], schema: becomeVendorBodySchema },
+    catchAsync(becomeVendor)
+  );
   app.post<{
     Body: {
       customer: { name: string; email: string; phone: string; address?: string };
