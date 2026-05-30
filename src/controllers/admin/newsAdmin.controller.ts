@@ -10,6 +10,11 @@ import {
   schedulePublishedContentRevalidation,
   scheduleFrontendRevalidation,
 } from '../../services/frontendRevalidation.service';
+import {
+  assertNewsPriority,
+  assertPublishableContentTaxonomy,
+  normalizeTags,
+} from '../../utils/contentTaxonomyValidation';
 
 function hasArticleVideoMedia(b: { videoFileUrl?: unknown; embedUrl?: unknown }): boolean {
   const vf = typeof b.videoFileUrl === 'string' ? b.videoFileUrl.trim() : '';
@@ -46,6 +51,8 @@ export async function createAdminNews(
       coverImage?: string;
       images?: string[];
       category?: string;
+      tags?: string[];
+      priority?: number;
       author?: string;
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
@@ -67,6 +74,17 @@ export async function createAdminNews(
   const slug = await generateUniqueSlug(NewsArticle, body.title.trim());
 
   const hasVideo = body.hasVideo !== undefined ? body.hasVideo : hasArticleVideoMedia(body);
+  const status = body.status ?? 'draft';
+  const category = body.category ?? '';
+  const tags = normalizeTags(body.tags) ?? [];
+  const priority = assertNewsPriority(body.priority);
+
+  await assertPublishableContentTaxonomy({
+    scope: 'news',
+    category,
+    tags,
+    status,
+  });
 
   const news = await NewsArticle.create({
     title: body.title.trim(),
@@ -79,16 +97,18 @@ export async function createAdminNews(
     videoFileUrl: body.videoFileUrl ?? '',
     embedUrl: body.embedUrl ?? '',
     downloadUrl: body.downloadUrl ?? '',
-    category: body.category ?? '',
+    category,
+    tags,
+    priority,
     author: body.author ?? '',
-    status: body.status ?? 'draft',
+    status,
     isFeatured: body.isFeatured ?? false,
     displayOrder: body.displayOrder ?? 0,
     hasVideo,
   });
 
   const populated = await NewsArticle.findById(news._id).lean();
-  if ((body.status ?? 'draft') === 'published') {
+  if (status === 'published') {
     schedulePublishedContentRevalidation('news_item', String(news._id));
   }
   sendResponse(
@@ -109,6 +129,8 @@ export async function updateAdminNews(
       coverImage?: string;
       images?: string[];
       category?: string;
+      tags?: string[];
+      priority?: number;
       author?: string;
       status?: 'draft' | 'published' | 'archived';
       isFeatured?: boolean;
@@ -138,6 +160,8 @@ export async function updateAdminNews(
   if (body.embedUrl !== undefined) news.embedUrl = body.embedUrl;
   if (body.downloadUrl !== undefined) news.downloadUrl = body.downloadUrl;
   if (body.category !== undefined) news.category = body.category;
+  if (body.tags !== undefined) news.tags = normalizeTags(body.tags) ?? [];
+  if (body.priority !== undefined) news.priority = assertNewsPriority(body.priority);
   if (body.author !== undefined) news.author = body.author;
   if (body.status !== undefined) news.status = body.status;
   if (body.isFeatured !== undefined) news.isFeatured = body.isFeatured;
@@ -149,6 +173,13 @@ export async function updateAdminNews(
       embedUrl: news.embedUrl,
     });
   }
+
+  await assertPublishableContentTaxonomy({
+    scope: 'news',
+    category: news.category,
+    tags: news.tags,
+    status: news.status,
+  });
 
   await news.save();
 

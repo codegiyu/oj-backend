@@ -24,6 +24,15 @@ import {
   resolveMonetizationPrice,
 } from '../../utils/monetizationValidation';
 import { coalesceMusicDownloadUrl } from '../../utils/musicDownloadUrl';
+import {
+  enqueueMediaMetadataProbe,
+  shouldEnqueueMetadataProbe,
+} from '../../utils/mediaMetadataEnqueue';
+import {
+  assertMediaMetadata,
+  assertPublishableContentTaxonomy,
+  normalizeTags,
+} from '../../utils/contentTaxonomyValidation';
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -63,6 +72,8 @@ export async function createAdminMusic(
       downloadUrl?: string;
       excerpt?: string;
       category?: string;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
       isMonetizable?: boolean;
       price?: number;
       status?: 'draft' | 'published' | 'archived';
@@ -74,9 +85,20 @@ export async function createAdminMusic(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body;
+  const status = body.status ?? 'draft';
+  const category = body.category ?? '';
+  const tags = normalizeTags(body.tags) ?? [];
+  const metadata = assertMediaMetadata(body.metadata);
   const isMonetizable = body.isMonetizable ?? false;
 
   assertMonetizationPrice(isMonetizable, body.price ?? 0);
+
+  await assertPublishableContentTaxonomy({
+    scope: 'music',
+    category,
+    tags,
+    status,
+  });
 
   const resolvedArtistId = await resolveArtistIdForAdminContent({
     ownerUserId: body.ownerUserId,
@@ -107,8 +129,10 @@ export async function createAdminMusic(
     videoUrl: body.videoUrl ?? '',
     downloadUrl: coalesceMusicDownloadUrl(body.audioUrl, body.downloadUrl),
     excerpt: body.excerpt ?? '',
-    category: body.category ?? '',
-    status: body.status ?? 'draft',
+    category,
+    tags,
+    metadata,
+    status,
     isMonetizable,
     price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
     isFeatured: false,
@@ -120,6 +144,26 @@ export async function createAdminMusic(
 
   const populated = await Music.findById(music._id).populate(artistPopulate).lean();
   const payload = shapeMusicItem((populated ?? music) as unknown as Record<string, unknown>);
+  const musicId = String(music._id);
+
+  if (shouldEnqueueMetadataProbe('', body.audioUrl ?? '')) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'music',
+      entityId: musicId,
+      mediaUrl: body.audioUrl ?? '',
+      mediaKind: 'audio',
+    });
+  }
+
+  if (shouldEnqueueMetadataProbe('', body.videoUrl ?? '')) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'music',
+      entityId: musicId,
+      mediaUrl: body.videoUrl ?? '',
+      mediaKind: 'video',
+    });
+  }
+
   if ((body.status ?? 'draft') === 'published') {
     schedulePublishedContentRevalidation('music_item', String(music._id));
   }
@@ -139,6 +183,8 @@ export async function updateAdminMusic(
       downloadUrl?: string;
       excerpt?: string;
       category?: string;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
       status?: 'draft' | 'published' | 'archived';
       isMonetizable?: boolean;
       price?: number;
@@ -154,6 +200,8 @@ export async function updateAdminMusic(
   if (!music) throw new AppError('Music not found', 404);
 
   const body = request.body ?? {};
+  const prevAudioUrl = music.audioUrl;
+  const prevVideoUrl = music.videoUrl;
   const nextMonetizable = body.isMonetizable ?? music.isMonetizable ?? false;
   const nextPrice =
     body.price !== undefined
@@ -192,13 +240,42 @@ export async function updateAdminMusic(
   }
   if (body.excerpt !== undefined) music.excerpt = body.excerpt;
   if (body.category !== undefined) music.category = body.category;
+  if (body.tags !== undefined) music.tags = normalizeTags(body.tags) ?? [];
+  if (body.metadata !== undefined) music.metadata = assertMediaMetadata(body.metadata);
   if (body.status !== undefined) music.status = body.status;
   if (body.isMonetizable !== undefined) music.isMonetizable = body.isMonetizable;
   if (body.price !== undefined || body.isMonetizable !== undefined) {
     music.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? music.price, music.price);
   }
 
+  await assertPublishableContentTaxonomy({
+    scope: 'music',
+    category: music.category,
+    tags: music.tags,
+    status: music.status,
+  });
+
   await music.save();
+
+  const musicId = String(music._id);
+
+  if (body.audioUrl !== undefined && shouldEnqueueMetadataProbe(prevAudioUrl, body.audioUrl)) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'music',
+      entityId: musicId,
+      mediaUrl: body.audioUrl,
+      mediaKind: 'audio',
+    });
+  }
+
+  if (body.videoUrl !== undefined && shouldEnqueueMetadataProbe(prevVideoUrl, body.videoUrl)) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'music',
+      entityId: musicId,
+      mediaUrl: body.videoUrl,
+      mediaKind: 'video',
+    });
+  }
 
   const populated = await Music.findById(music._id).populate(artistPopulate).lean();
   if (music.status === 'published') {

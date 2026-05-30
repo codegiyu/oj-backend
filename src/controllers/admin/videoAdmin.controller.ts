@@ -16,6 +16,15 @@ import {
   assertMonetizationPrice,
   resolveMonetizationPrice,
 } from '../../utils/monetizationValidation';
+import {
+  assertMediaMetadata,
+  assertPublishableContentTaxonomy,
+  normalizeTags,
+} from '../../utils/contentTaxonomyValidation';
+import {
+  enqueueMediaMetadataProbe,
+  shouldEnqueueMetadataProbe,
+} from '../../utils/mediaMetadataEnqueue';
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -53,6 +62,8 @@ export async function createAdminVideo(
       videoFileUrl?: string;
       embedUrl?: string;
       category?: string;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
       isMonetizable?: boolean;
       price?: number;
       status?: 'draft' | 'published' | 'archived';
@@ -63,9 +74,20 @@ export async function createAdminVideo(
   reply: FastifyReply
 ): Promise<void> {
   const body = request.body;
+  const status = body.status ?? 'draft';
+  const category = body.category ?? '';
+  const tags = normalizeTags(body.tags) ?? [];
+  const metadata = assertMediaMetadata(body.metadata);
   const isMonetizable = body.isMonetizable ?? false;
 
   assertMonetizationPrice(isMonetizable, body.price ?? 0);
+
+  await assertPublishableContentTaxonomy({
+    scope: 'video',
+    category,
+    tags,
+    status,
+  });
 
   const resolvedArtistId = await resolveArtistIdForAdminContent({
     ownerUserId: body.ownerUserId,
@@ -89,8 +111,10 @@ export async function createAdminVideo(
     videoFileUrl: fileStored,
     embedUrl: embedStored,
     videoUrl: fileStored || legacyVu,
-    category: body.category ?? '',
-    status: body.status ?? 'draft',
+    category,
+    tags,
+    metadata,
+    status,
     isMonetizable,
     price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
     isFeatured: false,
@@ -101,6 +125,18 @@ export async function createAdminVideo(
   });
 
   const populated = await Video.findById(video._id).populate(artistPopulate).lean();
+  const videoId = String(video._id);
+  const probeUrl = fileStored || (legacyVu && !isLikelyYoutubeUrl(legacyVu) ? legacyVu : '');
+
+  if (shouldEnqueueMetadataProbe('', probeUrl)) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'video',
+      entityId: videoId,
+      mediaUrl: probeUrl,
+      mediaKind: 'video',
+    });
+  }
+
   sendResponse(
     reply,
     201,
@@ -120,6 +156,8 @@ export async function updateAdminVideo(
       videoFileUrl?: string;
       embedUrl?: string;
       category?: string;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
       status?: 'draft' | 'published' | 'archived';
       isMonetizable?: boolean;
       price?: number;
@@ -134,6 +172,8 @@ export async function updateAdminVideo(
   if (!video) throw new AppError('Video not found', 404);
 
   const body = request.body ?? {};
+  const prevVideoFileUrl = video.videoFileUrl;
+  const prevVideoUrl = video.videoUrl;
   const nextMonetizable = body.isMonetizable ?? video.isMonetizable ?? false;
   const nextPrice =
     body.price !== undefined
@@ -157,13 +197,47 @@ export async function updateAdminVideo(
   if (body.videoUrl !== undefined && body.videoFileUrl === undefined)
     video.videoUrl = body.videoUrl;
   if (body.category !== undefined) video.category = body.category;
+  if (body.tags !== undefined) video.tags = normalizeTags(body.tags) ?? [];
+  if (body.metadata !== undefined) video.metadata = assertMediaMetadata(body.metadata);
   if (body.status !== undefined) video.status = body.status;
   if (body.isMonetizable !== undefined) video.isMonetizable = body.isMonetizable;
   if (body.price !== undefined || body.isMonetizable !== undefined) {
     video.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? video.price, video.price);
   }
 
+  await assertPublishableContentTaxonomy({
+    scope: 'video',
+    category: video.category,
+    tags: video.tags,
+    status: video.status,
+  });
+
   await video.save();
+
+  const videoId = String(video._id);
+
+  if (
+    body.videoFileUrl !== undefined &&
+    shouldEnqueueMetadataProbe(prevVideoFileUrl, body.videoFileUrl)
+  ) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'video',
+      entityId: videoId,
+      mediaUrl: video.videoFileUrl ?? '',
+      mediaKind: 'video',
+    });
+  } else if (
+    body.videoUrl !== undefined &&
+    body.videoFileUrl === undefined &&
+    shouldEnqueueMetadataProbe(prevVideoUrl, body.videoUrl)
+  ) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'video',
+      entityId: videoId,
+      mediaUrl: body.videoUrl,
+      mediaKind: 'video',
+    });
+  }
 
   const populated = await Video.findById(video._id).populate(artistPopulate).lean();
   sendResponse(

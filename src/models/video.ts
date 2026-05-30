@@ -12,6 +12,8 @@ const videoSchema = new Schema<ModelVideo>(
     videoFileUrl: { type: String, default: '' },
     embedUrl: { type: String, default: '' },
     category: { type: String, default: '', index: true },
+    tags: { type: [String], default: [] },
+    metadata: { type: Schema.Types.Mixed, default: {} },
     status: {
       type: String,
       enum: ['draft', 'published', 'archived'],
