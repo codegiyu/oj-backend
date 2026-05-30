@@ -8,6 +8,10 @@ import { requireAdmin, parseObjectId } from './admin.helpers';
 import * as adminMusicService from '../../services/adminMusic.service';
 import { shapeMusicItem } from '../../services/adminMusic.service';
 import {
+  schedulePublishedContentRevalidation,
+  scheduleFrontendRevalidation,
+} from '../../services/frontendRevalidation.service';
+import {
   resolveArtistIdForAdminContent,
   applyContentOwnershipUpdate,
 } from '../../services/contentOwner.service';
@@ -115,6 +119,9 @@ export async function createAdminMusic(
 
   const populated = await Music.findById(music._id).populate(artistPopulate).lean();
   const payload = shapeMusicItem((populated ?? music) as unknown as Record<string, unknown>);
+  if ((body.status ?? 'draft') === 'published') {
+    schedulePublishedContentRevalidation('music_item', String(music._id));
+  }
   sendResponse(reply, 201, { music: payload }, 'Music created.');
 }
 
@@ -187,6 +194,9 @@ export async function updateAdminMusic(
   await music.save();
 
   const populated = await Music.findById(music._id).populate(artistPopulate).lean();
+  if (music.status === 'published') {
+    schedulePublishedContentRevalidation('music_item', String(music._id));
+  }
   sendResponse(
     reply,
     200,
@@ -204,6 +214,7 @@ export async function deleteAdminMusic(
   const id = parseObjectId(request.params.id);
   const result = await Music.findByIdAndDelete(id);
   if (!result) throw new AppError('Music not found', 404);
+  scheduleFrontendRevalidation(['/', '/music', `/music/${String(id)}`]);
   sendResponse(reply, 200, { success: true }, 'Music deleted.');
 }
 
@@ -225,6 +236,7 @@ export async function approveAdminMusic(
   await music.save();
 
   const populated = await Music.findById(music._id).populate(artistPopulate).lean();
+  schedulePublishedContentRevalidation('music_item', String(music._id));
   sendResponse(
     reply,
     200,
