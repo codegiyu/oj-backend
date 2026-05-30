@@ -57,6 +57,7 @@
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.2.1",
+    "music-metadata": "^11.12.3",
     "nanoid": "^5.1.6",
     "nodemailer": "^7.0.12",
     "pino": "^10.3.1",
