@@ -7,7 +7,8 @@ import { SubCategory } from '../../models/subCategory';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generateVendorProductSlug } from '../../utils/helpers';
-import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
+import { requireAdmin, parseObjectId } from './admin.helpers';
+import { shapeProductItem } from './productAdmin.shapes';
 import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import {
   listAdminProductRows,
@@ -23,38 +24,6 @@ import {
 } from '../../services/admin/adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
-
-function shapeProductItem(raw: Record<string, unknown>): Record<string, unknown> {
-  const vendor = raw.vendor;
-  const category = raw.category;
-  const subCategory = raw.subCategory;
-  return {
-    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
-    name: raw.name,
-    slug: raw.slug,
-    vendor: vendor != null ? leanIdToString(vendor) : vendor,
-    vendorName:
-      (vendor as Record<string, unknown>)?.storeName ?? (vendor as Record<string, unknown>)?.name,
-    vendorSlug: (vendor as Record<string, unknown>)?.slug,
-    description: raw.description,
-    category: category,
-    subCategory: subCategory,
-    tags: raw.tags,
-    price: raw.price,
-    images: raw.images ?? [],
-    inStock: raw.inStock,
-    status: raw.status,
-    isFeatured: raw.isFeatured,
-    displayOrder: raw.displayOrder ?? 0,
-    variationOptions: raw.variationOptions,
-    variants: raw.variants,
-    rejectionReason: raw.rejectionReason,
-    rejectedAt: raw.rejectedAt,
-    approvedAt: raw.approvedAt,
-    createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
-    updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
-  };
-}
 
 export async function listAdminProducts(
   request: FastifyRequest<{
