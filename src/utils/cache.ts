@@ -53,11 +53,15 @@ export const clearNamespace = async (namespace: string): Promise<void> => {
   const redis = getRedisClient();
   const stream = redis.scanStream({ match: `${namespace}*`, count: 100 });
   return new Promise((resolve, reject) => {
-    stream.on('data', async (keys: string[]) => {
-      if (keys.length > 0) {
+    stream.on('data', (keys: string[]) => {
+      if (keys.length === 0) {
+        return;
+      }
+
+      void (async () => {
         await redis.unlink(...keys);
         logger.debug(`Deleted ${keys.length} keys in ${namespace}`);
-      }
+      })();
     });
     stream.on('end', () => resolve());
     stream.on('error', err => reject(err));

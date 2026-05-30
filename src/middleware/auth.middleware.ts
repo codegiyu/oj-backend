@@ -1,4 +1,4 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyRequest, FastifyReply, type preHandlerAsyncHookHandler } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
 import { verifyAccessWithMeta, verifyRefresh, type TokenPayload } from '../utils/token';
 import { AppError } from '../utils/AppError';
@@ -286,3 +286,20 @@ export const requireConsoleAccess = async (
     throw err;
   }
 };
+
+/** Typed Fastify hooks — avoids `@typescript-eslint/no-misused-promises` on route registration. */
+export const authenticatePreHandler: preHandlerAsyncHookHandler = async (request, reply) => {
+  await authenticate(request, reply);
+};
+
+export const requireConsoleAccessPreHandler: preHandlerAsyncHookHandler = async (
+  request,
+  reply
+) => {
+  await requireConsoleAccess(request, reply);
+};
+
+export const adminPreHandlers: preHandlerAsyncHookHandler[] = [
+  authenticatePreHandler,
+  requireConsoleAccessPreHandler,
+];

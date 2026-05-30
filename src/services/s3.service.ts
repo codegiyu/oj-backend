@@ -8,6 +8,16 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client, s3Config } from '../config/s3';
 import { logger } from '../utils/logger';
 
+function isS3NotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const err = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+
+  return err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404;
+}
+
 export class S3Service {
   async uploadFile(
     key: string,
@@ -70,8 +80,8 @@ export class S3Service {
 
       await s3Client.send(command);
       return true;
-    } catch (error: any) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+    } catch (error: unknown) {
+      if (isS3NotFoundError(error)) {
         return false;
       }
       throw error;

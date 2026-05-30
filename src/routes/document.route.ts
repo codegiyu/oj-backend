@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
+import { adminPreHandlers } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   listDocuments,
@@ -14,7 +14,7 @@ import {
   verifyDocumentAdminParamsSchema,
 } from '../controllers/document/document.validation';
 
-export async function registerDocumentRoutes(app: FastifyInstance): Promise<void> {
+export function registerDocumentRoutes(app: FastifyInstance): void {
   app.post<{ Body: { documentId?: string; key?: string } }>(
     '/verify',
     { schema: verifyDocumentBodySchema },
@@ -22,7 +22,7 @@ export async function registerDocumentRoutes(app: FastifyInstance): Promise<void
   );
 }
 
-export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise<void> {
+export function registerAdminDocumentRoutes(app: FastifyInstance): void {
   app.get<{
     Querystring: {
       page?: string;
@@ -36,7 +36,7 @@ export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise
   }>(
     '/',
     {
-      preHandler: [authenticate, requireConsoleAccess],
+      preHandler: adminPreHandlers,
       schema: listDocumentsQuerystringSchema,
     },
     catchAsync(listDocuments)
@@ -44,7 +44,7 @@ export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise
   app.get<{ Params: { documentId: string } }>(
     '/:documentId',
     {
-      preHandler: [authenticate, requireConsoleAccess],
+      preHandler: adminPreHandlers,
       schema: getDocumentDetailsParamsSchema,
     },
     catchAsync(getDocumentDetails)
@@ -52,7 +52,7 @@ export async function registerAdminDocumentRoutes(app: FastifyInstance): Promise
   app.post<{ Params: { documentId: string } }>(
     '/verify/:documentId',
     {
-      preHandler: [authenticate, requireConsoleAccess],
+      preHandler: adminPreHandlers,
       schema: verifyDocumentAdminParamsSchema,
     },
     catchAsync(verifyDocumentAdmin)

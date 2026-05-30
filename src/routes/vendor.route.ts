@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticatePreHandler } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getVendorMe,
@@ -16,9 +16,13 @@ import {
   updateVendorSettingsBodySchema,
 } from '../controllers/vendor/vendor.validation';
 
-export async function registerVendorRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/me', { preHandler: authenticate }, catchAsync(getVendorMe));
-  app.get('/dashboard-stats', { preHandler: authenticate }, catchAsync(getDashboardStats));
+export function registerVendorRoutes(app: FastifyInstance): void {
+  app.get('/me', { preHandler: [authenticatePreHandler] }, catchAsync(getVendorMe));
+  app.get(
+    '/dashboard-stats',
+    { preHandler: [authenticatePreHandler] },
+    catchAsync(getDashboardStats)
+  );
   app.get<{
     Querystring: {
       page?: string;
@@ -29,7 +33,7 @@ export async function registerVendorRoutes(app: FastifyInstance): Promise<void> 
       isFeatured?: string;
       sort?: string;
     };
-  }>('/products', { preHandler: authenticate }, catchAsync(getVendorProducts));
+  }>('/products', { preHandler: [authenticatePreHandler] }, catchAsync(getVendorProducts));
   app.post<{
     Body: {
       name: string;
@@ -53,7 +57,7 @@ export async function registerVendorRoutes(app: FastifyInstance): Promise<void> 
     };
   }>(
     '/products',
-    { preHandler: authenticate, schema: createProductBodySchema },
+    { preHandler: [authenticatePreHandler], schema: createProductBodySchema },
     catchAsync(createProduct)
   );
   app.patch<{
@@ -81,12 +85,12 @@ export async function registerVendorRoutes(app: FastifyInstance): Promise<void> 
     };
   }>(
     '/products/:productId',
-    { preHandler: authenticate, schema: updateProductBodySchema },
+    { preHandler: [authenticatePreHandler], schema: updateProductBodySchema },
     catchAsync(updateProduct)
   );
   app.get<{ Querystring: { status?: string } }>(
     '/orders',
-    { preHandler: authenticate },
+    { preHandler: [authenticatePreHandler] },
     catchAsync(getVendorOrders)
   );
   app.patch<{
@@ -100,7 +104,7 @@ export async function registerVendorRoutes(app: FastifyInstance): Promise<void> 
     };
   }>(
     '/settings',
-    { preHandler: authenticate, schema: updateVendorSettingsBodySchema },
+    { preHandler: [authenticatePreHandler], schema: updateVendorSettingsBodySchema },
     catchAsync(updateVendorSettings)
   );
 }

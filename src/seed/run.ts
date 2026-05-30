@@ -21,4 +21,4 @@ const run = async (): Promise<void> => {
   }
 };
 
-run();
+void run();

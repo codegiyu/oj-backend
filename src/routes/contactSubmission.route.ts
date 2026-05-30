@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
+import { adminPreHandlers } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import { listContactSubmissions } from '../controllers/admin/contactSubmissions.controller';
 
-export async function registerAdminContactSubmissionRoutes(app: FastifyInstance): Promise<void> {
+export function registerAdminContactSubmissionRoutes(app: FastifyInstance): void {
   app.get<{
     Querystring: {
       page?: string;
@@ -11,5 +11,5 @@ export async function registerAdminContactSubmissionRoutes(app: FastifyInstance)
       search?: string;
       sort?: string;
     };
-  }>('/', { preHandler: [authenticate, requireConsoleAccess] }, catchAsync(listContactSubmissions));
+  }>('/', { preHandler: adminPreHandlers }, catchAsync(listContactSubmissions));
 }

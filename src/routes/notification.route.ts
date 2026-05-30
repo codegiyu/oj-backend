@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
+import { adminPreHandlers, authenticatePreHandler } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   list,
@@ -19,13 +19,13 @@ import {
   updatePushTokenBodySchema,
 } from '../controllers/notification/notification.validation';
 
-export async function registerNotificationRoutes(app: FastifyInstance): Promise<void> {
+export function registerNotificationRoutes(app: FastifyInstance): void {
   app.get<{
     Querystring: { page?: string; limit?: string; isRead?: string; userId?: string };
   }>(
     '/',
     {
-      preHandler: authenticate,
+      preHandler: [authenticatePreHandler],
       schema: listNotificationsQuerystringSchema,
     },
     catchAsync(list)
@@ -48,7 +48,7 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
   }>(
     '/create',
     {
-      preHandler: [authenticate, requireConsoleAccess],
+      preHandler: adminPreHandlers,
       schema: createNotificationBodySchema,
     },
     catchAsync(create)
@@ -60,7 +60,7 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
   }>(
     '/read/:notificationId',
     {
-      preHandler: authenticate,
+      preHandler: [authenticatePreHandler],
       schema: readOneNotificationSchema,
     },
     catchAsync(readOne)
@@ -69,20 +69,20 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
   app.patch<{ Body: { isRead?: boolean } }>(
     '/read-all',
     {
-      preHandler: authenticate,
+      preHandler: [authenticatePreHandler],
       schema: readAllNotificationsBodySchema,
     },
     catchAsync(readAll)
   );
 
-  app.get('/preferences', { preHandler: authenticate }, catchAsync(getPreferences));
+  app.get('/preferences', { preHandler: [authenticatePreHandler] }, catchAsync(getPreferences));
 
   app.patch<{
     Body: { realtime?: boolean; email?: boolean; sms?: boolean; marketingEmails?: boolean };
   }>(
     '/preferences',
     {
-      preHandler: authenticate,
+      preHandler: [authenticatePreHandler],
       schema: updatePreferencesBodySchema,
     },
     catchAsync(updatePreferences)
@@ -93,7 +93,7 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
   }>(
     '/push-token',
     {
-      preHandler: authenticate,
+      preHandler: [authenticatePreHandler],
       schema: updatePushTokenBodySchema,
     },
     catchAsync(updatePushToken)
