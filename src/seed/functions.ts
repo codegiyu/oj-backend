@@ -368,6 +368,7 @@ const CONTENT_CATEGORY_SEEDS: SeedContentCategory[] = [
   { scope: 'video', name: 'Live Performances', displayOrder: 6 },
   { scope: 'video', name: 'Podcasts / Video Talks', displayOrder: 7 },
   { scope: 'video', name: 'Sermons', displayOrder: 8 },
+  { scope: 'video', name: 'Movie', displayOrder: 9 },
   // News
   { scope: 'news', name: 'Christian Celebrity News', displayOrder: 1 },
   { scope: 'news', name: 'Church & Ministry Announcements', displayOrder: 2 },
