@@ -14,6 +14,8 @@ const newsArticleSchema = new Schema<ModelNewsArticle>(
     embedUrl: { type: String, default: '' },
     downloadUrl: { type: String, default: '' },
     category: { type: String, default: '', index: true },
+    tags: { type: [String], default: [] },
+    priority: { type: Number, default: 1, min: 1, max: 5, index: true },
     author: { type: String, default: '' },
     status: {
       type: String,
@@ -30,6 +32,7 @@ const newsArticleSchema = new Schema<ModelNewsArticle>(
 );
 
 newsArticleSchema.index({ status: 1, createdAt: -1 });
+newsArticleSchema.index({ status: 1, priority: -1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, category: 1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, isFeatured: 1 });
 

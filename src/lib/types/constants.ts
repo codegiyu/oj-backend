@@ -441,6 +441,12 @@ export interface ArtistSocials {
   [key: string]: string | undefined;
 }
 
+/** Optional media fields stored on music/video documents (e.g. duration for sections). */
+export interface MediaMetadata {
+  durationSeconds?: number;
+  [key: string]: unknown;
+}
+
 export interface IMusic {
   _id: mongoose.Types.ObjectId;
   title: string;
@@ -455,6 +461,8 @@ export interface IMusic {
   downloadUrl?: string;
   excerpt?: string;
   category?: string;
+  tags?: string[];
+  metadata?: MediaMetadata;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   isMonetizable?: boolean;
@@ -501,6 +509,8 @@ export interface IVideo {
   videoFileUrl?: string;
   embedUrl?: string;
   category?: string;
+  tags?: string[];
+  metadata?: MediaMetadata;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
   isMonetizable?: boolean;
@@ -592,6 +602,8 @@ export interface INewsArticle {
   embedUrl?: string;
   downloadUrl?: string;
   category?: string;
+  tags?: string[];
+  priority?: number;
   author?: string;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;

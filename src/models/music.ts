@@ -15,6 +15,8 @@ const musicSchema = new Schema<ModelMusic>(
     downloadUrl: { type: String, default: '' },
     excerpt: { type: String, default: '' },
     category: { type: String, default: '', index: true },
+    tags: { type: [String], default: [] },
+    metadata: { type: Schema.Types.Mixed, default: {} },
     status: {
       type: String,
       enum: ['draft', 'published', 'archived'],

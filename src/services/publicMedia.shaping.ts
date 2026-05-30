@@ -1,7 +1,52 @@
 import { toArtistSummary, type PopulatedArtistDoc } from '../controllers/artist/artist.helpers';
+import type { MediaMetadata } from '../lib/types/constants';
 import { leanIdToString } from '../utils/leanId';
 import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../utils/videoEmbed';
 import { albumApiFieldsFromRaw } from '../utils/albumSummary';
+
+function tagsFromRaw(raw: Record<string, unknown>): string[] | undefined {
+  if (!Array.isArray(raw.tags) || raw.tags.length === 0) return undefined;
+
+  return raw.tags.filter((t): t is string => typeof t === 'string');
+}
+
+function durationFromMetadata(metadata: unknown): number | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
+
+  const seconds = (metadata as MediaMetadata).durationSeconds;
+
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) return undefined;
+
+  return seconds;
+}
+
+function priorityFromRaw(raw: Record<string, unknown>): number | undefined {
+  const priority = raw.priority;
+
+  if (typeof priority !== 'number' || !Number.isInteger(priority)) return undefined;
+
+  return priority;
+}
+
+function mediaTaxonomyFields(raw: Record<string, unknown>): Record<string, unknown> {
+  const tags = tagsFromRaw(raw);
+  const duration = durationFromMetadata(raw.metadata);
+
+  return {
+    ...(tags && { tags }),
+    ...(duration !== undefined && { duration }),
+  };
+}
+
+function newsTaxonomyFields(raw: Record<string, unknown>): Record<string, unknown> {
+  const tags = tagsFromRaw(raw);
+  const priority = priorityFromRaw(raw);
+
+  return {
+    ...(tags && { tags }),
+    ...(priority !== undefined && { priority }),
+  };
+}
 
 export function shapeMusicListItem(
   raw: Record<string, unknown>,
@@ -21,6 +66,7 @@ export function shapeMusicListItem(
     category: raw.category,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     ...(artist && { artist }),
+    ...mediaTaxonomyFields(raw),
   };
 
   if (type === 'charts') {
@@ -59,6 +105,7 @@ export function shapeMusicDetail(raw: Record<string, unknown>): Record<string, u
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
     ...(artist && { artist }),
     ...albumApiFieldsFromRaw(raw, { requirePublished: true }),
+    ...mediaTaxonomyFields(raw),
   };
 }
 
@@ -75,6 +122,7 @@ export function shapeVideoListItem(raw: Record<string, unknown>): Record<string,
     downloads: raw.downloads ?? 0,
     category: raw.category,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
+    ...mediaTaxonomyFields(raw),
     ...(artist && { artist }),
   };
 }
@@ -106,6 +154,7 @@ export function shapeVideoDetail(raw: Record<string, unknown>): Record<string, u
     price: typeof raw.price === 'number' ? raw.price : Number(raw.price) || 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
+    ...mediaTaxonomyFields(raw),
     ...(artist && { artist }),
   };
 }
@@ -123,6 +172,7 @@ export function shapeArticleListItem(raw: Record<string, unknown>): Record<strin
     author: raw.author,
     views: raw.views ?? 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
+    ...newsTaxonomyFields(raw),
   };
 }
 
@@ -148,5 +198,6 @@ export function shapeArticleDetail(raw: Record<string, unknown>): Record<string,
     views: raw.views ?? 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
+    ...newsTaxonomyFields(raw),
   };
 }
