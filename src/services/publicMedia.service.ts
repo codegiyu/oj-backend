@@ -29,6 +29,18 @@ import {
   PUBLIC_LIST_DEFAULT_LIMIT as DEFAULT_LIMIT,
   PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
 } from '../constants/pagination';
+import { resolveDownloadRedirectUrl } from './r2.service';
+
+function isHttpFileUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
+function buildDownloadFilename(title: unknown, ext: string): string {
+  const raw = typeof title === 'string' ? title.trim() : '';
+  const base = raw ? raw.replace(/[^\w.\-() ]+/g, '_').slice(0, 150) : 'download';
+
+  return `${base}${ext}`;
+}
 
 export type PublicMediaServiceResult = {
   statusCode: number;
@@ -280,12 +292,21 @@ export async function downloadPublicMusic(
 
   const id = new mongoose.Types.ObjectId(leanIdToString(raw._id));
   const downloadUrl = typeof raw.downloadUrl === 'string' ? raw.downloadUrl.trim() : '';
+  const audioUrl = typeof raw.audioUrl === 'string' ? raw.audioUrl.trim() : '';
+  const targetUrl = downloadUrl || audioUrl;
 
-  if (!downloadUrl) throw new AppError('Download not available', 404);
+  if (!targetUrl || !isHttpFileUrl(targetUrl)) {
+    throw new AppError('Download not available', 404);
+  }
 
   await musicRepo.incrementMusicDownloads(id);
 
-  return { statusCode: 302, message: 'Redirect', redirectUrl: downloadUrl };
+  const redirectUrl = await resolveDownloadRedirectUrl(
+    targetUrl,
+    buildDownloadFilename(raw.title, '.mp3')
+  );
+
+  return { statusCode: 302, message: 'Redirect', redirectUrl };
 }
 
 export async function downloadPublicVideo(
@@ -303,9 +324,16 @@ export async function downloadPublicVideo(
   const fileField = typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl.trim() : '';
   const legacy = typeof raw.videoUrl === 'string' ? raw.videoUrl.trim() : '';
   const candidate = fileField || legacy;
-  if (!candidate || isLikelyYoutubeUrl(candidate)) {
+  if (!candidate || isLikelyYoutubeUrl(candidate) || !isHttpFileUrl(candidate)) {
     throw new AppError('Download not available', 404);
   }
+
   await videoRepo.incrementVideoDownloads(id);
-  return { statusCode: 302, message: 'Redirect', redirectUrl: candidate };
+
+  const redirectUrl = await resolveDownloadRedirectUrl(
+    candidate,
+    buildDownloadFilename(raw.title, '.mp4')
+  );
+
+  return { statusCode: 302, message: 'Redirect', redirectUrl };
 }

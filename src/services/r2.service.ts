@@ -1,4 +1,9 @@
-import { PutObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  PutObjectCommand,
+  HeadObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { customAlphabet } from 'nanoid';
 import { r2Client, r2Config } from '../config/r2';
@@ -62,11 +67,18 @@ export async function generatePresignedUrl({
   const filename = `${nanoid()}${ext ? `.${ext}` : ''}`;
   const key = `${r2Config.folderPrefix}/${entityType}/${entityId}/${intent}/${filename}`;
 
-  const command = new PutObjectCommand({
+  const putParams: ConstructorParameters<typeof PutObjectCommand>[0] = {
     Bucket: r2Config.bucketName,
     Key: key,
     ContentType: contentType,
-  });
+  };
+
+  if (shouldSetUploadContentDisposition(ext, contentType)) {
+    const uploadName = filename || `download.${ext || 'bin'}`;
+    putParams.ContentDisposition = `attachment; filename="${sanitizeDownloadFilename(uploadName)}"`;
+  }
+
+  const command = new PutObjectCommand(putParams);
 
   const url = await getSignedUrl(r2Client, command, { expiresIn });
 
@@ -107,4 +119,66 @@ export function extractKeyFromUrl(url: string): string | null {
   if (cdn && url.startsWith(cdn)) return url.slice(cdn.length).replace(/^\//, '');
   if (pub && url.startsWith(pub)) return url.slice(pub.length).replace(/^\//, '');
   return null;
+}
+
+/** Safe filename for Content-Disposition attachment headers. */
+export function sanitizeDownloadFilename(filename: string): string {
+  const base = filename.replace(/[^\w.\-() ]+/g, '_').trim();
+
+  return (base || 'download').slice(0, 200);
+}
+
+const MEDIA_DOWNLOAD_EXTENSIONS = new Set([
+  'mp3',
+  'wav',
+  'flac',
+  'aac',
+  'm4a',
+  'ogg',
+  'mp4',
+  'webm',
+  'mov',
+  'avi',
+  'mkv',
+  'm4v',
+]);
+
+export function shouldSetUploadContentDisposition(
+  fileExtension: string,
+  contentType: string
+): boolean {
+  const ext = fileExtension.toLowerCase().replace(/^\./, '');
+  const type = contentType.toLowerCase();
+
+  if (MEDIA_DOWNLOAD_EXTENSIONS.has(ext)) return true;
+
+  return type.startsWith('audio/') || type.startsWith('video/');
+}
+
+export async function generatePresignedDownloadUrl(
+  key: string,
+  filename: string,
+  expiresIn = 900
+): Promise<string> {
+  const safeName = sanitizeDownloadFilename(filename);
+  const command = new GetObjectCommand({
+    Bucket: r2Config.bucketName,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${safeName}"`,
+  });
+
+  return getSignedUrl(r2Client, command, { expiresIn });
+}
+
+/** Presigned attachment URL for R2-hosted files; plain URL for external hosts. */
+export async function resolveDownloadRedirectUrl(
+  targetUrl: string,
+  suggestedFilename?: string
+): Promise<string> {
+  const key = extractKeyFromUrl(targetUrl);
+  if (!key) return targetUrl;
+
+  const fallbackName = targetUrl.split('/').pop()?.split('?')[0] ?? 'download';
+
+  return generatePresignedDownloadUrl(key, suggestedFilename || fallbackName);
 }
