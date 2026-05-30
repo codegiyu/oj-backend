@@ -29,6 +29,12 @@ import {
   PUBLIC_LIST_DEFAULT_LIMIT as DEFAULT_LIMIT,
   PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
 } from '../constants/pagination';
+import { buildChartsDateFilter } from '../constants/musicSections';
+import { buildBreakingNewsSectionFilter } from '../constants/newsSections';
+import {
+  buildLongFormVideoSectionFilter,
+  buildShortFormVideoSectionFilter,
+} from '../constants/videoSections';
 import { resolveDownloadRedirectUrl } from './r2.service';
 
 function isHttpFileUrl(url: string): boolean {
@@ -77,6 +83,7 @@ export async function listPublicMusic(
   const excludeCategory = parseString(request.query.excludeCategory);
   const artistId = parseString(request.query.artist);
   const type = parseString(request.query.type);
+  const period = parseString(request.query.period);
 
   const filter: Record<string, unknown> = {};
   if (status === 'published') filter.status = 'published';
@@ -95,7 +102,8 @@ export async function listPublicMusic(
   } else if (type === 'recent') sort = { createdAt: -1 };
   else if (type === 'charts') {
     sort = { plays: -1, createdAt: -1 };
-    // period: weekly/monthly/alltime - we don't have time-range data, so use all
+    const chartsDate = buildChartsDateFilter(period);
+    if (chartsDate) Object.assign(filter, chartsDate);
   }
 
   const completeFilter = mergePublicFilter(filter, publishedMusicCompletenessFilter());
@@ -171,7 +179,10 @@ export async function listPublicVideos(
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
   else if (type === 'short-form') {
-    // No duration field on model; return recent videos (could add duration filter later)
+    Object.assign(filter, buildShortFormVideoSectionFilter());
+    sort = { createdAt: -1 };
+  } else if (type === 'long-form') {
+    Object.assign(filter, buildLongFormVideoSectionFilter());
     sort = { createdAt: -1 };
   }
 
@@ -248,6 +259,10 @@ export async function listPublicNews(
   } else if (type === 'trending') sort = { views: -1, createdAt: -1 };
   else if (type === 'latest') sort = { createdAt: -1 };
   else if (type === 'video') sort = { createdAt: -1 };
+  else if (type === 'breaking') {
+    filter = mergePublicFilter(filter, buildBreakingNewsSectionFilter());
+    sort = { priority: -1, createdAt: -1 };
+  }
 
   const { items, total } = await newsRepo.listPublishedNews({ filter, sort, skip, limit });
 
