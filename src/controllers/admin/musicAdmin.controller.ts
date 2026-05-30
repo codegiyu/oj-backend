@@ -23,6 +23,7 @@ import {
   assertMonetizationPrice,
   resolveMonetizationPrice,
 } from '../../utils/monetizationValidation';
+import { coalesceMusicDownloadUrl } from '../../utils/musicDownloadUrl';
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -104,7 +105,7 @@ export async function createAdminMusic(
     coverImage: body.coverImage ?? '',
     audioUrl: body.audioUrl ?? '',
     videoUrl: body.videoUrl ?? '',
-    downloadUrl: body.downloadUrl ?? '',
+    downloadUrl: coalesceMusicDownloadUrl(body.audioUrl, body.downloadUrl),
     excerpt: body.excerpt ?? '',
     category: body.category ?? '',
     status: body.status ?? 'draft',
@@ -182,7 +183,13 @@ export async function updateAdminMusic(
   if (body.coverImage !== undefined) music.coverImage = body.coverImage;
   if (body.audioUrl !== undefined) music.audioUrl = body.audioUrl;
   if (body.videoUrl !== undefined) music.videoUrl = body.videoUrl;
-  if (body.downloadUrl !== undefined) music.downloadUrl = body.downloadUrl;
+
+  if (body.downloadUrl !== undefined || body.audioUrl !== undefined) {
+    music.downloadUrl = coalesceMusicDownloadUrl(
+      body.audioUrl ?? music.audioUrl,
+      body.downloadUrl ?? music.downloadUrl
+    );
+  }
   if (body.excerpt !== undefined) music.excerpt = body.excerpt;
   if (body.category !== undefined) music.category = body.category;
   if (body.status !== undefined) music.status = body.status;

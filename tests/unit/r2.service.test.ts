@@ -33,6 +33,7 @@ describe('r2.service download helpers', () => {
 
   it('detects media extensions for upload disposition', () => {
     expect(shouldSetUploadContentDisposition('mp3', 'audio/mpeg')).toBe(true);
+    expect(shouldSetUploadContentDisposition('mp4', 'video/mp4')).toBe(true);
     expect(shouldSetUploadContentDisposition('jpg', 'image/jpeg')).toBe(false);
   });
 

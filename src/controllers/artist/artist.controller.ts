@@ -29,6 +29,7 @@ import {
   assertMonetizationPrice,
   resolveMonetizationPrice,
 } from '../../utils/monetizationValidation';
+import { coalesceMusicDownloadUrl } from '../../utils/musicDownloadUrl';
 
 type MusicWithArtistLean = IMusic & {
   artist?: PopulatedArtistDoc | mongoose.Types.ObjectId | null;
@@ -386,6 +387,7 @@ export async function createMusic(
     coverImage: body.coverImage ?? '',
     audioUrl: body.audioUrl ?? '',
     videoUrl: body.videoUrl ?? '',
+    downloadUrl: coalesceMusicDownloadUrl(body.audioUrl, undefined),
     category: body.category ?? '',
     status: 'draft',
     isMonetizable,
@@ -484,7 +486,10 @@ export async function updateMusic(
   if (body.description !== undefined) music.description = body.description;
   if (body.lyrics !== undefined) music.lyrics = body.lyrics;
   if (body.coverImage !== undefined) music.coverImage = body.coverImage;
-  if (body.audioUrl !== undefined) music.audioUrl = body.audioUrl;
+  if (body.audioUrl !== undefined) {
+    music.audioUrl = body.audioUrl;
+    music.downloadUrl = coalesceMusicDownloadUrl(body.audioUrl, music.downloadUrl);
+  }
   if (body.videoUrl !== undefined) music.videoUrl = body.videoUrl;
   if (body.category !== undefined) music.category = body.category;
   if (body.status !== undefined) music.status = body.status as 'draft' | 'published' | 'archived';
