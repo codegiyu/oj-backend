@@ -19,6 +19,7 @@ export { ContactSubmission } from './contactSubmission';
 export { Pastor } from './pastor';
 export { Poll } from './poll';
 export { PollVote } from './pollVote';
+export { PrayerSolidarity } from './prayerSolidarity';
 export { Resource } from './resource';
 export { Cart } from './cart';
 export { ContentFavorite } from './contentFavorite';

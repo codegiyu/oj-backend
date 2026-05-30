@@ -6,6 +6,7 @@ export const PUBLIC_LIST_MAX_LIMIT = 100;
 export const FEATURED_TESTIMONIES_LIMIT = 6;
 export const TRENDING_DEVOTIONALS_LIMIT = 6;
 export const RELATED_DEVOTIONALS_LIMIT = 6;
+export const RECENT_PRAYER_REQUESTS_LIMIT = 6;
 
 export function clampPublicCatalogLimit(requested?: number): number {
   if (requested === undefined || !Number.isFinite(requested)) {

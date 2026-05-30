@@ -1,6 +1,10 @@
 import { Artist } from '../../models/artist';
 import { findByIdOrSlug } from './shared';
 
+export async function countActiveCommunityArtists(): Promise<number> {
+  return Artist.countDocuments({ isActive: true });
+}
+
 export async function listActiveCommunityArtists(options: {
   skip: number;
   limit: number;

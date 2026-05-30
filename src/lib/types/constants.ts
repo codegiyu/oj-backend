@@ -812,6 +812,14 @@ export interface IPollVote {
   createdAt: Date;
 }
 
+/** Tracks a single prayer solidarity action per request (by user or session). */
+export interface IPrayerSolidarity {
+  _id: mongoose.Types.ObjectId;
+  prayerRequest: mongoose.Types.ObjectId;
+  voterIdentifier: string;
+  createdAt: Date;
+}
+
 export const PRODUCT_CATEGORIES = [
   'fashion',
   'food',
@@ -1037,6 +1045,7 @@ export type ModelTestimony = ITestimony & IModelIndex & Document;
 export type ModelAskPastorQuestion = IAskPastorQuestion & IModelIndex & Document;
 export type ModelPoll = IPoll & IModelIndex & Document;
 export type ModelPollVote = IPollVote & IModelIndex & Document;
+export type ModelPrayerSolidarity = IPrayerSolidarity & IModelIndex & Document;
 export type ModelVendor = IVendor & IModelIndex & Document;
 export type ModelCategory = ICategory & IModelIndex & Document;
 export type ModelSubCategory = ISubCategory & IModelIndex & Document;

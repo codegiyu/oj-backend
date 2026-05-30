@@ -1,5 +1,7 @@
 import { PrayerRequest } from '../../models/prayerRequest';
+import { PrayerSolidarity } from '../../models/prayerSolidarity';
 import { findByIdOrSlug } from './shared';
+import mongoose from 'mongoose';
 
 export async function countPrayerRequests(): Promise<number> {
   return PrayerRequest.countDocuments({});
@@ -26,6 +28,45 @@ export async function findPrayerRequestByIdOrSlug(
   idOrSlug: string
 ): Promise<Record<string, unknown> | null> {
   return findByIdOrSlug(PrayerRequest, idOrSlug, {});
+}
+
+export async function findRecentActivePrayerRequests(
+  limit: number
+): Promise<Record<string, unknown>[]> {
+  const items = await PrayerRequest.find({ status: 'active' })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  return items as unknown as Record<string, unknown>[];
+}
+
+export async function findPrayerSolidarity(
+  prayerRequestId: mongoose.Types.ObjectId,
+  voterIdentifier: string
+) {
+  return PrayerSolidarity.findOne({ prayerRequest: prayerRequestId, voterIdentifier });
+}
+
+export async function createPrayerSolidarity(data: {
+  prayerRequest: mongoose.Types.ObjectId;
+  voterIdentifier: string;
+}): Promise<void> {
+  await PrayerSolidarity.create(data);
+}
+
+export async function incrementPrayerCount(
+  prayerRequestId: mongoose.Types.ObjectId
+): Promise<number | null> {
+  const updated = await PrayerRequest.findByIdAndUpdate(
+    prayerRequestId,
+    { $inc: { prayers: 1 } },
+    { new: true }
+  ).lean();
+
+  if (!updated) return null;
+
+  return typeof updated.prayers === 'number' ? updated.prayers : 0;
 }
 
 export async function createPrayerRequest(
