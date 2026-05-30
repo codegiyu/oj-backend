@@ -833,6 +833,7 @@ export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
 export interface IVendor {
   _id: mongoose.Types.ObjectId;
+  user?: mongoose.Types.ObjectId | null;
   name: string;
   slug: string;
   email: string;
@@ -942,6 +943,7 @@ export interface IOrder {
   vendor: mongoose.Types.ObjectId;
   items: IOrderItem[];
   totalAmount: number;
+  notes?: string;
   status: string;
   paymentStatus: string;
   createdAt: Date;
@@ -957,6 +959,7 @@ export interface PopulatedOrderVendor {
   /** Included when populate select adds it (marketplace WhatsApp / notifications). */
   phone?: string;
   whatsapp?: string;
+  email?: string;
 }
 
 /** Product document shape when `Order.items[].product` is populated (`name slug price images`). */

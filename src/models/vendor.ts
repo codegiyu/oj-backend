@@ -3,6 +3,7 @@ import { ModelVendor } from '../lib/types/constants';
 
 const vendorSchema = new Schema<ModelVendor>(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true, index: true },
     email: { type: String, required: true, index: true },
