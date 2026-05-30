@@ -6,6 +6,10 @@ import { generateUniqueSlug } from '../../utils/helpers';
 import { parseObjectId } from './admin.helpers';
 import * as adminNewsService from '../../services/adminNews.service';
 import { shapeNewsItem } from '../../services/adminNews.service';
+import {
+  schedulePublishedContentRevalidation,
+  scheduleFrontendRevalidation,
+} from '../../services/frontendRevalidation.service';
 
 function hasArticleVideoMedia(b: { videoFileUrl?: unknown; embedUrl?: unknown }): boolean {
   const vf = typeof b.videoFileUrl === 'string' ? b.videoFileUrl.trim() : '';
@@ -84,6 +88,9 @@ export async function createAdminNews(
   });
 
   const populated = await NewsArticle.findById(news._id).lean();
+  if ((body.status ?? 'draft') === 'published') {
+    schedulePublishedContentRevalidation('news_item', String(news._id));
+  }
   sendResponse(
     reply,
     201,
@@ -146,6 +153,9 @@ export async function updateAdminNews(
   await news.save();
 
   const populated = await NewsArticle.findById(news._id).lean();
+  if (news.status === 'published') {
+    schedulePublishedContentRevalidation('news_item', String(news._id));
+  }
   sendResponse(
     reply,
     200,
@@ -161,5 +171,6 @@ export async function deleteAdminNews(
   const id = parseObjectId(request.params.id);
   const result = await NewsArticle.findByIdAndDelete(id);
   if (!result) throw new AppError('News article not found', 404);
+  scheduleFrontendRevalidation(['/', '/news', `/news/story/${String(id)}`]);
   sendResponse(reply, 200, { success: true }, 'News article deleted.');
 }

@@ -14,6 +14,10 @@ import {
   findAdminProductById,
 } from '../../repositories/admin/product.repository';
 import {
+  schedulePublishedContentRevalidation,
+  scheduleFrontendRevalidation,
+} from '../../services/frontendRevalidation.service';
+import {
   applyMarketplaceCategoryFilter,
   applyVendorFilter,
 } from '../../services/admin/adminListFilters';
@@ -170,6 +174,9 @@ export async function createAdminProduct(
     .populate('category', 'name slug')
     .populate('subCategory', 'name slug')
     .lean();
+  if ((body.status ?? 'draft') === 'published') {
+    schedulePublishedContentRevalidation('marketplace_product', product.slug);
+  }
   sendResponse(
     reply,
     201,
@@ -242,6 +249,9 @@ export async function updateAdminProduct(
     .populate('category', 'name slug')
     .populate('subCategory', 'name slug')
     .lean();
+  if (product.status === 'published') {
+    schedulePublishedContentRevalidation('marketplace_product', product.slug);
+  }
   sendResponse(
     reply,
     200,
@@ -259,8 +269,16 @@ export async function deleteAdminProduct(
   reply: FastifyReply
 ): Promise<void> {
   const id = parseObjectId(request.params.id);
+  const product = await Product.findById(id);
+  if (!product) throw new AppError('Product not found', 404);
+  const slug = product.slug;
   const result = await Product.findByIdAndDelete(id);
   if (!result) throw new AppError('Product not found', 404);
+  scheduleFrontendRevalidation([
+    '/marketplace',
+    '/marketplace/products',
+    `/marketplace/products/${encodeURIComponent(slug)}`,
+  ]);
   sendResponse(reply, 200, { success: true }, 'Product deleted.');
 }
 
@@ -286,6 +304,7 @@ export async function approveAdminProduct(
     .populate('category', 'name slug')
     .populate('subCategory', 'name slug')
     .lean();
+  schedulePublishedContentRevalidation('marketplace_product', product.slug);
   sendResponse(
     reply,
     200,
