@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/require-await */
 import { logger } from '../utils/logger';
+import { backfillMediaMetadataOnce } from './backfillMediaMetadata';
 // import { seedContentCategories } from './functions';
 
 export {
@@ -11,6 +11,8 @@ export {
   seedContentCategories,
   seedGospelVerses,
 } from './functions';
+
+export { backfillMediaMetadataOnce } from './backfillMediaMetadata';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -27,6 +29,8 @@ export const seedDb = async (): Promise<void> => {
     // await seedPromotionContent();
     // await seedContentCategories();
     // await seedGospelVerses();
+
+    await backfillMediaMetadataOnce();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;
