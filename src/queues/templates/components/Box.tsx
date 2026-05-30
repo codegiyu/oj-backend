@@ -34,7 +34,7 @@ export const Box = ({
                 }}
                 className={classNames?.[idx] || ''}
               >
-                {child as any}
+                {child as React.ReactNode}
               </div>
             </td>
           </tr>

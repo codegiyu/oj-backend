@@ -67,7 +67,7 @@ type PopulatedProduct = LeanDoc & {
 export function shapeWishlistItem(item: {
   _id: unknown;
   createdAt?: unknown;
-  product?: PopulatedProduct | null | unknown;
+  product?: unknown;
 }): WishlistItemShape {
   const product = (item.product as PopulatedProduct | null | undefined) ?? undefined;
   const vendor = product?.vendor;

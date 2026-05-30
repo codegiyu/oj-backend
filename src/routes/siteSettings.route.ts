@@ -2,14 +2,14 @@ import { FastifyInstance } from 'fastify';
 import { catchAsync } from '../utils/catchAsync';
 import { getSiteSettings } from '../controllers/siteSettings/siteSettings.controller';
 import { updateSiteSettings } from '../controllers/siteSettings/siteSettings.controller';
-import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
+import { adminPreHandlers } from '../middleware/auth.middleware';
 import {
   getSiteSettingsParamsSchema,
   updateSiteSettingsBodySchema,
   type SiteSettingsSlice,
 } from '../controllers/siteSettings/siteSettings.validation';
 
-export async function registerSiteSettingsRoutes(app: FastifyInstance): Promise<void> {
+export function registerSiteSettingsRoutes(app: FastifyInstance): void {
   app.get<{ Params: { slice?: string } }>(
     '/',
     { schema: { params: { type: 'object', properties: { slice: { type: 'string' } } } } },
@@ -22,13 +22,13 @@ export async function registerSiteSettingsRoutes(app: FastifyInstance): Promise<
   );
 }
 
-export async function registerAdminSiteSettingsRoutes(app: FastifyInstance): Promise<void> {
+export function registerAdminSiteSettingsRoutes(app: FastifyInstance): void {
   app.patch<{
     Body: { settingsPayload: Array<{ name: SiteSettingsSlice; value: Record<string, unknown> }> };
   }>(
     '/',
     {
-      preHandler: [authenticate, requireConsoleAccess],
+      preHandler: adminPreHandlers,
       schema: updateSiteSettingsBodySchema,
     },
     catchAsync(updateSiteSettings)

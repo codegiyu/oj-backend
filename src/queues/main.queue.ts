@@ -29,14 +29,14 @@ const EMAIL_JOB_TYPES: readonly JOB_TYPE[] = [
   'inviteAdmin',
 ];
 
-mainQueueEvents.on('failed', async ({ jobId, failedReason }) => {
+const handleJobFailed = async (jobId: string, failedReason?: string): Promise<void> => {
   logger.error(`Job ${jobId} failed: ${failedReason}`);
   try {
-    const emailLog = await getEmailLog({ jobId: String(jobId) });
+    const emailLog = await getEmailLog({ jobId });
     if (emailLog && EMAIL_JOB_TYPES.includes(emailLog.type)) {
       if (emailLog.status === 'pending') {
         await updateEmailStatus(
-          { jobId: String(jobId) },
+          { jobId },
           { status: 'failed', error: failedReason ?? 'Job failed' }
         );
       }
@@ -44,22 +44,27 @@ mainQueueEvents.on('failed', async ({ jobId, failedReason }) => {
   } catch (err) {
     logger.error('Failed to update email log on job failure', { jobId, err });
   }
-});
+};
 
-mainQueueEvents.on('completed', async ({ jobId }) => {
+const handleJobCompleted = async (jobId: string): Promise<void> => {
   try {
-    const emailLog = await getEmailLog({ jobId: String(jobId) });
+    const emailLog = await getEmailLog({ jobId });
     if (emailLog && EMAIL_JOB_TYPES.includes(emailLog.type)) {
       if (emailLog.status === 'pending') {
-        await updateEmailStatus(
-          { jobId: String(jobId) },
-          { status: 'sent', sentAt: new Date(), error: null }
-        );
+        await updateEmailStatus({ jobId }, { status: 'sent', sentAt: new Date(), error: null });
       }
     }
   } catch (err) {
     logger.error('Failed to update email log on job completion', { jobId, err });
   }
+};
+
+mainQueueEvents.on('failed', ({ jobId, failedReason }) => {
+  void handleJobFailed(String(jobId), failedReason);
+});
+
+mainQueueEvents.on('completed', ({ jobId }) => {
+  void handleJobCompleted(String(jobId));
 });
 
 export async function addJobToQueue(

@@ -9,6 +9,7 @@ import {
   Tailwind,
 } from '@react-email/components';
 import type { EmailStyle } from './types';
+import { type ReactNode } from 'react';
 import { Box } from './Box';
 import { Button, type ButtonProps } from './Button';
 import { CenterText, type CenterTextProps } from './CenterText';
@@ -64,8 +65,8 @@ export const TemplateLayout = ({
   contentsArr,
   code,
   branding,
-}: TemplateLayoutProps) => {
-  const TailwindWrapper = Tailwind as any;
+}: TemplateLayoutProps): React.JSX.Element => {
+  const TailwindWrapper = Tailwind as unknown as React.ComponentType<{ children?: ReactNode }>;
   return (
     <TailwindWrapper>
       <Html>

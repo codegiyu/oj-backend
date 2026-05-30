@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticatePreHandler } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getCategories,
@@ -20,7 +20,7 @@ import {
   placeOrderBodySchema,
 } from '../controllers/marketplace/marketplace.validation';
 
-export async function registerMarketplaceRoutes(app: FastifyInstance): Promise<void> {
+export function registerMarketplaceRoutes(app: FastifyInstance): void {
   app.get('/categories', catchAsync(getCategories));
   app.get('/subcategories', catchAsync(getSubCategories));
   app.get('/vendors', catchAsync(getVendors));
@@ -64,12 +64,12 @@ export async function registerMarketplaceRoutes(app: FastifyInstance): Promise<v
     };
   }>(
     '/orders',
-    { preHandler: authenticate, schema: listOrdersQuerystringSchema },
+    { preHandler: [authenticatePreHandler], schema: listOrdersQuerystringSchema },
     catchAsync(getMyOrders)
   );
   app.get<{ Params: { orderId: string } }>(
     '/orders/:orderId/whatsapp-link',
-    { preHandler: authenticate },
+    { preHandler: [authenticatePreHandler] },
     catchAsync(getOrderWhatsappLink)
   );
 }
