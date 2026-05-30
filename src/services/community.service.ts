@@ -593,7 +593,12 @@ export async function votePoll(
   const optionIndex = options.findIndex(o => o._id != null && String(o._id) === String(optionId));
   if (optionIndex === -1) throw new AppError('Invalid option', 400);
 
-  const voterIdentifier = getVoterIdentifier(request);
+  const auth = getAuthUser(request);
+  if (!auth?.userId) {
+    throw new AppError('Authentication required to vote', 401);
+  }
+
+  const voterIdentifier = `user:${auth.userId}`;
   const pollOid = new mongoose.Types.ObjectId(String(pollDoc._id));
   const existingVote = await pollRepo.findPollVote(pollOid, voterIdentifier);
 

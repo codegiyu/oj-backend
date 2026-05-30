@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { catchAsync } from '../utils/catchAsync';
+import { authenticatePreHandler } from '../middleware/auth.middleware';
 import {
   listPublicMusic,
   getPublicMusicByIdOrSlug,
@@ -274,7 +275,7 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   );
   app.post<{ Body: { optionId: string }; Params: { idOrSlug: string } }>(
     '/polls/:idOrSlug/vote',
-    { schema: votePollBodySchema },
+    { preHandler: [authenticatePreHandler], schema: votePollBodySchema },
     catchAsync(votePoll)
   );
   app.post<{
