@@ -37,7 +37,7 @@ import {
   submitTestimony,
   createPoll,
   votePoll,
-  sendPrayerForRequest,
+  postPrayerForRequest,
 } from '../controllers/public/community.controller';
 import { submitContact } from '../controllers/public/contact.controller';
 import { search } from '../controllers/public/search.controller';
@@ -244,7 +244,7 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   app.post<{ Params: { idOrSlug: string } }>(
     '/prayer-requests/:idOrSlug/pray',
     { schema: communityIdOrSlugParamSchema },
-    catchAsync(sendPrayerForRequest)
+    catchAsync(postPrayerForRequest)
   );
 
   app.get<{ Querystring: { status?: string; category?: string; page?: string; limit?: string } }>(

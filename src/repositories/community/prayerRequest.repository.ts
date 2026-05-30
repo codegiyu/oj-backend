@@ -1,7 +1,6 @@
-import { PrayerRequest } from '../../models/prayerRequest';
-import { PrayerSolidarity } from '../../models/prayerSolidarity';
-import { findByIdOrSlug } from './shared';
 import mongoose from 'mongoose';
+import { PrayerRequest } from '../../models/prayerRequest';
+import { findByIdOrSlug } from './shared';
 
 export async function countPrayerRequests(): Promise<number> {
   return PrayerRequest.countDocuments({});
@@ -39,20 +38,6 @@ export async function findRecentActivePrayerRequests(
     .lean();
 
   return items as unknown as Record<string, unknown>[];
-}
-
-export async function findPrayerSolidarity(
-  prayerRequestId: mongoose.Types.ObjectId,
-  voterIdentifier: string
-) {
-  return PrayerSolidarity.findOne({ prayerRequest: prayerRequestId, voterIdentifier });
-}
-
-export async function createPrayerSolidarity(data: {
-  prayerRequest: mongoose.Types.ObjectId;
-  voterIdentifier: string;
-}): Promise<void> {
-  await PrayerSolidarity.create(data);
 }
 
 export async function incrementPrayerCount(
