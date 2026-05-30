@@ -8,12 +8,27 @@ import { AppError } from '../utils/AppError';
 import { parsePositiveInteger, parseString, generateUniqueSlug } from '../utils/helpers';
 import * as devotionalRepo from '../repositories/community/devotional.repository';
 import * as testimonyRepo from '../repositories/community/testimony.repository';
-import * as prayerRequestRepo from '../repositories/community/prayerRequest.repository';
+import {
+  countPrayerRequests,
+  listPrayerRequests as queryPrayerRequests,
+  findPrayerRequestByIdOrSlug,
+  findRecentActivePrayerRequests,
+  createPrayerRequest,
+  incrementPrayerCount,
+} from '../repositories/community/prayerRequest.repository';
+import {
+  hasPrayerSolidarity,
+  createPrayerSolidarity,
+} from '../repositories/community/prayerSolidarity.repository';
 import * as askPastorRepo from '../repositories/community/askPastor.repository';
 import * as pastorRepo from '../repositories/community/pastor.repository';
 import * as pollRepo from '../repositories/community/poll.repository';
 import * as resourceRepo from '../repositories/community/resource.repository';
-import * as communityArtistRepo from '../repositories/community/artist.repository';
+import {
+  countActiveCommunityArtists,
+  listActiveCommunityArtists,
+  findActiveArtistByIdOrSlug,
+} from '../repositories/community/artist.repository';
 import { PrayerRequest } from '../models/prayerRequest';
 import { AskPastorQuestion } from '../models/askPastorQuestion';
 import { Testimony } from '../models/testimony';
@@ -93,17 +108,17 @@ export async function getCommunity(): Promise<{
   ] = await Promise.all([
     devotionalRepo.countPublishedDevotionals(),
     testimonyRepo.countPublishedTestimonies(),
-    prayerRequestRepo.countPrayerRequests(),
+    countPrayerRequests(),
     askPastorRepo.countAskPastorQuestions(),
     pollRepo.countPolls(),
     resourceRepo.countPublishedResources(),
-    communityArtistRepo.countActiveCommunityArtists(),
+    countActiveCommunityArtists(),
   ]);
 
   const [featuredTestimonies, trendingDevotionals, recentPrayerRequests] = await Promise.all([
     testimonyRepo.findFeaturedTestimonies(FEATURED_TESTIMONIES_LIMIT),
     devotionalRepo.findTrendingDevotionals(TRENDING_DEVOTIONALS_LIMIT),
-    prayerRequestRepo.findRecentActivePrayerRequests(RECENT_PRAYER_REQUESTS_LIMIT),
+    findRecentActivePrayerRequests(RECENT_PRAYER_REQUESTS_LIMIT),
   ]);
 
   return {
@@ -285,7 +300,7 @@ export async function listPrayerRequests(
 
   const filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
 
-  const { items, total } = await prayerRequestRepo.listPrayerRequests({ filter, skip, limit });
+  const { items, total } = await queryPrayerRequests({ filter, skip, limit });
 
   const prayerRequests = items.map(shapePrayerRequestListItem);
   return {
@@ -299,7 +314,7 @@ export async function listPrayerRequests(
 export async function getPrayerRequestByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await prayerRequestRepo.findPrayerRequestByIdOrSlug(request.params.idOrSlug);
+  const doc = await findPrayerRequestByIdOrSlug(request.params.idOrSlug);
   if (!doc || !isCompletePrayerRequest(doc)) throw new AppError('Prayer request not found', 404);
   return {
     statusCode: 200,
@@ -413,7 +428,7 @@ export async function listCommunityArtists(
   const page = parsePositiveInteger(request.query?.page, 1, 1000);
   const skip = (page - 1) * limit;
 
-  const { items, total } = await communityArtistRepo.listActiveCommunityArtists({ skip, limit });
+  const { items, total } = await listActiveCommunityArtists({ skip, limit });
 
   const artists = items.map(shapeArtistListItem);
   return {
@@ -427,7 +442,7 @@ export async function listCommunityArtists(
 export async function getCommunityArtistByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await communityArtistRepo.findActiveArtistByIdOrSlug(request.params.idOrSlug);
+  const doc = await findActiveArtistByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Artist not found', 404);
   return { statusCode: 200, data: { artist: shapeArtistDetail(doc) }, message: 'Artist loaded.' };
 }
@@ -473,7 +488,7 @@ export async function submitPrayerRequest(
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const body = request.body ?? {};
   const slug = await generateUniqueSlug(PrayerRequest, body.title.trim().slice(0, 50) || 'prayer');
-  const raw = await prayerRequestRepo.createPrayerRequest({
+  const raw = await createPrayerRequest({
     title: body.title,
     slug,
     content: body.content,
@@ -625,12 +640,12 @@ export async function votePoll(
 }
 
 // ----- POST /public/prayer-requests/:idOrSlug/pray -----
-export async function sendPrayerForRequest(
+export async function recordPrayerForRequest(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const { idOrSlug } = request.params;
 
-  const prayerDoc = await prayerRequestRepo.findPrayerRequestByIdOrSlug(idOrSlug);
+  const prayerDoc = await findPrayerRequestByIdOrSlug(idOrSlug);
   if (!prayerDoc) throw new AppError('Prayer request not found', 404);
 
   const status = prayerDoc.status as string;
@@ -638,18 +653,18 @@ export async function sendPrayerForRequest(
 
   const prayerRequestId = new mongoose.Types.ObjectId(String(prayerDoc._id));
   const voterIdentifier = getSolidarityIdentifier(request);
-  const existing = await prayerRequestRepo.findPrayerSolidarity(prayerRequestId, voterIdentifier);
+  const alreadyPrayed = await hasPrayerSolidarity(prayerRequestId, voterIdentifier);
 
-  if (existing) {
+  if (alreadyPrayed) {
     throw new AppError('Already sent a prayer for this request', 409);
   }
 
-  await prayerRequestRepo.createPrayerSolidarity({
+  await createPrayerSolidarity({
     prayerRequest: prayerRequestId,
     voterIdentifier,
   });
 
-  const prayers = await prayerRequestRepo.incrementPrayerCount(prayerRequestId);
+  const prayers = await incrementPrayerCount(prayerRequestId);
   if (prayers == null) throw new AppError('Prayer request not found', 404);
 
   return {

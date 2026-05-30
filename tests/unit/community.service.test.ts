@@ -14,9 +14,12 @@ vi.mock('../../src/repositories/community/prayerRequest.repository', () => ({
   countPrayerRequests: vi.fn(),
   findRecentActivePrayerRequests: vi.fn(),
   findPrayerRequestByIdOrSlug: vi.fn(),
-  findPrayerSolidarity: vi.fn(),
-  createPrayerSolidarity: vi.fn(),
   incrementPrayerCount: vi.fn(),
+}));
+
+vi.mock('../../src/repositories/community/prayerSolidarity.repository', () => ({
+  hasPrayerSolidarity: vi.fn(),
+  createPrayerSolidarity: vi.fn(),
 }));
 
 vi.mock('../../src/repositories/community/askPastor.repository', () => ({
@@ -38,11 +41,12 @@ vi.mock('../../src/repositories/community/artist.repository', () => ({
 import * as devotionalRepo from '../../src/repositories/community/devotional.repository';
 import * as testimonyRepo from '../../src/repositories/community/testimony.repository';
 import * as prayerRequestRepo from '../../src/repositories/community/prayerRequest.repository';
+import * as prayerSolidarityRepo from '../../src/repositories/community/prayerSolidarity.repository';
 import * as askPastorRepo from '../../src/repositories/community/askPastor.repository';
 import * as pollRepo from '../../src/repositories/community/poll.repository';
 import * as resourceRepo from '../../src/repositories/community/resource.repository';
 import * as communityArtistRepo from '../../src/repositories/community/artist.repository';
-import { getCommunity, sendPrayerForRequest } from '../../src/services/community.service';
+import { getCommunity, recordPrayerForRequest } from '../../src/services/community.service';
 import type { FastifyRequest } from 'fastify';
 
 describe('community.service', () => {
@@ -78,7 +82,7 @@ describe('community.service', () => {
     });
   });
 
-  describe('sendPrayerForRequest', () => {
+  describe('recordPrayerForRequest', () => {
     const request = {
       params: { idOrSlug: 'abc123' },
       cookies: {},
@@ -92,14 +96,14 @@ describe('community.service', () => {
         status: 'active',
         prayers: 2,
       });
-      vi.mocked(prayerRequestRepo.findPrayerSolidarity).mockResolvedValue(null);
+      vi.mocked(prayerSolidarityRepo.hasPrayerSolidarity).mockResolvedValue(false);
       vi.mocked(prayerRequestRepo.incrementPrayerCount).mockResolvedValue(3);
 
-      const result = await sendPrayerForRequest(request);
+      const result = await recordPrayerForRequest(request);
 
       expect(result.statusCode).toBe(200);
       expect(result.data).toEqual({ prayers: 3 });
-      expect(prayerRequestRepo.createPrayerSolidarity).toHaveBeenCalledOnce();
+      expect(prayerSolidarityRepo.createPrayerSolidarity).toHaveBeenCalledOnce();
     });
 
     it('returns 409 when prayer already sent', async () => {
@@ -108,9 +112,9 @@ describe('community.service', () => {
         status: 'active',
         prayers: 2,
       });
-      vi.mocked(prayerRequestRepo.findPrayerSolidarity).mockResolvedValue({ _id: 'existing' });
+      vi.mocked(prayerSolidarityRepo.hasPrayerSolidarity).mockResolvedValue(true);
 
-      await expect(sendPrayerForRequest(request)).rejects.toMatchObject({
+      await expect(recordPrayerForRequest(request)).rejects.toMatchObject({
         message: 'Already sent a prayer for this request',
         statusCode: 409,
       });
@@ -119,7 +123,7 @@ describe('community.service', () => {
     it('returns 404 when prayer request not found', async () => {
       vi.mocked(prayerRequestRepo.findPrayerRequestByIdOrSlug).mockResolvedValue(null);
 
-      await expect(sendPrayerForRequest(request)).rejects.toMatchObject({
+      await expect(recordPrayerForRequest(request)).rejects.toMatchObject({
         message: 'Prayer request not found',
         statusCode: 404,
       });

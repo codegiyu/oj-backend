@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-type AsyncRouteHandler<R extends FastifyRequest = FastifyRequest> = (
+export type AsyncRouteHandler<R extends FastifyRequest = FastifyRequest> = (
   request: R,
   reply: FastifyReply
 ) => Promise<void>;

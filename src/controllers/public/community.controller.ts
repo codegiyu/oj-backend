@@ -4,6 +4,7 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendResponse } from '../../utils/response';
+import type { AsyncRouteHandler } from '../../utils/catchAsync';
 import * as communityService from '../../services/community.service';
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -198,9 +199,8 @@ export async function votePoll(
   await respond(reply, await communityService.votePoll(request));
 }
 
-export async function sendPrayerForRequest(
-  request: FastifyRequest<{ Params: { idOrSlug: string } }>,
-  reply: FastifyReply
-): Promise<void> {
-  await respond(reply, await communityService.sendPrayerForRequest(request));
-}
+export const postPrayerForRequest: AsyncRouteHandler<
+  FastifyRequest<{ Params: { idOrSlug: string } }>
+> = async (request, reply) => {
+  await respond(reply, await communityService.recordPrayerForRequest(request));
+};
