@@ -11,6 +11,24 @@ import { listAdminVendorRows } from '../../repositories/admin/vendor.repository'
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
 
+async function linkApprovedVendorToUser(vendor: InstanceType<typeof Vendor>): Promise<void> {
+  if (vendor.user) {
+    await User.updateOne({ _id: vendor.user }, { $set: { vendorId: vendor._id } });
+    return;
+  }
+
+  const matchingUser = await User.findOne({
+    email: vendor.email.trim().toLowerCase(),
+    $or: [{ vendorId: null }, { vendorId: { $exists: false } }],
+  }).select('_id');
+
+  if (!matchingUser) return;
+
+  vendor.user = matchingUser._id;
+  await vendor.save();
+  await User.updateOne({ _id: matchingUser._id }, { $set: { vendorId: vendor._id } });
+}
+
 function shapeVendorItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
     _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
@@ -201,6 +219,7 @@ export async function approveAdminVendor(
   vendor.rejectedAt = null;
   vendor.rejectedBy = null;
   await vendor.save();
+  await linkApprovedVendorToUser(vendor);
 
   const populated = await Vendor.findById(vendor._id).lean();
   sendResponse(
@@ -225,6 +244,7 @@ export async function rejectAdminVendor(
   if (!vendor) throw new AppError('Vendor not found', 404);
 
   const reason = typeof request.body?.reason === 'string' ? request.body.reason.trim() : '';
+  // Rejection maps to inactive (no separate rejected status in the vendor model).
   vendor.status = 'inactive';
   vendor.rejectionReason = reason;
   vendor.rejectedAt = new Date();

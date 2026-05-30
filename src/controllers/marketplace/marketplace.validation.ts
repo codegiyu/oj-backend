@@ -19,12 +19,25 @@ export const listProductsQuerystringSchema: FastifySchema = {
     properties: {
       category: { type: 'string' }, // category slug
       subCategory: { type: 'string' }, // subcategory slug
+      vendor: { type: 'string' }, // vendor slug or id
       featured: { type: 'string', enum: ['true', 'false'] },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       page: { type: 'string', pattern: '^[0-9]+$' },
       search: { type: 'string' },
       q: { type: 'string' },
       sort: { type: 'string' },
+    },
+  },
+};
+
+export const listVendorsQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'string', pattern: '^[0-9]+$' },
+      page: { type: 'string', pattern: '^[0-9]+$' },
+      search: { type: 'string' },
+      q: { type: 'string' },
     },
   },
 };
@@ -62,6 +75,7 @@ export const placeOrderBodySchema: FastifySchema = {
           address: { type: 'string' },
         },
       },
+      notes: { type: 'string' },
       items: {
         type: 'array',
         minItems: 1,
