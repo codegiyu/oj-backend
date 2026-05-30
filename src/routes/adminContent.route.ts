@@ -13,6 +13,7 @@ import {
   rejectBodySchema,
   adminUsersQuerystringSchema,
   adminUserPatchBodySchema,
+  updateAdminOrderBodySchema,
 } from '../controllers/admin/adminContent.validation';
 
 import {
@@ -153,7 +154,11 @@ import {
   rejectAdminProduct,
 } from '../controllers/admin/productAdmin.controller';
 
-import { listAdminOrders, getAdminOrder } from '../controllers/admin/orderAdmin.controller';
+import {
+  listAdminOrders,
+  getAdminOrder,
+  updateAdminOrder,
+} from '../controllers/admin/orderAdmin.controller';
 
 import {
   listAdminContentCategories,
@@ -599,11 +604,16 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     catchAsync(deleteAdminGospelVerse)
   );
 
-  // Orders (read-only)
+  // Orders
   app.get(
     '/orders',
     { ...opts, schema: listAdminQuerystringWithVendorSchema },
     catchAsync(listAdminOrders)
   );
   app.get('/orders/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminOrder));
+  app.patch(
+    '/orders/:id',
+    { ...opts, schema: { ...idParamSchema, ...updateAdminOrderBodySchema } },
+    catchAsync(updateAdminOrder)
+  );
 }

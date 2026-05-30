@@ -8,11 +8,13 @@ import {
   createProduct,
   updateProduct,
   getVendorOrders,
+  updateVendorOrder,
   updateVendorSettings,
 } from '../controllers/vendor/vendor.controller';
 import {
   createProductBodySchema,
   updateProductBodySchema,
+  updateVendorOrderBodySchema,
   updateVendorSettingsBodySchema,
 } from '../controllers/vendor/vendor.validation';
 
@@ -92,6 +94,14 @@ export function registerVendorRoutes(app: FastifyInstance): void {
     '/orders',
     { preHandler: [authenticatePreHandler] },
     catchAsync(getVendorOrders)
+  );
+  app.patch<{ Params: { id: string }; Body: { status: string } }>(
+    '/orders/:id',
+    {
+      preHandler: [authenticatePreHandler],
+      schema: updateVendorOrderBodySchema,
+    },
+    catchAsync(updateVendorOrder)
   );
   app.patch<{
     Body: {
