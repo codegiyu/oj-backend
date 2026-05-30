@@ -83,6 +83,7 @@ export function mapPopulatedOrderToApi(order: PopulatedOrder): Record<string, un
     vendor: vendorSummary,
     items,
     totalAmount: order.totalAmount,
+    notes: order.notes ?? '',
     status: order.status,
     paymentStatus: order.paymentStatus,
     createdAt: createdAt instanceof Date ? createdAt.toISOString() : createdAt,

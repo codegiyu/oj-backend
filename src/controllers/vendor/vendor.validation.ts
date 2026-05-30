@@ -99,6 +99,24 @@ export const updateProductBodySchema: FastifySchema = {
   },
 };
 
+export const updateVendorOrderBodySchema: FastifySchema = {
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'string', minLength: 1 } },
+  },
+  body: {
+    type: 'object',
+    required: ['status'],
+    properties: {
+      status: {
+        type: 'string',
+        enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+      },
+    },
+  },
+};
+
 export const updateVendorSettingsBodySchema: FastifySchema = {
   body: {
     type: 'object',

@@ -130,3 +130,25 @@ export const adminUserPatchBodySchema: FastifySchema = {
 
 /** @deprecated use adminUsersQuerystringSchema */
 export const adminUsersSearchQuerystringSchema = adminUsersQuerystringSchema;
+
+export const updateAdminOrderBodySchema: FastifySchema = {
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'string', minLength: 1 } },
+  },
+  body: {
+    type: 'object',
+    minProperties: 1,
+    properties: {
+      status: {
+        type: 'string',
+        enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+      },
+      paymentStatus: {
+        type: 'string',
+        enum: ['pending', 'paid', 'failed', 'refunded'],
+      },
+    },
+  },
+};

@@ -27,6 +27,7 @@ const orderSchema = new Schema<ModelOrder>(
     vendor: { type: Schema.Types.ObjectId, ref: 'Vendor', required: true, index: true },
     items: { type: [orderItemSchema], required: true },
     totalAmount: { type: Number, required: true },
+    notes: { type: String, default: '' },
     status: { type: String, required: true, default: 'pending', index: true },
     paymentStatus: { type: String, required: true, default: 'pending', index: true },
   },

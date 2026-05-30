@@ -11,6 +11,11 @@ import { parseSearch, normalizeSort, parsePositiveInteger } from '../../utils/he
 import { updateCachedUser } from '../../utils/authCache';
 import { buildClientUserPayload } from '../auth/auth.helpers';
 import { serializePopulatedUser, shapeWishlistItem } from './dashboard.helpers';
+import type { ModelProduct } from '../../lib/types/constants';
+import {
+  assertProductAvailableForCart,
+  resolveProductLinePrice,
+} from '../../utils/marketplaceProduct';
 
 export async function getMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const auth = getAuthUser(request);
@@ -226,7 +231,16 @@ function mapCart(cart: Record<string, unknown> | null | undefined) {
     const product = item.product as Record<string, unknown> | undefined;
     const vendor = (product?.vendor ?? null) as unknown as Record<string, unknown> | null;
     const quantity = Number(item.quantity) || 0;
-    const price = Number(product?.price ?? 0);
+    const sku = item.sku as string | undefined;
+    const price = product
+      ? resolveProductLinePrice(
+          {
+            price: Number(product.price ?? 0),
+            variants: product.variants as ModelProduct['variants'],
+          },
+          sku
+        )
+      : 0;
     const lineTotal = quantity * price;
 
     return {
@@ -283,6 +297,12 @@ async function upsertCartItem(userId: mongoose.Types.ObjectId, input: CartItemIn
     }
   }
 
+  try {
+    assertProductAvailableForCart(product, sku);
+  } catch (err) {
+    throw new AppError(err instanceof Error ? err.message : 'Product unavailable', 400);
+  }
+
   const cart =
     (await Cart.findOne({ user: userId }).lean()) ??
     (await Cart.create({ user: userId, items: [] }).then(doc => doc.toObject()));
@@ -304,7 +324,7 @@ async function upsertCartItem(userId: mongoose.Types.ObjectId, input: CartItemIn
       ...(sku ? { sku } : {}),
     });
   } else {
-    items[existingIndex].quantity = quantity;
+    items[existingIndex].quantity += quantity;
     if (sku) items[existingIndex].sku = sku;
   }
 

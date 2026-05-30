@@ -16,22 +16,17 @@ import {
   parseString,
   normalizeSort,
 } from '../../utils/helpers';
+import { assertVendorAccountActive } from './vendorAccess';
 import { ICategory, PopulatedOrder } from '../../lib/types/constants';
+import { mapPopulatedOrderToApi } from '../../utils/mapPopulatedOrder';
+import { ORDER_STATUSES, type OrderStatus } from '../../utils/marketplaceProduct';
 
-async function getVendorForUser(userId: string): Promise<InstanceType<typeof Vendor>> {
-  const user = await User.findById(userId).select('vendorId').lean();
-  if (!user?.vendorId) throw new AppError('Vendor profile not found', 404);
-  const vendor = await Vendor.findById((user as { vendorId: mongoose.Types.ObjectId }).vendorId);
-  if (!vendor) throw new AppError('Vendor not found', 404);
-  return vendor;
-}
-
-/** Returns vendor or throws 403 (no vendor link) / 404 (vendor record missing). */
 async function getVendorForUserStrict(userId: string): Promise<InstanceType<typeof Vendor>> {
   const user = await User.findById(userId).select('vendorId').lean();
   if (!user?.vendorId) throw new AppError('You do not have an associated vendor profile', 403);
   const vendor = await Vendor.findById((user as { vendorId: mongoose.Types.ObjectId }).vendorId);
   if (!vendor) throw new AppError('Vendor not found', 404);
+  assertVendorAccountActive(vendor.status);
   return vendor;
 }
 
@@ -76,7 +71,7 @@ export async function getDashboardStats(
 export async function getVendorMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const user = getAuthUser(request);
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const vendor = await getVendorForUser(user.userId);
+  const vendor = await getVendorForUserStrict(user.userId);
   const count = await Product.countDocuments({ vendor: vendor._id });
   sendResponse(reply, 200, { ...vendor.toObject(), productCount: count }, 'Vendor profile loaded.');
 }
@@ -99,7 +94,7 @@ export async function getVendorProducts(
 ): Promise<void> {
   const user = getAuthUser(request);
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const vendor = await getVendorForUser(user.userId);
+  const vendor = await getVendorForUserStrict(user.userId);
 
   const limit = parsePositiveInteger(request.query.limit, 20, 100);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
@@ -179,7 +174,7 @@ export async function createProduct(
 
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const vendor = await getVendorForUser(user.userId);
+  const vendor = await getVendorForUserStrict(user.userId);
   const body = request.body;
 
   let categoryId: mongoose.Types.ObjectId | null = null;
@@ -287,7 +282,7 @@ export async function updateProduct(
 
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const vendor = await getVendorForUser(user.userId);
+  const vendor = await getVendorForUserStrict(user.userId);
 
   const product = await Product.findOne({
     _id: new mongoose.Types.ObjectId(request.params.productId),
@@ -394,7 +389,7 @@ export async function getVendorOrders(
 ): Promise<void> {
   const user = getAuthUser(request);
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const vendor = await getVendorForUser(user.userId);
+  const vendor = await getVendorForUserStrict(user.userId);
 
   const limit = parsePositiveInteger(request.query.limit, 20, 100);
   const page = parsePositiveInteger(request.query.page, 1, 1000);
@@ -502,6 +497,42 @@ export async function getVendorOrders(
   );
 }
 
+export async function updateVendorOrder(
+  request: FastifyRequest<{
+    Params: { id: string };
+    Body: { status: OrderStatus };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const user = getAuthUser(request);
+  if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  const vendor = await getVendorForUserStrict(user.userId);
+  const { id } = request.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError('Invalid order id', 400);
+  }
+
+  const status = request.body.status;
+  if (!ORDER_STATUSES.includes(status)) {
+    throw new AppError('Invalid order status', 400);
+  }
+
+  const order = await Order.findOneAndUpdate(
+    { _id: new mongoose.Types.ObjectId(id), vendor: vendor._id },
+    { $set: { status } },
+    { new: true }
+  )
+    .populate('vendor', 'name storeName slug')
+    .populate('items.product', 'name slug price images')
+    .lean<PopulatedOrder | null>();
+
+  if (!order) throw new AppError('Order not found', 404);
+
+  sendResponse(reply, 200, { order: mapPopulatedOrderToApi(order) }, 'Order status updated.');
+}
+
 export async function updateVendorSettings(
   request: FastifyRequest<{
     Body: {
@@ -522,7 +553,7 @@ export async function updateVendorSettings(
 ): Promise<void> {
   const user = getAuthUser(request);
   if (!user || user.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const vendor = await getVendorForUser(user.userId);
+  const vendor = await getVendorForUserStrict(user.userId);
   const body = request.body;
   if (body.storeName !== undefined) vendor.storeName = body.storeName;
   if (body.storeDescription !== undefined) vendor.storeDescription = body.storeDescription;
