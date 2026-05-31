@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
-import { backfillMediaMetadataOnce } from './backfillMediaMetadata';
-import { wipePastorAskDataOnce } from './wipePastorAskData';
+// import { backfillMediaMetadataOnce } from './backfillMediaMetadata';
+// import { wipePastorAskDataOnce } from './wipePastorAskData';
 // import { seedContentCategories } from './functions';
 
 export {
@@ -20,7 +20,7 @@ export { wipePastorAskDataOnce } from './wipePastorAskData';
  * Main seed entry: run any enabled seed/migration steps.
  * Uncomment the steps you need. Safe to run on every startup or via npm run seed.
  */
-export const seedDb = async (): Promise<void> => {
+export const seedDb = (): void => {
   try {
     // Roles, site settings, and admins (admins depend on roles)
     // await seedSiteSettings();
@@ -31,9 +31,8 @@ export const seedDb = async (): Promise<void> => {
     // await seedPromotionContent();
     // await seedContentCategories();
     // await seedGospelVerses();
-
-    await wipePastorAskDataOnce();
-    await backfillMediaMetadataOnce();
+    // await wipePastorAskDataOnce();
+    // await backfillMediaMetadataOnce();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;
