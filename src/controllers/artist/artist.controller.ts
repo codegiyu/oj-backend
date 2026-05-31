@@ -218,6 +218,21 @@ export async function getDashboardStats(
   );
 }
 
+export async function getRecentUploads(
+  request: FastifyRequest<{ Querystring?: { limit?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const artist = await getArtistForUser(auth.userId);
+  const limit = parsePositiveInteger(request.query?.limit, 6, 20);
+
+  const { buildArtistRecentUploads } = await import('../../services/artistRecentUploads.service');
+  const uploads = await buildArtistRecentUploads(artist._id, limit);
+
+  sendResponse(reply, 200, { uploads }, 'Recent uploads loaded.');
+}
+
 const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 
 function shapeMusicItem(raw: MusicWithArtistLean): Record<string, unknown> {

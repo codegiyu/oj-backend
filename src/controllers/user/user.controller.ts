@@ -12,6 +12,7 @@ import { updateCachedUser } from '../../utils/authCache';
 import { buildClientUserPayload } from '../auth/auth.helpers';
 import { serializePopulatedUser, shapeWishlistItem } from './dashboard.helpers';
 import type { ModelProduct } from '../../lib/types/constants';
+import { Order } from '../../models/order';
 import {
   assertProductAvailableForCart,
   resolveProductLinePrice,
@@ -29,6 +30,65 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply): Promi
   const payload = await buildClientUserPayload(user);
   const serialized = serializePopulatedUser(payload);
   sendResponse(reply, 200, { user: serialized }, 'User loaded.');
+}
+
+export async function getUserDashboard(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+
+  const userId = new mongoose.Types.ObjectId(auth.userId);
+
+  const user = await User.findById(auth.userId).lean();
+  if (!user || user.accountStatus === 'deleted') {
+    throw new AppError('User not found', 404);
+  }
+
+  const payload = await buildClientUserPayload(user);
+  const serialized = serializePopulatedUser(payload);
+
+  const [orders, ordersTotal, wishlistItems, wishlistTotal] = await Promise.all([
+    Order.find({ customerId: userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('vendor', 'name storeName slug phone whatsapp')
+      .populate('items.product', 'name slug price images')
+      .lean(),
+    Order.countDocuments({ customerId: userId }),
+    Wishlist.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .populate({
+        path: 'product',
+        select: 'name slug price images vendor',
+        populate: { path: 'vendor', select: 'storeName slug name' },
+      })
+      .lean(),
+    Wishlist.countDocuments({ user: userId }),
+  ]);
+
+  const { mapPopulatedOrderToApi } = await import('../../utils/mapPopulatedOrder');
+  const recentOrders = (orders as unknown as Parameters<typeof mapPopulatedOrderToApi>[0][]).map(
+    mapPopulatedOrderToApi
+  );
+  const wishlistPreview = (wishlistItems as unknown as Record<string, unknown>[]).map(item =>
+    shapeWishlistItem(item as { _id: unknown; createdAt?: unknown; product?: unknown })
+  );
+
+  sendResponse(
+    reply,
+    200,
+    {
+      user: serialized,
+      ordersTotal,
+      recentOrders: recentOrders.slice(0, 3),
+      wishlistTotal,
+      wishlistPreview,
+    },
+    'User dashboard loaded.'
+  );
 }
 
 export async function updateMe(
