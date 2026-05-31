@@ -5,6 +5,7 @@ export const JOB_TYPES = [
   'inviteAdmin',
   'extractMediaMetadata',
   'snapshotMusicDailyMetrics',
+  'finalizeMusicChartSnapshots',
 ] as const;
 
 export type JOB_TYPE = (typeof JOB_TYPES)[number];
@@ -71,10 +72,15 @@ export interface SnapshotMusicDailyMetricsJobData extends BaseJobData {
   type: 'snapshotMusicDailyMetrics';
 }
 
+export interface FinalizeMusicChartSnapshotsJobData extends BaseJobData {
+  type: 'finalizeMusicChartSnapshots';
+}
+
 export type JobData =
   | OTPJobData
   | ResetPasswordJobData
   | NotificationEmailJobData
   | InviteAdminJobData
   | ExtractMediaMetadataJobData
-  | SnapshotMusicDailyMetricsJobData;
+  | SnapshotMusicDailyMetricsJobData
+  | FinalizeMusicChartSnapshotsJobData;

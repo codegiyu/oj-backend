@@ -6,6 +6,7 @@ import { getRedisClient, closeRedisConnection } from './config/redis';
 import { attachSocketServer, closeSocketServer } from './socket';
 import { seedDb } from './seed';
 import './queues/main.queue'; // register QueueEvents listeners
+import { registerChartJobSchedulers } from './queues/chartSchedulers';
 import { mainWorker } from './queues/main.worker';
 import type { FastifyInstance } from 'fastify';
 
@@ -22,6 +23,8 @@ const start = async (): Promise<void> => {
 
     await seedDb();
     logger.info('Seed completed');
+
+    await registerChartJobSchedulers();
 
     app = await buildApp();
 

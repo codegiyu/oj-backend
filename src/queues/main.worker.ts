@@ -5,9 +5,11 @@ import {
   type JobData,
   type ExtractMediaMetadataJobData,
   type SnapshotMusicDailyMetricsJobData,
+  type FinalizeMusicChartSnapshotsJobData,
 } from '../lib/types/queues';
 import { extractMediaMetadata } from './handlers/extractMediaMetadata';
 import { snapshotMusicDailyMetrics } from './handlers/snapshotMusicDailyMetrics';
+import { finalizeMusicChartSnapshots } from './handlers/finalizeMusicChartSnapshots';
 import { sendEmail } from './handlers/sendEmail';
 import { logger } from '../utils/logger';
 
@@ -34,6 +36,9 @@ export const mainWorker = new Worker<JobData>(
     }
     if (type === 'snapshotMusicDailyMetrics') {
       return await snapshotMusicDailyMetrics(job as Job<SnapshotMusicDailyMetricsJobData>);
+    }
+    if (type === 'finalizeMusicChartSnapshots') {
+      return await finalizeMusicChartSnapshots(job as Job<FinalizeMusicChartSnapshotsJobData>);
     }
     logger.warn(`Unknown job type: ${type}`);
   },
