@@ -21,7 +21,7 @@ const start = async (): Promise<void> => {
     getRedisClient();
     logger.info('Redis client initialized');
 
-    await seedDb();
+    seedDb();
     logger.info('Seed completed');
 
     await registerChartJobSchedulers();

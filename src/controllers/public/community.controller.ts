@@ -24,6 +24,27 @@ export async function getCommunity(_request: FastifyRequest, reply: FastifyReply
   await respond(reply, await communityService.getCommunity());
 }
 
+export async function getCommunityHighlights(
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.getCommunityHighlights());
+}
+
+export async function getAskAPastorHub(
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.getAskAPastorHub());
+}
+
+export async function getPrayerRequestsHub(
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.getPrayerRequestsHub());
+}
+
 export async function listDevotionals(
   request: FastifyRequest<{
     Querystring: {
