@@ -299,6 +299,7 @@ export async function search(
 
   if (searchTypes.includes('question')) {
     const docs = await AskPastorQuestion.find({
+      isPrivate: { $ne: true },
       $or: [{ question: regex }, { author: regex }, { category: regex }],
     })
       .limit(PER_TYPE_LIMIT)

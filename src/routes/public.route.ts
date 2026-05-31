@@ -27,6 +27,7 @@ import {
   listAskAPastorQuestions,
   getAskAPastorQuestionByIdOrSlug,
   listAskAPastorPastors,
+  getAskAPastorPastorByIdOrSlug,
   listPolls,
   getPollByIdOrSlug,
   listCommunityArtists,
@@ -38,6 +39,8 @@ import {
   createPoll,
   votePoll,
   postPrayerForRequest,
+  voteAskPastorQuestion,
+  likeAskPastorAnswer,
 } from '../controllers/public/community.controller';
 import { submitContact } from '../controllers/public/contact.controller';
 import { search } from '../controllers/public/search.controller';
@@ -75,6 +78,8 @@ import {
   submitTestimonyBodySchema,
   createPollBodySchema,
   votePollBodySchema,
+  voteQuestionBodySchema,
+  likeAnswerParamsSchema,
 } from '../controllers/public/community.validation';
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -262,6 +267,11 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     { schema: listPastorsQuerystringSchema },
     catchAsync(listAskAPastorPastors)
   );
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/ask-a-pastor/pastors/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getAskAPastorPastorByIdOrSlug)
+  );
 
   app.get<{ Querystring: { status?: string; page?: string; limit?: string } }>(
     '/polls',
@@ -319,6 +329,16 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     '/ask-a-pastor/questions',
     { schema: submitQuestionBodySchema },
     catchAsync(submitQuestion)
+  );
+  app.post<{ Body: { direction: 'up' | 'down' }; Params: { idOrSlug: string } }>(
+    '/ask-a-pastor/questions/:idOrSlug/vote',
+    { preHandler: [authenticatePreHandler], schema: voteQuestionBodySchema },
+    catchAsync(voteAskPastorQuestion)
+  );
+  app.post<{ Params: { idOrSlug: string; answerId: string } }>(
+    '/ask-a-pastor/questions/:idOrSlug/answers/:answerId/like',
+    { preHandler: [authenticatePreHandler], schema: likeAnswerParamsSchema },
+    catchAsync(likeAskPastorAnswer)
   );
   app.post<{ Body: { name?: string; category?: string; content: string } }>(
     '/testimonies',
