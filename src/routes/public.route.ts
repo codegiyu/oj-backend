@@ -35,6 +35,7 @@ import {
   getPollByIdOrSlug,
   listCommunityArtists,
   getCommunityArtistByIdOrSlug,
+  listResourceCounts,
   listResources,
   submitPrayerRequest,
   submitQuestion,
@@ -309,6 +310,7 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     catchAsync(getCommunityArtistByIdOrSlug)
   );
 
+  app.get('/resources/counts', catchAsync(listResourceCounts));
   app.get('/resources', { schema: listResourcesQuerystringSchema }, catchAsync(listResources));
 
   app.post<{

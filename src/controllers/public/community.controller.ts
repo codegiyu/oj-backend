@@ -165,6 +165,13 @@ export async function getCommunityArtistByIdOrSlug(
   await respond(reply, await communityService.getCommunityArtistByIdOrSlug(request));
 }
 
+export async function listResourceCounts(
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.listResourceCounts());
+}
+
 export async function listResources(
   request: FastifyRequest<{
     Querystring: { type?: string; page?: string; limit?: string };
