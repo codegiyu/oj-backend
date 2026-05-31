@@ -100,3 +100,13 @@ export function buildFastifyLoggerConfig(
 ): NonNullable<FastifyServerOptions['logger']> {
   return buildPinoLoggerOptions(nodeEnv, raw);
 }
+
+/** Printed after each request's logs when output is human-readable (pino-pretty). */
+export const REQUEST_LOG_SEPARATOR = '------------';
+
+export function shouldLogRequestSeparator(
+  nodeEnv: string,
+  raw: NodeJS.ProcessEnv = process.env
+): boolean {
+  return shouldUsePrettyLogs(nodeEnv, raw);
+}
