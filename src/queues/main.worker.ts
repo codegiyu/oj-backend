@@ -1,7 +1,13 @@
 import { Worker, type Job } from 'bullmq';
 import { ENVIRONMENT } from '../config/env';
-import { type JOB_TYPE, type JobData, type ExtractMediaMetadataJobData } from '../lib/types/queues';
+import {
+  type JOB_TYPE,
+  type JobData,
+  type ExtractMediaMetadataJobData,
+  type SnapshotMusicDailyMetricsJobData,
+} from '../lib/types/queues';
 import { extractMediaMetadata } from './handlers/extractMediaMetadata';
+import { snapshotMusicDailyMetrics } from './handlers/snapshotMusicDailyMetrics';
 import { sendEmail } from './handlers/sendEmail';
 import { logger } from '../utils/logger';
 
@@ -25,6 +31,9 @@ export const mainWorker = new Worker<JobData>(
     }
     if (type === 'extractMediaMetadata') {
       return await extractMediaMetadata(job as Job<ExtractMediaMetadataJobData>);
+    }
+    if (type === 'snapshotMusicDailyMetrics') {
+      return await snapshotMusicDailyMetrics(job as Job<SnapshotMusicDailyMetricsJobData>);
     }
     logger.warn(`Unknown job type: ${type}`);
   },

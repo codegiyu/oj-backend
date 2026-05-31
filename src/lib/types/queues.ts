@@ -4,6 +4,7 @@ export const JOB_TYPES = [
   'notificationEmail',
   'inviteAdmin',
   'extractMediaMetadata',
+  'snapshotMusicDailyMetrics',
 ] as const;
 
 export type JOB_TYPE = (typeof JOB_TYPES)[number];
@@ -66,9 +67,14 @@ export interface ExtractMediaMetadataJobData extends BaseJobData {
   mediaKind: MediaKind;
 }
 
+export interface SnapshotMusicDailyMetricsJobData extends BaseJobData {
+  type: 'snapshotMusicDailyMetrics';
+}
+
 export type JobData =
   | OTPJobData
   | ResetPasswordJobData
   | NotificationEmailJobData
   | InviteAdminJobData
-  | ExtractMediaMetadataJobData;
+  | ExtractMediaMetadataJobData
+  | SnapshotMusicDailyMetricsJobData;
