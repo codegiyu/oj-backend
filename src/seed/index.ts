@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { backfillMediaMetadataOnce } from './backfillMediaMetadata';
+import { wipePastorAskDataOnce } from './wipePastorAskData';
 // import { seedContentCategories } from './functions';
 
 export {
@@ -13,6 +14,7 @@ export {
 } from './functions';
 
 export { backfillMediaMetadataOnce } from './backfillMediaMetadata';
+export { wipePastorAskDataOnce } from './wipePastorAskData';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -30,6 +32,7 @@ export const seedDb = async (): Promise<void> => {
     // await seedContentCategories();
     // await seedGospelVerses();
 
+    await wipePastorAskDataOnce();
     await backfillMediaMetadataOnce();
   } catch (error) {
     logger.error('seedDb failed', { error });

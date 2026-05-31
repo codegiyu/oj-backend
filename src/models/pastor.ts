@@ -3,6 +3,7 @@ import type { ModelPastor } from '../lib/types/constants';
 
 const pastorSchema = new Schema<ModelPastor>(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     title: { type: String, default: '' },

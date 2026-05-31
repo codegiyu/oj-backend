@@ -136,6 +136,13 @@ import {
 } from '../controllers/admin/pastorAdmin.controller';
 
 import {
+  listAdminPastorApplications,
+  getAdminPastorApplication,
+  approveAdminPastorApplication,
+  rejectAdminPastorApplication,
+} from '../controllers/admin/pastorApplicationAdmin.controller';
+
+import {
   listAdminVendors,
   getAdminVendor,
   createAdminVendor,
@@ -479,6 +486,28 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     catchAsync(updateAdminPastor)
   );
   app.delete('/pastors/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminPastor));
+
+  // Pastor applications
+  app.get(
+    '/pastor-applications',
+    { ...opts, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminPastorApplications)
+  );
+  app.get(
+    '/pastor-applications/:id',
+    { ...opts, schema: idParamSchema },
+    catchAsync(getAdminPastorApplication)
+  );
+  app.post(
+    '/pastor-applications/:id/approve',
+    { ...opts, schema: idParamSchema },
+    catchAsync(approveAdminPastorApplication)
+  );
+  app.post(
+    '/pastor-applications/:id/reject',
+    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    catchAsync(rejectAdminPastorApplication)
+  );
 
   // Vendors
   app.get(
