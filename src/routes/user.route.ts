@@ -25,6 +25,8 @@ import {
   closeMyCommunityQuestion,
   listMyCommunityTestimonies,
   listMyCommunityPrayerRequests,
+  listMyCommunityPolls,
+  closeMyCommunityPoll,
 } from '../controllers/user/userCommunity.controller';
 import {
   updateMeBodySchema,
@@ -129,5 +131,15 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     '/me/community/prayer-requests',
     { preHandler: authenticate },
     catchAsync(listMyCommunityPrayerRequests)
+  );
+  app.get<{ Querystring: { page?: string; limit?: string } }>(
+    '/me/community/polls',
+    { preHandler: authenticate },
+    catchAsync(listMyCommunityPolls)
+  );
+  app.patch<{ Params: { id: string } }>(
+    '/me/community/polls/:id/close',
+    { preHandler: authenticate },
+    catchAsync(closeMyCommunityPoll)
   );
 }

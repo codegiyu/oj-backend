@@ -6,6 +6,7 @@ import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { parsePositiveInteger, parseString, generateUniqueSlug } from '../utils/helpers';
+import { normalizePollOptionTexts } from '../utils/pollOptions';
 import * as devotionalRepo from '../repositories/community/devotional.repository';
 import * as testimonyRepo from '../repositories/community/testimony.repository';
 import {
@@ -436,7 +437,11 @@ export async function listPolls(
   const status = parseString(request.query?.status);
 
   const filter: Record<string, unknown> = {};
-  if (status) filter.status = status;
+  if (status) {
+    filter.status = status;
+  } else {
+    filter.status = 'active';
+  }
 
   const { items, total } = await pollRepo.listPolls({ filter, skip, limit });
 
@@ -454,6 +459,20 @@ export async function getPollByIdOrSlug(
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const doc = await pollRepo.findPollByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Poll not found', 404);
+
+  const pollStatus = String(doc.status ?? '');
+  if (pollStatus === 'pending' || pollStatus === 'rejected') {
+    const auth = getAuthUser(request);
+    const submittedBy = doc.submittedBy;
+    const ownerId =
+      submittedBy != null && typeof submittedBy === 'object'
+        ? String((submittedBy as { _id?: unknown })._id ?? '')
+        : String(submittedBy ?? '');
+    if (!auth?.userId || ownerId !== String(auth.userId)) {
+      throw new AppError('Poll not found', 404);
+    }
+  }
+
   return { statusCode: 200, data: { poll: shapePollDetail(doc) }, message: 'Poll loaded.' };
 }
 
@@ -646,22 +665,39 @@ export async function createPoll(
     Body: { question: string; description?: string; category?: string; options: string[] };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
+  const auth = getAuthUser(request);
+  if (!auth?.userId) throw new AppError('Authentication required to create a poll', 401);
+
   const body = request.body ?? {};
   const slug = await generateUniqueSlug(Poll, body.question.trim().slice(0, 40) || 'poll');
-  const optionTexts = body.options.slice(0, 6).filter(Boolean);
-  if (optionTexts.length < 2) throw new AppError('At least 2 options are required', 400);
+  const optionTexts = normalizePollOptionTexts(body.options ?? []);
 
-  const options = optionTexts.map(text => ({ _id: new mongoose.Types.ObjectId(), text, votes: 0 }));
+  const options = optionTexts.map(text => ({
+    _id: new mongoose.Types.ObjectId(),
+    text,
+    votes: 0,
+  }));
+
+  const submittedBy =
+    auth.userId && mongoose.Types.ObjectId.isValid(auth.userId)
+      ? new mongoose.Types.ObjectId(auth.userId)
+      : null;
+
   const raw = await pollRepo.createPoll({
     question: body.question,
     slug,
     description: (body.description as string)?.trim() || '',
     category: (body.category as string)?.trim() || '',
     options,
-    status: 'active',
+    status: 'pending',
+    submittedBy,
     totalVotes: 0,
   });
-  return { statusCode: 201, data: { poll: shapePollDetail(raw) }, message: 'Poll created.' };
+  return {
+    statusCode: 201,
+    data: { poll: shapePollDetail(raw) },
+    message: 'Poll submitted for review.',
+  };
 }
 
 // ----- POST /public/polls/:idOrSlug/vote -----

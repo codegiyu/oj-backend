@@ -98,6 +98,8 @@ import {
   deleteAdminPoll,
   openAdminPoll,
   closeAdminPoll,
+  approveAdminPoll,
+  rejectAdminPoll,
 } from '../controllers/admin/pollAdmin.controller';
 
 import {
@@ -421,6 +423,12 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     '/polls/:id/close',
     { ...opts, schema: { ...idParamSchema, ...closePollBodySchema } },
     catchAsync(closeAdminPoll)
+  );
+  app.post('/polls/:id/approve', { ...opts, schema: idParamSchema }, catchAsync(approveAdminPoll));
+  app.post(
+    '/polls/:id/reject',
+    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    catchAsync(rejectAdminPoll)
   );
 
   // Artists

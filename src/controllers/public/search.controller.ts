@@ -317,6 +317,7 @@ export async function search(
 
   if (searchTypes.includes('poll')) {
     const docs = await Poll.find({
+      status: 'active',
       $or: [{ question: regex }, { description: regex }, { category: regex }],
     })
       .limit(PER_TYPE_LIMIT)

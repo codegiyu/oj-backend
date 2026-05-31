@@ -3,12 +3,17 @@ import mongoose from 'mongoose';
 import { AskPastorQuestion } from '../../models/askPastorQuestion';
 import { Testimony } from '../../models/testimony';
 import { PrayerRequest } from '../../models/prayerRequest';
+import { Poll } from '../../models/poll';
 import { AppError } from '../../utils/AppError';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { sendResponse } from '../../utils/response';
 import { parsePositiveInteger, parseString } from '../../utils/helpers';
 import { submitterQuestionFilter } from '../../services/pastor.service';
-import { shapeTestimonyDetail, shapePrayerRequestDetail } from '../public/community.helpers';
+import {
+  shapeTestimonyDetail,
+  shapePrayerRequestDetail,
+  shapePollListItem,
+} from '../public/community.helpers';
 import { shapePastorQuestionDetail } from '../pastor/pastor.helpers';
 
 function requireClientAuth(request: FastifyRequest): string {
@@ -187,5 +192,68 @@ export async function listMyCommunityPrayerRequests(
       },
     },
     'Your prayer requests loaded.'
+  );
+}
+
+/** GET /user/me/community/polls */
+export async function listMyCommunityPolls(
+  request: FastifyRequest<{ Querystring: { page?: string; limit?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const userId = new mongoose.Types.ObjectId(requireClientAuth(request));
+  const limit = parsePositiveInteger(request.query.limit, 10, 100);
+  const page = parsePositiveInteger(request.query.page, 1, 1000);
+  const skip = (page - 1) * limit;
+
+  const filter = { submittedBy: userId };
+  const [items, total] = await Promise.all([
+    Poll.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Poll.countDocuments(filter),
+  ]);
+
+  sendResponse(
+    reply,
+    200,
+    {
+      polls: items.map(item => shapePollListItem(item as unknown as Record<string, unknown>)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+    },
+    'Your polls loaded.'
+  );
+}
+
+/** PATCH /user/me/community/polls/:id/close */
+export async function closeMyCommunityPoll(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const userId = new mongoose.Types.ObjectId(requireClientAuth(request));
+  if (!mongoose.Types.ObjectId.isValid(request.params.id)) throw new AppError('Invalid id', 400);
+
+  const poll = await Poll.findOne({
+    _id: new mongoose.Types.ObjectId(request.params.id),
+    submittedBy: userId,
+  });
+
+  if (!poll) throw new AppError('Poll not found', 404);
+  if (poll.status !== 'active') throw new AppError('Only active polls can be closed', 409);
+
+  poll.status = 'closed';
+  poll.closedReason = 'Closed by creator';
+  poll.endDate = new Date();
+  poll.closedByUser = userId;
+  poll.closedBy = null;
+  await poll.save();
+
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollListItem(poll.toObject() as unknown as Record<string, unknown>) },
+    'Poll closed.'
   );
 }

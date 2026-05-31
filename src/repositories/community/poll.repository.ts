@@ -15,6 +15,7 @@ export async function listPolls(options: {
   const [items, total] = await Promise.all([
     Poll.find(options.filter)
       .sort({ createdAt: -1 })
+      .populate('submittedBy', 'firstName lastName')
       .skip(options.skip)
       .limit(options.limit)
       .lean(),
@@ -27,7 +28,12 @@ export async function listPolls(options: {
 export async function findPollByIdOrSlug(
   idOrSlug: string
 ): Promise<Record<string, unknown> | null> {
-  return findByIdOrSlug(Poll, idOrSlug, {});
+  const doc = await findByIdOrSlug(Poll, idOrSlug, {});
+  if (!doc) return null;
+  const populated = await Poll.findById((doc as { _id: unknown })._id)
+    .populate('submittedBy', 'firstName lastName')
+    .lean();
+  return (populated ?? doc) as unknown as Record<string, unknown>;
 }
 
 export async function findPollById(id: string): Promise<Record<string, unknown> | null> {

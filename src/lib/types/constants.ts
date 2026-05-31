@@ -864,12 +864,19 @@ export interface IPoll {
   description?: string;
   category?: string;
   options: IPollOption[];
-  status: 'active' | 'closed';
+  status: 'pending' | 'active' | 'closed' | 'rejected';
+  submittedBy?: mongoose.Types.ObjectId | null;
+  approvedAt?: Date | null;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  rejectedBy?: mongoose.Types.ObjectId | null;
   startDate?: Date;
   endDate?: Date;
   totalVotes: number;
   closedReason?: string;
   closedBy?: mongoose.Types.ObjectId | null;
+  closedByUser?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
