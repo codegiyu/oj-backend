@@ -264,6 +264,21 @@ function shapePollOption(
   };
 }
 
+export function resolvePollCreatorLabel(raw: Record<string, unknown>): string {
+  const submittedBy = raw.submittedBy;
+  if (submittedBy == null || submittedBy === '') return 'Admin';
+
+  if (typeof submittedBy === 'object' && submittedBy !== null) {
+    const user = submittedBy as Record<string, unknown>;
+    const first = typeof user.firstName === 'string' ? user.firstName.trim() : '';
+    const last = typeof user.lastName === 'string' ? user.lastName.trim() : '';
+    const full = `${first} ${last}`.trim();
+    if (full) return full;
+  }
+
+  return 'Community member';
+}
+
 /** Shape poll for list item. */
 export function shapePollListItem(raw: Record<string, unknown>): Record<string, unknown> {
   const options = Array.isArray(raw.options) ? raw.options : [];
@@ -277,6 +292,7 @@ export function shapePollListItem(raw: Record<string, unknown>): Record<string, 
     ),
     totalVotes,
     status: raw.status,
+    creatorLabel: resolvePollCreatorLabel(raw),
     timeAgo: timeAgo(raw.createdAt as Date),
     endDate: toIso(raw.endDate as Date),
   };

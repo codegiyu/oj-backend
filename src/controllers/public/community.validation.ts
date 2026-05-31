@@ -12,7 +12,7 @@ const DEVOTIONAL_TYPES = [
 const TESTIMONY_TYPES = ['all', 'featured', 'latest'] as const;
 const PRAYER_STATUS = ['active', 'answered'] as const;
 const QUESTION_STATUS = ['active', 'answered'] as const;
-const POLL_STATUS = ['active', 'closed'] as const;
+const POLL_STATUS = ['pending', 'active', 'closed', 'rejected'] as const;
 const RESOURCE_TYPES = ['ebook', 'template', 'beat', 'wallpaper', 'affiliate'] as const;
 
 const idOrSlugParam = {

@@ -290,7 +290,7 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   );
   app.post<{
     Body: { question: string; description?: string; category?: string; options: string[] };
-  }>('/polls', { schema: createPollBodySchema }, catchAsync(createPoll));
+  }>('/polls', { preHandler: [authenticatePreHandler], schema: createPollBodySchema }, catchAsync(createPoll));
 
   app.get('/artists', { schema: listArtistsQuerystringSchema }, catchAsync(listCommunityArtists));
   app.get<{ Params: { idOrSlug: string } }>(

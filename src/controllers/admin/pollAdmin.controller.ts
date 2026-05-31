@@ -4,6 +4,7 @@ import { Poll } from '../../models/poll';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generateUniqueSlug } from '../../utils/helpers';
+import { normalizePollOptionTexts } from '../../utils/pollOptions';
 import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
 import { runAdminList, runAdminGet } from '../../services/admin/runAdminListGet';
 import { listAdminPollRows, findAdminPollById } from '../../repositories/admin/poll.repository';
@@ -83,13 +84,14 @@ export async function createAdminPoll(
     throw new AppError('At least 2 options are required', 400);
   }
 
-  const options = body.options
-    .map((opt: { text?: string }) => ({
-      text: typeof opt?.text === 'string' ? opt.text.trim() : 'Option',
-      votes: 0,
-    }))
-    .filter(opt => opt.text.length > 0);
-  if (options.length < 2) throw new AppError('At least 2 valid options are required', 400);
+  const optionTexts = normalizePollOptionTexts(
+    body.options.map((opt: { text?: string }) => (typeof opt?.text === 'string' ? opt.text : ''))
+  );
+  const options = optionTexts.map(text => ({
+    _id: new mongoose.Types.ObjectId(),
+    text,
+    votes: 0,
+  }));
 
   const slug = await generateUniqueSlug(Poll, body.question.trim());
 
@@ -100,6 +102,7 @@ export async function createAdminPoll(
     category: body.category ?? '',
     options,
     status: body.status ?? 'active',
+    submittedBy: null,
     startDate: body.startDate ? new Date(body.startDate) : new Date(),
     endDate: body.endDate ? new Date(body.endDate) : undefined,
   });
@@ -137,10 +140,13 @@ export async function updateAdminPoll(
   if (body.description !== undefined) poll.description = body.description;
   if (body.category !== undefined) poll.category = body.category;
   if (body.options !== undefined && Array.isArray(body.options) && body.options.length >= 2) {
-    poll.options = body.options.map((opt: { text?: string; votes?: number }) => ({
+    const optionTexts = normalizePollOptionTexts(
+      body.options.map((opt: { text?: string }) => (typeof opt?.text === 'string' ? opt.text : ''))
+    );
+    poll.options = optionTexts.map(text => ({
       _id: new mongoose.Types.ObjectId(),
-      text: typeof opt?.text === 'string' ? opt.text.trim() : 'Option',
-      votes: typeof opt?.votes === 'number' ? opt.votes : 0,
+      text,
+      votes: 0,
     }));
   }
   if (body.status !== undefined) poll.status = body.status;
@@ -214,5 +220,58 @@ export async function closeAdminPoll(
     200,
     { poll: shapePollItem((populated ?? poll.toObject()) as unknown as Record<string, unknown>) },
     'Poll closed.'
+  );
+}
+
+export async function approveAdminPoll(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { userId } = requireAdmin(request);
+  const id = parseObjectId(request.params.id);
+  const poll = await Poll.findById(id);
+  if (!poll) throw new AppError('Poll not found', 404);
+  if (poll.status !== 'pending') throw new AppError('Only pending polls can be approved', 409);
+
+  poll.status = 'active';
+  poll.approvedAt = new Date();
+  poll.approvedBy = new mongoose.Types.ObjectId(userId);
+  poll.rejectionReason = '';
+  poll.rejectedAt = null;
+  poll.rejectedBy = null;
+  await poll.save();
+
+  const populated = await Poll.findById(poll._id).lean();
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollItem((populated ?? poll.toObject()) as unknown as Record<string, unknown>) },
+    'Poll approved.'
+  );
+}
+
+export async function rejectAdminPoll(
+  request: FastifyRequest<{ Params: { id: string }; Body: { reason?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { userId } = requireAdmin(request);
+  const id = parseObjectId(request.params.id);
+  const poll = await Poll.findById(id);
+  if (!poll) throw new AppError('Poll not found', 404);
+  if (poll.status !== 'pending') throw new AppError('Only pending polls can be rejected', 409);
+
+  const reason = typeof request.body?.reason === 'string' ? request.body.reason.trim() : '';
+  poll.status = 'rejected';
+  poll.rejectionReason = reason;
+  poll.rejectedAt = new Date();
+  poll.rejectedBy = new mongoose.Types.ObjectId(userId);
+  await poll.save();
+
+  const populated = await Poll.findById(poll._id).lean();
+  sendResponse(
+    reply,
+    200,
+    { poll: shapePollItem((populated ?? poll.toObject()) as unknown as Record<string, unknown>) },
+    'Poll rejected.'
   );
 }
