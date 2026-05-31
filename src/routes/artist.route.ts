@@ -11,6 +11,7 @@ import {
   createArtistMe,
   updateArtistMe,
   getDashboardStats,
+  getRecentUploads,
   listMyMusic,
   getMusicItem,
   rejectArtistMediaWrite,
@@ -73,6 +74,12 @@ export function registerArtistRoutes(app: FastifyInstance): void {
   );
 
   app.get('/dashboard-stats', { preHandler: artistPreHandler }, catchAsync(getDashboardStats));
+
+  app.get<{ Querystring?: { limit?: string } }>(
+    '/recent-uploads',
+    { preHandler: artistPreHandler },
+    catchAsync(getRecentUploads)
+  );
 
   app.get<{
     Querystring: { page?: string; limit?: string; status?: string; search?: string; sort?: string };

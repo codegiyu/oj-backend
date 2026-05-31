@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getMe,
+  getUserDashboard,
   updateMe,
   listWishlist,
   addToWishlist,
@@ -43,6 +44,7 @@ import {
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   app.get('/me', { preHandler: authenticate }, catchAsync(getMe));
+  app.get('/dashboard', { preHandler: authenticate }, catchAsync(getUserDashboard));
   app.patch<{
     Body: {
       firstName?: string;
