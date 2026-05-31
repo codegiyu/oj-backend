@@ -18,6 +18,9 @@ import {
 import { postPublicContentAnalyticsEvent } from '../controllers/public/contentAnalytics.controller';
 import {
   getCommunity,
+  getCommunityHighlights,
+  getAskAPastorHub,
+  getPrayerRequestsHub,
   listDevotionals,
   getDevotionalByIdOrSlug,
   listTestimonies,
@@ -213,6 +216,9 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
 
   // Community
   app.get('/community', catchAsync(getCommunity));
+  app.get('/community/highlights', catchAsync(getCommunityHighlights));
+  app.get('/ask-a-pastor/hub', catchAsync(getAskAPastorHub));
+  app.get('/prayer-requests/hub', catchAsync(getPrayerRequestsHub));
 
   app.get(
     '/devotionals',
@@ -290,7 +296,11 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   );
   app.post<{
     Body: { question: string; description?: string; category?: string; options: string[] };
-  }>('/polls', { preHandler: [authenticatePreHandler], schema: createPollBodySchema }, catchAsync(createPoll));
+  }>(
+    '/polls',
+    { preHandler: [authenticatePreHandler], schema: createPollBodySchema },
+    catchAsync(createPoll)
+  );
 
   app.get('/artists', { schema: listArtistsQuerystringSchema }, catchAsync(listCommunityArtists));
   app.get<{ Params: { idOrSlug: string } }>(

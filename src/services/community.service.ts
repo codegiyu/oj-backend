@@ -268,7 +268,18 @@ export async function listTestimonies(
     limit,
   });
 
-  const testimonies = items.map(shapeTestimonyListItem);
+  let testimonies = items.map(shapeTestimonyListItem);
+
+  if (type === 'featured' && testimonies.length === 0) {
+    const fallback = await testimonyRepo.listPublishedTestimonies({
+      filter: mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
+      sort: { createdAt: -1 },
+      skip: 0,
+      limit: 3,
+    });
+    testimonies = fallback.items.map(shapeTestimonyListItem);
+  }
+
   return {
     statusCode: 200,
     data: { testimonies, pagination: pagination(page, limit, total) },
@@ -460,14 +471,16 @@ export async function getPollByIdOrSlug(
   const doc = await pollRepo.findPollByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Poll not found', 404);
 
-  const pollStatus = String(doc.status ?? '');
+  const pollStatus = typeof doc.status === 'string' ? doc.status : '';
   if (pollStatus === 'pending' || pollStatus === 'rejected') {
     const auth = getAuthUser(request);
     const submittedBy = doc.submittedBy;
     const ownerId =
-      submittedBy != null && typeof submittedBy === 'object'
-        ? String((submittedBy as { _id?: unknown })._id ?? '')
-        : String(submittedBy ?? '');
+      submittedBy != null && typeof submittedBy === 'object' && '_id' in submittedBy
+        ? String((submittedBy as { _id: unknown })._id)
+        : typeof submittedBy === 'string'
+          ? submittedBy
+          : '';
     if (!auth?.userId || ownerId !== String(auth.userId)) {
       throw new AppError('Poll not found', 404);
     }
@@ -896,5 +909,115 @@ export async function likeAskPastorAnswer(
     statusCode: 200,
     data: { likes: likedAnswer?.likes ?? 1 },
     message: 'Like recorded.',
+  };
+}
+
+function buildCategoryCounts(items: Array<{ category?: string | null }>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    if (item.category) {
+      counts[item.category] = (counts[item.category] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+// ----- GET /public/community/highlights -----
+export async function getCommunityHighlights(): Promise<{
+  statusCode: number;
+  data: unknown;
+  message: string;
+}> {
+  const { mergeCommunityHighlights } = await import('./communityHighlights.service');
+
+  const [testimoniesRes, devotionalsRes, prayerRes] = await Promise.all([
+    testimonyRepo.listPublishedTestimonies({
+      filter: mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
+      sort: { createdAt: -1 },
+      skip: 0,
+      limit: 4,
+    }),
+    devotionalRepo.findTrendingDevotionals(4),
+    findRecentActivePrayerRequests(4),
+  ]);
+
+  const highlights = mergeCommunityHighlights({
+    testimonies: testimoniesRes.items as unknown as Record<string, unknown>[],
+    devotionals: devotionalsRes as unknown as Record<string, unknown>[],
+    prayerRequests: prayerRes as unknown as Record<string, unknown>[],
+    limit: 6,
+  });
+
+  return {
+    statusCode: 200,
+    data: { highlights },
+    message: 'Community highlights loaded.',
+  };
+}
+
+// ----- GET /public/ask-a-pastor/hub -----
+export async function getAskAPastorHub(): Promise<{
+  statusCode: number;
+  data: unknown;
+  message: string;
+}> {
+  const activeFilter = { ...publicQuestionVisibilityFilter(), status: 'active' };
+  const answeredFilter = { ...publicQuestionVisibilityFilter(), status: 'answered' };
+
+  const [activeResult, answeredResult, pastorsResult] = await Promise.all([
+    askPastorRepo.listAskPastorQuestions({ filter: activeFilter, skip: 0, limit: 50 }),
+    askPastorRepo.listAskPastorQuestions({ filter: answeredFilter, skip: 0, limit: 20 }),
+    pastorRepo.listActivePastors({ skip: 0, limit: 50 }),
+  ]);
+
+  const mapQuestion = (raw: Record<string, unknown>) => {
+    const pastor = raw.pastor as Record<string, unknown> | null | undefined;
+    return shapeQuestionListItem(raw, pastor ?? null);
+  };
+
+  const activeQuestions = activeResult.items.map(item =>
+    mapQuestion(item as unknown as Record<string, unknown>)
+  );
+  const answeredQuestions = answeredResult.items.map(item =>
+    mapQuestion(item as unknown as Record<string, unknown>)
+  );
+  const pastors = pastorsResult.items.map(item =>
+    shapePastorListItem(item as unknown as Record<string, unknown>)
+  );
+
+  const categoryCounts = buildCategoryCounts([...activeQuestions, ...answeredQuestions]);
+
+  return {
+    statusCode: 200,
+    data: { activeQuestions, answeredQuestions, pastors, categoryCounts },
+    message: 'Ask a pastor hub loaded.',
+  };
+}
+
+// ----- GET /public/prayer-requests/hub -----
+export async function getPrayerRequestsHub(): Promise<{
+  statusCode: number;
+  data: unknown;
+  message: string;
+}> {
+  const publishedFilter = mergePublicFilter({}, publishedTextContentCompletenessFilter());
+
+  const [activeResult, answeredResult] = await Promise.all([
+    queryPrayerRequests({ filter: { ...publishedFilter, status: 'active' }, skip: 0, limit: 50 }),
+    queryPrayerRequests({
+      filter: { ...publishedFilter, status: 'answered' },
+      skip: 0,
+      limit: 50,
+    }),
+  ]);
+
+  const activeRequests = activeResult.items.map(shapePrayerRequestListItem);
+  const answeredPrayers = answeredResult.items.map(shapePrayerRequestListItem);
+  const categoryCounts = buildCategoryCounts(activeRequests);
+
+  return {
+    statusCode: 200,
+    data: { activeRequests, answeredPrayers, categoryCounts },
+    message: 'Prayer requests hub loaded.',
   };
 }
