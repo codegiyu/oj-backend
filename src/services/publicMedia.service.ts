@@ -29,13 +29,14 @@ import {
   PUBLIC_LIST_DEFAULT_LIMIT as DEFAULT_LIMIT,
   PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
 } from '../constants/pagination';
-import { buildChartsDateFilter } from '../constants/musicSections';
+import { resolveChartScopeKey } from '../constants/musicSections';
 import { buildBreakingNewsSectionFilter } from '../constants/newsSections';
 import {
   buildLongFormVideoSectionFilter,
   buildShortFormVideoSectionFilter,
 } from '../constants/videoSections';
 import { resolveDownloadRedirectUrl } from './r2.service';
+import { getChartList } from './musicCharts.service';
 
 function isHttpFileUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
@@ -85,6 +86,39 @@ export async function listPublicMusic(
   const type = parseString(request.query.type);
   const period = parseString(request.query.period);
 
+  if (type === 'charts') {
+    const scopeKey = resolveChartScopeKey(category);
+    const { items, total } = await getChartList({ scopeKey, period, page, limit });
+    const music = items.map(item => {
+      const shaped = shapeMusicListItem(item.music, item.rank - 1, 'charts');
+
+      return {
+        ...shaped,
+        rank: item.rank,
+        chartPosition: item.rank,
+        trend: item.trend,
+        change: item.change,
+        ...(item.chartEntry ? { chartEntry: item.chartEntry } : {}),
+        periodPlays: item.periodPlays,
+        plays: item.periodPlays,
+      };
+    });
+
+    return {
+      statusCode: 200,
+      data: {
+        music,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+      message: 'Music list loaded.',
+    };
+  }
+
   const filter: Record<string, unknown> = {};
   if (status === 'published') filter.status = 'published';
   else filter.status = 'published'; // public: only published
@@ -100,11 +134,6 @@ export async function listPublicMusic(
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
-  else if (type === 'charts') {
-    sort = { plays: -1, createdAt: -1 };
-    const chartsDate = buildChartsDateFilter(period);
-    if (chartsDate) Object.assign(filter, chartsDate);
-  }
 
   const completeFilter = mergePublicFilter(filter, publishedMusicCompletenessFilter());
   const { items, total } = await musicRepo.listPublishedMusic({

@@ -90,7 +90,15 @@ Detail endpoints (1.2, 2.2, 3.2) use only the path param `:idOrSlug`; no query p
 - **Population:** `artist` must be populated to `{ _id, name, slug, image? }` (or equivalent summary).
 - **Frontend mapping:** `coverImage` → `cover`, `views` → `plays`. Optional `duration` if available (e.g. from metadata or stored field).
 
-For `type=charts`, items should be ordered by chart position/rank; include `chartPosition` or `rank` and optional `trend` (e.g. `up` \| `down` \| `same`) if supported.
+For `type=charts`, items are ranked by **plays in the chart window** (rolling 7/30 days or all-time cumulative), scoped by `category` (`all` = general chart). Each item includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rank` / `chartPosition` | number | Global position in this scope+period (stable across pages) |
+| `trend` | `up` \| `down` \| `same` | vs previous period, same scope |
+| `change` | number | Positions moved; `0` when unchanged, new, or re-entry |
+| `chartEntry` | `new` \| `reentry` \| `peak` (optional) | Situational entry badge key |
+| `periodPlays` | number | Plays counted in the chart window |
 
 **Backend implementation notes (1.1):**
 
