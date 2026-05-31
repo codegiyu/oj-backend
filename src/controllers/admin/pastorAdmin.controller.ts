@@ -1,5 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import mongoose from 'mongoose';
 import { Pastor } from '../../models/pastor';
+import { User } from '../../models/user';
+import type { IUser } from '../../lib/types/constants';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generateUniqueSlug, parseString } from '../../utils/helpers';
@@ -85,6 +88,7 @@ export async function createAdminPastor(
       isFeatured?: boolean;
       isActive?: boolean;
       displayOrder?: number;
+      ownerUserId?: string;
     };
   }>,
   reply: FastifyReply
@@ -95,8 +99,25 @@ export async function createAdminPastor(
   }
 
   const slug = await generateUniqueSlug(Pastor, body.name.trim());
+  let linkedUserId: mongoose.Types.ObjectId | null = null;
+
+  if (body.ownerUserId) {
+    if (!mongoose.Types.ObjectId.isValid(body.ownerUserId)) {
+      throw new AppError('Invalid ownerUserId', 400);
+    }
+
+    const ownerId = new mongoose.Types.ObjectId(body.ownerUserId);
+    const owner = await User.findById(ownerId)
+      .select('pastorId')
+      .lean<Pick<IUser, 'pastorId'> | null>();
+    if (!owner) throw new AppError('Owner user not found', 404);
+    if (owner.pastorId) throw new AppError('User already has a pastor profile', 409);
+
+    linkedUserId = ownerId;
+  }
 
   const pastor = await Pastor.create({
+    ...(linkedUserId ? { user: linkedUserId } : {}),
     name: body.name.trim(),
     slug,
     title: body.title ?? '',
@@ -108,6 +129,19 @@ export async function createAdminPastor(
     isActive: body.isActive ?? true,
     displayOrder: body.displayOrder ?? 0,
   });
+
+  if (linkedUserId) {
+    const linked = await User.findOneAndUpdate(
+      { _id: linkedUserId, pastorId: null },
+      { $set: { pastorId: pastor._id } },
+      { new: true }
+    );
+
+    if (!linked) {
+      await Pastor.deleteOne({ _id: pastor._id });
+      throw new AppError('User already has a pastor profile', 409);
+    }
+  }
 
   const populated = await Pastor.findById(pastor._id).lean();
   sendResponse(

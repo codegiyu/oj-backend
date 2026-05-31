@@ -22,6 +22,8 @@ export interface IUser {
   artistId?: mongoose.Types.ObjectId;
   /** Link to Vendor for vendor dashboard. */
   vendorId?: mongoose.Types.ObjectId;
+  /** Link to Pastor profile for pastor dashboard. */
+  pastorId?: mongoose.Types.ObjectId;
   isDeleted?: boolean;
   deleteRequestedAt?: Date;
   deletionApprovedAt?: Date;
@@ -528,9 +530,35 @@ export interface IVideo {
   updatedAt: Date;
 }
 
+/** Days a user must wait after a rejected pastor application before reapplying. */
+export const PASTOR_APPLICATION_REAPPLY_COOLDOWN_DAYS = 10;
+
+/** Pastor application submitted by a user for admin review. */
+export interface IPastorApplication {
+  _id: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
+  status: 'pending' | 'approved' | 'rejected';
+  name: string;
+  title?: string;
+  church?: string;
+  bio?: string;
+  image?: string;
+  expertise?: string[];
+  motivation?: string;
+  rejectionReason?: string;
+  rejectedAt?: Date | null;
+  reviewedAt?: Date | null;
+  reviewedBy?: mongoose.Types.ObjectId | null;
+  pastor?: mongoose.Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /** Pastor for "Ask a pastor": list/detail and assignment to questions. */
 export interface IPastor {
   _id: mongoose.Types.ObjectId;
+  /** User that owns this pastor profile (for pastor dashboard). */
+  user?: mongoose.Types.ObjectId;
   name: string;
   slug: string;
   title?: string;
@@ -711,6 +739,8 @@ export interface IPrayerRequest {
   slug: string;
   content: string;
   author: string;
+  /** Authenticated user who submitted this request, when logged in. */
+  submittedBy?: mongoose.Types.ObjectId | null;
   email?: string;
   category?: string;
   prayers: number;
@@ -740,6 +770,8 @@ export interface ITestimony {
   _id: mongoose.Types.ObjectId;
   slug: string;
   author: string;
+  /** Authenticated user who submitted this testimony, when logged in. */
+  submittedBy?: mongoose.Types.ObjectId | null;
   avatar?: string;
   content: string;
   likes: number;
@@ -757,18 +789,57 @@ export interface ITestimony {
   updatedAt: Date;
 }
 
-/** Ask a pastor question: question text, answer, pastor ref, status active|answered. */
+/** Answer subdocument on an Ask a Pastor question. */
+export interface IAskPastorAnswer {
+  _id: mongoose.Types.ObjectId;
+  pastor: mongoose.Types.ObjectId;
+  answer: string;
+  answeredAt: Date;
+  likes: number;
+}
+
+/** Tracks a single up/down vote per question (by user or session). */
+export interface IAskPastorQuestionVote {
+  _id: mongoose.Types.ObjectId;
+  question: mongoose.Types.ObjectId;
+  voterIdentifier: string;
+  direction: 'up' | 'down';
+  createdAt: Date;
+}
+
+/** Tracks a single like per answer (by user or session). */
+export interface IAskPastorAnswerLike {
+  _id: mongoose.Types.ObjectId;
+  question: mongoose.Types.ObjectId;
+  answerId: mongoose.Types.ObjectId;
+  voterIdentifier: string;
+  createdAt: Date;
+}
+
+/** Ask a pastor question: question text, answers[], pastor ref, status active|answered|closed. */
 export interface IAskPastorQuestion {
   _id: mongoose.Types.ObjectId;
   question: string;
   slug: string;
   author: string;
+  /** Authenticated user who submitted this question, when logged in. */
+  submittedBy?: mongoose.Types.ObjectId | null;
   email?: string;
   category?: string;
-  status: 'active' | 'answered';
+  status: 'active' | 'answered' | 'closed';
+  /** Legacy single answer — optional during transition; new code uses answers[]. */
   answer?: string;
+  /** Legacy single pastor ref — optional during transition. */
   pastor?: mongoose.Types.ObjectId;
   answeredAt?: Date;
+  /** Pastor specifically requested by the submitter. */
+  requestedPastor?: mongoose.Types.ObjectId | null;
+  isPrivate?: boolean;
+  upvotes?: number;
+  downvotes?: number;
+  closedAt?: Date | null;
+  closedBy?: mongoose.Types.ObjectId | null;
+  answers?: IAskPastorAnswer[];
   views: number;
   helpful: number;
   urgent: boolean;
@@ -1032,6 +1103,7 @@ export type ModelMusic = IMusic & IModelIndex & Document;
 export type ModelAlbum = IAlbum & IModelIndex & Document;
 export type ModelVideo = IVideo & IModelIndex & Document;
 export type ModelPastor = IPastor & IModelIndex & Document;
+export type ModelPastorApplication = IPastorApplication & IModelIndex & Document;
 export type ModelDevotional = IDevotional & IModelIndex & Document;
 export type ModelNewsArticle = INewsArticle & IModelIndex & Document;
 export type ModelContentCategory = IContentCategory & IModelIndex & Document;
@@ -1046,6 +1118,8 @@ export type ModelPrayerRequest = IPrayerRequest & IModelIndex & Document;
 export type ModelContactSubmission = IContactSubmission & IModelIndex & Document;
 export type ModelTestimony = ITestimony & IModelIndex & Document;
 export type ModelAskPastorQuestion = IAskPastorQuestion & IModelIndex & Document;
+export type ModelAskPastorQuestionVote = IAskPastorQuestionVote & IModelIndex & Document;
+export type ModelAskPastorAnswerLike = IAskPastorAnswerLike & IModelIndex & Document;
 export type ModelPoll = IPoll & IModelIndex & Document;
 export type ModelPollVote = IPollVote & IModelIndex & Document;
 export type ModelPrayerSolidarity = IPrayerSolidarity & IModelIndex & Document;

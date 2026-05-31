@@ -7,6 +7,7 @@ const prayerRequestSchema = new Schema<ModelPrayerRequest>(
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
     content: { type: String, required: true },
     author: { type: String, required: true, trim: true },
+    submittedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     email: { type: String, default: '' },
     category: { type: String, default: '', index: true },
     prayers: { type: Number, default: 0 },

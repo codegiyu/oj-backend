@@ -5,6 +5,7 @@ const testimonySchema = new Schema<ModelTestimony>(
   {
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
     author: { type: String, required: true, trim: true },
+    submittedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     avatar: { type: String, default: '' },
     content: { type: String, required: true },
     likes: { type: Number, default: 0 },

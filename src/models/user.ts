@@ -104,6 +104,7 @@ export const UserSchema = new Schema<ModelUser>(
     preferences: { type: preferencesSchema },
     artistId: { type: Schema.Types.ObjectId, ref: 'Artist', default: null },
     vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', default: null },
+    pastorId: { type: Schema.Types.ObjectId, ref: 'Pastor', default: null },
     isDeleted: { type: Boolean, default: false },
     deleteRequestedAt: { type: Date },
     deletionApprovedAt: { type: Date },
