@@ -24,6 +24,10 @@ async function observabilityPlugin(app: FastifyInstance): Promise<void> {
 
     recordRequestLatency(routeKey, durationMs);
 
+    if (shouldLogRequestSeparator(ENVIRONMENT.nodeEnv)) {
+      request.log.info({ startOfRequest: REQUEST_LOG_SEPARATOR });
+    }
+
     request.log.info(
       buildRequestCompletedLogFields({
         requestId: String(request.id),
@@ -36,7 +40,7 @@ async function observabilityPlugin(app: FastifyInstance): Promise<void> {
     );
 
     if (shouldLogRequestSeparator(ENVIRONMENT.nodeEnv)) {
-      request.log.info(REQUEST_LOG_SEPARATOR);
+      request.log.info({ endOfRequest: REQUEST_LOG_SEPARATOR });
     }
   });
 
