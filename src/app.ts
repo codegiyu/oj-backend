@@ -17,6 +17,7 @@ import { registerMarketplaceRoutes } from './routes/marketplace.route';
 import { registerUserRoutes } from './routes/user.route';
 import { registerVendorRoutes } from './routes/vendor.route';
 import { registerArtistRoutes } from './routes/artist.route';
+import { registerPastorRoutes } from './routes/pastor.route';
 import { registerPublicRoutes } from './routes/public.route';
 import { registerAdminPromotionRoutes } from './routes/promotionAdmin.route';
 import { registerAdminContentRoutes } from './routes/adminContent.route';
@@ -72,6 +73,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   await app.register(registerUserRoutes, { prefix: `${API_V1_PREFIX}/user` });
   await app.register(registerVendorRoutes, { prefix: `${API_V1_PREFIX}/vendor` });
   await app.register(registerArtistRoutes, { prefix: `${API_V1_PREFIX}/artist` });
+  await app.register(registerPastorRoutes, { prefix: `${API_V1_PREFIX}/pastor` });
   await app.register(registerPublicRoutes, { prefix: `${API_V1_PREFIX}/public` });
   await app.register(registerAdminPromotionRoutes, { prefix: `${API_V1_PREFIX}/admin` });
   await app.register(registerAdminContentRoutes, { prefix: `${API_V1_PREFIX}/admin` });

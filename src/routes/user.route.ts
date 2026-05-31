@@ -20,6 +20,13 @@ import {
   removeFavorite,
 } from '../controllers/user/contentFavorite.controller';
 import {
+  listMyCommunityQuestions,
+  getMyCommunityQuestion,
+  closeMyCommunityQuestion,
+  listMyCommunityTestimonies,
+  listMyCommunityPrayerRequests,
+} from '../controllers/user/userCommunity.controller';
+import {
   updateMeBodySchema,
   addToWishlistBodySchema,
   listWishlistQuerystringSchema,
@@ -97,4 +104,30 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     catchAsync(removeFromCart)
   );
   app.delete('/cart', { preHandler: authenticate }, catchAsync(clearCart));
+
+  app.get<{ Querystring: { page?: string; limit?: string; status?: string } }>(
+    '/me/community/questions',
+    { preHandler: authenticate },
+    catchAsync(listMyCommunityQuestions)
+  );
+  app.get<{ Params: { id: string } }>(
+    '/me/community/questions/:id',
+    { preHandler: authenticate },
+    catchAsync(getMyCommunityQuestion)
+  );
+  app.patch<{ Params: { id: string } }>(
+    '/me/community/questions/:id/close',
+    { preHandler: authenticate },
+    catchAsync(closeMyCommunityQuestion)
+  );
+  app.get<{ Querystring: { page?: string; limit?: string } }>(
+    '/me/community/testimonies',
+    { preHandler: authenticate },
+    catchAsync(listMyCommunityTestimonies)
+  );
+  app.get<{ Querystring: { page?: string; limit?: string } }>(
+    '/me/community/prayer-requests',
+    { preHandler: authenticate },
+    catchAsync(listMyCommunityPrayerRequests)
+  );
 }

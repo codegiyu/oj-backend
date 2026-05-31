@@ -3,6 +3,11 @@
  */
 
 import { leanIdToString, toArtistSummary, type PopulatedArtistDoc } from '../artist/artist.helpers';
+import {
+  countQuestionAnswers,
+  isQuestionAnswered,
+  normalizeQuestionAnswers,
+} from '../../services/pastor.service';
 
 export { findByIdOrSlug } from '../../repositories/community/shared';
 
@@ -185,18 +190,24 @@ export function shapeQuestionListItem(
   raw: Record<string, unknown>,
   pastor?: Record<string, unknown> | null
 ): Record<string, unknown> {
+  const answersCount = countQuestionAnswers(raw as never);
   const item: Record<string, unknown> = {
     _id: idStr(raw._id),
     question: raw.question,
     category: raw.category,
     author: raw.author,
     views: raw.views ?? 0,
-    answers: raw.status === 'answered' ? 1 : 0,
+    answers: answersCount,
+    isAnswered: isQuestionAnswered(raw as never),
     timeAgo: timeAgo(raw.createdAt as Date),
     urgent: !!raw.urgent,
+    isPrivate: !!raw.isPrivate,
+    upvotes: raw.upvotes ?? 0,
+    downvotes: raw.downvotes ?? 0,
     answer: raw.answer,
     answeredDate: toIso(raw.answeredAt as Date),
     helpful: raw.helpful ?? 0,
+    status: raw.status,
   };
   if (pastor) item.pastor = shapePastorDetail(pastor);
   return item;
@@ -207,6 +218,7 @@ export function shapeQuestionDetail(
   raw: Record<string, unknown>,
   pastor?: Record<string, unknown> | null
 ): Record<string, unknown> {
+  const answers = normalizeQuestionAnswers(raw as never);
   const detail: Record<string, unknown> = {
     _id: idStr(raw._id),
     question: raw.question,
@@ -214,13 +226,24 @@ export function shapeQuestionDetail(
     category: raw.category,
     author: raw.author,
     status: raw.status,
+    isPrivate: !!raw.isPrivate,
+    isAnswered: isQuestionAnswered(raw as never),
     answer: raw.answer,
     answeredAt: toIso(raw.answeredAt as Date),
     views: raw.views ?? 0,
     helpful: raw.helpful ?? 0,
+    upvotes: raw.upvotes ?? 0,
+    downvotes: raw.downvotes ?? 0,
     urgent: !!raw.urgent,
     createdAt: toIso(raw.createdAt as Date),
     updatedAt: toIso(raw.updatedAt as Date),
+    answers: answers.map(answer => ({
+      _id: idStr(answer._id),
+      answer: answer.answer,
+      answeredAt: toIso(answer.answeredAt),
+      likes: answer.likes ?? 0,
+      pastor: idStr(answer.pastor),
+    })),
   };
   if (pastor) detail.pastor = shapePastorDetail(pastor);
   return detail;

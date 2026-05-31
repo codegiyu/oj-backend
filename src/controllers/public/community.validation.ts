@@ -155,6 +155,32 @@ export const submitQuestionBodySchema: FastifySchema = {
       email: { type: 'string', format: 'email' },
       question: { type: 'string', maxLength: 2000 },
       category: { type: 'string' },
+      isPrivate: { type: 'boolean' },
+      requestedPastorId: { type: 'string', minLength: 1 },
+    },
+  },
+};
+
+/** Vote on question: direction required. */
+export const voteQuestionBodySchema: FastifySchema = {
+  ...idOrSlugParam,
+  body: {
+    type: 'object',
+    required: ['direction'],
+    properties: {
+      direction: { type: 'string', enum: ['up', 'down'] },
+    },
+  },
+};
+
+/** Like answer params. */
+export const likeAnswerParamsSchema: FastifySchema = {
+  params: {
+    type: 'object',
+    required: ['idOrSlug', 'answerId'],
+    properties: {
+      idOrSlug: { type: 'string', minLength: 1 },
+      answerId: { type: 'string', minLength: 1 },
     },
   },
 };

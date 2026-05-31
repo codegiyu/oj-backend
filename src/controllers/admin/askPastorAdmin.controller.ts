@@ -14,6 +14,7 @@ import {
   applyCategoryOnlyExtendFilters,
   type ContentListQuery,
 } from '../../services/admin/adminListFilters';
+import { shapeAdminPrivateQuestionMetadata } from '../pastor/pastor.helpers';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'question', 'status'];
 
@@ -30,28 +31,34 @@ function toPastorSummary(
 }
 
 function shapeAskPastorItem(raw: Record<string, unknown>): Record<string, unknown> {
+  const redacted = shapeAdminPrivateQuestionMetadata(raw);
   const pastor = toPastorSummary(
-    raw.pastor as { _id: unknown; name?: string; slug?: string; image?: string } | null
+    redacted.pastor as { _id: unknown; name?: string; slug?: string; image?: string } | null
   );
   return {
-    _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
-    question: raw.question,
-    slug: raw.slug,
-    author: raw.author,
-    email: raw.email,
-    category: raw.category,
-    status: raw.status,
-    answer: raw.answer,
+    _id: redacted._id != null ? leanIdToString(redacted._id) : redacted._id,
+    question: redacted.question,
+    slug: redacted.slug,
+    author: redacted.author,
+    email: redacted.email,
+    category: redacted.category,
+    status: redacted.status,
+    isPrivate: !!redacted.isPrivate,
+    answer: redacted.answer,
     pastor,
-    answeredAt: raw.answeredAt,
-    views: raw.views ?? 0,
-    helpful: raw.helpful ?? 0,
-    urgent: raw.urgent,
-    rejectionReason: raw.rejectionReason,
-    rejectedAt: raw.rejectedAt,
-    rejectedBy: raw.rejectedBy,
-    createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
-    updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
+    answeredAt: redacted.answeredAt,
+    views: redacted.views ?? 0,
+    helpful: redacted.helpful ?? 0,
+    upvotes: redacted.upvotes ?? 0,
+    downvotes: redacted.downvotes ?? 0,
+    urgent: redacted.urgent,
+    rejectionReason: redacted.rejectionReason,
+    rejectedAt: redacted.rejectedAt,
+    rejectedBy: redacted.rejectedBy,
+    createdAt:
+      redacted.createdAt instanceof Date ? redacted.createdAt.toISOString() : redacted.createdAt,
+    updatedAt:
+      redacted.updatedAt instanceof Date ? redacted.updatedAt.toISOString() : redacted.updatedAt,
   };
 }
 

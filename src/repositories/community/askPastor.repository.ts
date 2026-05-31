@@ -2,7 +2,7 @@ import { AskPastorQuestion } from '../../models/askPastorQuestion';
 import { findByIdOrSlug } from './shared';
 
 export async function countAskPastorQuestions(): Promise<number> {
-  return AskPastorQuestion.countDocuments({});
+  return AskPastorQuestion.countDocuments({ isPrivate: { $ne: true } });
 }
 
 export async function listAskPastorQuestions(options: {

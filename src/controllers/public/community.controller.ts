@@ -107,6 +107,13 @@ export async function listAskAPastorPastors(
   await respond(reply, await communityService.listAskAPastorPastors(request));
 }
 
+export async function getAskAPastorPastorByIdOrSlug(
+  request: FastifyRequest<{ Params: { idOrSlug: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.getAskAPastorPastorByIdOrSlug(request));
+}
+
 export async function listPolls(
   request: FastifyRequest<{
     Querystring: { status?: string; page?: string; limit?: string };
@@ -164,7 +171,14 @@ export async function submitPrayerRequest(
 
 export async function submitQuestion(
   request: FastifyRequest<{
-    Body: { name?: string; email?: string; question: string; category?: string };
+    Body: {
+      name?: string;
+      email?: string;
+      question: string;
+      category?: string;
+      isPrivate?: boolean;
+      requestedPastorId?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -204,3 +218,20 @@ export const postPrayerForRequest: AsyncRouteHandler<
 > = async (request, reply) => {
   await respond(reply, await communityService.recordPrayerForRequest(request));
 };
+
+export async function voteAskPastorQuestion(
+  request: FastifyRequest<{
+    Params: { idOrSlug: string };
+    Body: { direction: 'up' | 'down' };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.voteAskPastorQuestion(request));
+}
+
+export async function likeAskPastorAnswer(
+  request: FastifyRequest<{ Params: { idOrSlug: string; answerId: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.likeAskPastorAnswer(request));
+}

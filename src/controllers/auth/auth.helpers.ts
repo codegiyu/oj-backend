@@ -126,6 +126,23 @@ export async function buildClientUserPayload(user: ModelUser): Promise<Record<st
     }
   }
 
+  if (user.pastorId) {
+    const { Pastor } = await import('../../models/pastor');
+    const pastor = await Pastor.findById(user.pastorId)
+      .select('_id name slug image title church')
+      .lean();
+    if (pastor) {
+      sanitized.pastor = {
+        _id: pastor._id,
+        name: pastor.name,
+        slug: pastor.slug,
+        image: pastor.image,
+        title: pastor.title,
+        church: pastor.church,
+      };
+    }
+  }
+
   return sanitized;
 }
 
