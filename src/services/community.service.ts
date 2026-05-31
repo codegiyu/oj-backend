@@ -516,6 +516,21 @@ export async function getCommunityArtistByIdOrSlug(
   return { statusCode: 200, data: { artist: shapeArtistDetail(doc) }, message: 'Artist loaded.' };
 }
 
+// ----- GET /public/resources/counts -----
+export async function listResourceCounts(): Promise<{
+  statusCode: number;
+  data: unknown;
+  message: string;
+}> {
+  const { all, byType } = await resourceRepo.countPublishedResourcesByType();
+
+  return {
+    statusCode: 200,
+    data: { all, byType },
+    message: 'Resource counts loaded.',
+  };
+}
+
 // ----- GET /public/resources -----
 export async function listResources(
   request: FastifyRequest<{

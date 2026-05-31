@@ -3,7 +3,10 @@ import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { parsePositiveInteger, parseString } from '../utils/helpers';
 import * as albumRepo from '../repositories/public/album.repository';
-import { listMusicTracksForAlbum } from '../repositories/admin/album.repository';
+import {
+  countMusicTracksForAlbum,
+  listMusicTracksForAlbum,
+} from '../repositories/admin/album.repository';
 import { leanIdToString } from '../utils/leanId';
 import { shapeAlbumDetail, shapeAlbumListItem, shapeAlbumTrackItem } from './publicAlbum.shaping';
 import {
@@ -53,7 +56,13 @@ export async function listPublicAlbums(
     limit,
   });
 
-  const albums = items.map(item => shapeAlbumListItem(item));
+  const albums = await Promise.all(
+    items.map(async item => {
+      const trackCount = await countMusicTracksForAlbum(leanIdToString(item._id));
+
+      return shapeAlbumListItem({ ...item, trackCount });
+    })
+  );
 
   return {
     statusCode: 200,
