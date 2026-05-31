@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ENVIRONMENT } from '../config/env';
+import { REQUEST_LOG_SEPARATOR, shouldLogRequestSeparator } from '../config/pino';
 import { buildRouteLatencyKey, recordRequestLatency } from '../observability/latencyHistogram';
 import { buildRequestCompletedLogFields } from '../observability/requestMetrics';
 import { wrapRootPlugin } from './wrapPlugin';
@@ -33,6 +34,10 @@ async function observabilityPlugin(app: FastifyInstance): Promise<void> {
       }),
       'request completed'
     );
+
+    if (shouldLogRequestSeparator(ENVIRONMENT.nodeEnv)) {
+      request.log.info(REQUEST_LOG_SEPARATOR);
+    }
   });
 
   if (ENVIRONMENT.nodeEnv !== 'development') {

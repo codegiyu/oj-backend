@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPinoLoggerOptions,
+  REQUEST_LOG_SEPARATOR,
   resolveLogLevel,
+  shouldLogRequestSeparator,
   shouldUsePrettyLogs,
 } from '../../src/config/pino';
 
@@ -39,5 +41,13 @@ describe('pino logging config', () => {
     expect(resolveLogLevel('production')).toBe('info');
     expect(resolveLogLevel('development')).toBe('debug');
     expect(resolveLogLevel('production', { LOG_LEVEL: 'warn' })).toBe('warn');
+  });
+
+  it('logs a dash separator after requests only in pretty output', () => {
+    expect(REQUEST_LOG_SEPARATOR).toBe('------------');
+    expect(shouldLogRequestSeparator('development')).toBe(true);
+    expect(shouldLogRequestSeparator('production')).toBe(false);
+    expect(shouldLogRequestSeparator('production', { LOG_PRETTY: '1' })).toBe(true);
+    expect(shouldLogRequestSeparator('development', { LOG_FORMAT: 'json' })).toBe(false);
   });
 });
