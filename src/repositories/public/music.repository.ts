@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { Music } from '../../models/music';
-import { ARTIST_POPULATE_SELECT } from '../../controllers/artist/artist.helpers';
+import { artistPublicPopulate } from '../../controllers/artist/artist.helpers';
 import { findByIdOrSlug } from '../community/shared';
 
 const PUBLISHED_ALBUM_POPULATE = {
@@ -18,7 +18,7 @@ export async function listPublishedMusic(options: {
   const [items, total] = await Promise.all([
     Music.find(options.filter)
       .sort(options.sort)
-      .populate('artist', ARTIST_POPULATE_SELECT)
+      .populate(artistPublicPopulate)
       .populate(PUBLISHED_ALBUM_POPULATE)
       .skip(options.skip)
       .limit(options.limit)
@@ -39,7 +39,7 @@ export async function findPublishedMusicByIdPopulated(
   id: unknown
 ): Promise<Record<string, unknown> | null> {
   const doc = await Music.findById(id)
-    .populate('artist', ARTIST_POPULATE_SELECT)
+    .populate(artistPublicPopulate)
     .populate(PUBLISHED_ALBUM_POPULATE)
     .lean();
 

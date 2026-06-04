@@ -338,6 +338,8 @@ export async function search(
 
   if (searchTypes.includes('artist')) {
     const docs = await Artist.find({
+      profileStatus: 'active',
+      isActive: true,
       $or: [{ name: regex }, { genre: regex }, { bio: regex }],
     })
       .limit(PER_TYPE_LIMIT)
