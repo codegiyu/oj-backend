@@ -8,6 +8,9 @@ import { authenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getArtistMe,
+  deactivateArtistMe,
+  reactivateArtistMe,
+  submitArtistAppeal,
   createArtistMe,
   updateArtistMe,
   getDashboardStats,
@@ -42,6 +45,13 @@ export function registerArtistRoutes(app: FastifyInstance): void {
   /* Generic route overloads type `preHandler` as sync-only; async hooks are valid at runtime. */
   /* eslint-disable @typescript-eslint/no-misused-promises -- Fastify preHandler + handler */
   app.get('/me', { preHandler: artistPreHandler }, catchAsync(getArtistMe));
+  app.post('/me/deactivate', { preHandler: artistPreHandler }, catchAsync(deactivateArtistMe));
+  app.post('/me/reactivate', { preHandler: artistPreHandler }, catchAsync(reactivateArtistMe));
+  app.post<{ Body: { message?: string } }>(
+    '/me/appeals',
+    { preHandler: artistPreHandler },
+    catchAsync(submitArtistAppeal)
+  );
 
   app.post<{
     Body: {

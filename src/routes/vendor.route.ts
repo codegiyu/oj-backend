@@ -3,6 +3,9 @@ import { authenticatePreHandler } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getVendorMe,
+  deactivateVendorMe,
+  reactivateVendorMe,
+  submitVendorAppeal,
   getDashboardStats,
   getVendorProducts,
   createProduct,
@@ -20,6 +23,21 @@ import {
 
 export function registerVendorRoutes(app: FastifyInstance): void {
   app.get('/me', { preHandler: [authenticatePreHandler] }, catchAsync(getVendorMe));
+  app.post(
+    '/me/deactivate',
+    { preHandler: [authenticatePreHandler] },
+    catchAsync(deactivateVendorMe)
+  );
+  app.post(
+    '/me/reactivate',
+    { preHandler: [authenticatePreHandler] },
+    catchAsync(reactivateVendorMe)
+  );
+  app.post<{ Body: { message?: string } }>(
+    '/me/appeals',
+    { preHandler: [authenticatePreHandler] },
+    catchAsync(submitVendorAppeal)
+  );
   app.get(
     '/dashboard-stats',
     { preHandler: [authenticatePreHandler] },

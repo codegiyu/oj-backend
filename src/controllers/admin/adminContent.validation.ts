@@ -121,6 +121,7 @@ export const adminUserPatchBodySchema: FastifySchema = {
     type: 'object',
     properties: {
       accountStatus: { type: 'string' },
+      suspensionReason: { type: 'string' },
       artistId: { type: ['string', 'null'] },
       vendorId: { type: ['string', 'null'] },
     },

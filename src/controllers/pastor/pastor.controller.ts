@@ -23,8 +23,40 @@ import {
   shapePastorQuestionDetail,
   shapePastorQuestionListItem,
 } from './pastor.helpers';
+import {
+  assertOwnerUserNotSuspended,
+  deactivateRoleProfile,
+  reactivateRoleProfile,
+  createRoleProfileAppeal,
+  loadAppealSummariesForProfile,
+  shapeRolePortalMeta,
+} from '../../services/roleProfileLifecycle.service';
+import { isArtistOrPastorRoleActive } from '../../services/profileVisibility';
+import { parseObjectId } from '../admin/admin.helpers';
 
 const QUESTION_SORT_FIELDS = ['createdAt', 'updatedAt', 'status'];
+
+function pastorPortalStateFromProfile(pastor: IPastor): string {
+  const status = pastor.profileStatus ?? (pastor.isActive === false ? 'suspended' : 'active');
+  if (status === 'active') return 'active';
+  return status;
+}
+
+async function getPastorForUserOperational(userId: string): Promise<IPastor> {
+  await assertOwnerUserNotSuspended(userId);
+  const pastor = await getPastorForUser(userId);
+
+  if (!isArtistOrPastorRoleActive(pastor)) {
+    const status = pastor.profileStatus ?? (pastor.isActive === false ? 'suspended' : 'active');
+    const message =
+      status === 'deactivated'
+        ? 'Your pastor profile is deactivated'
+        : 'Your pastor profile has been suspended';
+    throw new AppError(message, 403);
+  }
+
+  return pastor;
+}
 
 /** Returns pastor or throws 403 (no pastor link) / 404 (pastor record missing). */
 export async function getPastorForUser(userId: string): Promise<IPastor> {
@@ -79,13 +111,19 @@ export async function getPastorMe(request: FastifyRequest, reply: FastifyReply):
     const pastor = await Pastor.findById(user.pastorId).lean<IPastor | null>();
     if (!pastor) throw new AppError('Pastor profile not found', 404);
 
+    const appeals = await loadAppealSummariesForProfile('pastor', pastor._id);
+    const serialized = serializePastorDoc(pastor as unknown as Record<string, unknown>);
+    const portalState = pastorPortalStateFromProfile(pastor);
+    const meta = shapeRolePortalMeta('pastor', serialized, appeals);
+
     sendResponse(
       reply,
       200,
       {
-        portalState: 'active',
-        pastor: serializePastorDoc(pastor as unknown as Record<string, unknown>),
+        portalState,
+        pastor: serialized,
         application: null,
+        ...meta,
       },
       'Pastor portal loaded.'
     );
@@ -118,6 +156,58 @@ export async function getPastorMe(request: FastifyRequest, reply: FastifyReply):
     },
     'Pastor portal loaded.'
   );
+}
+
+export async function deactivatePastorMe(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const pastor = await getPastorForUser(auth.userId);
+
+  await deactivateRoleProfile({
+    profileType: 'pastor',
+    profileId: pastor._id,
+    userId: parseObjectId(auth.userId, 'userId'),
+  });
+
+  sendResponse(reply, 200, { success: true }, 'Pastor profile deactivated.');
+}
+
+export async function reactivatePastorMe(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const pastor = await getPastorForUser(auth.userId);
+
+  await reactivateRoleProfile({
+    profileType: 'pastor',
+    profileId: pastor._id,
+    userId: parseObjectId(auth.userId, 'userId'),
+  });
+
+  sendResponse(reply, 200, { success: true }, 'Pastor profile reactivated.');
+}
+
+export async function submitPastorAppeal(
+  request: FastifyRequest<{ Body: { message?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const pastor = await getPastorForUser(auth.userId);
+
+  const appeal = await createRoleProfileAppeal({
+    profileType: 'pastor',
+    profileId: pastor._id,
+    userId: parseObjectId(auth.userId, 'userId'),
+    message: request.body?.message ?? '',
+  });
+
+  sendResponse(reply, 201, { appeal }, 'Appeal submitted.');
 }
 
 /** POST /pastor/application — submit pastor application for admin review. */
@@ -230,7 +320,7 @@ export async function getPastorProfile(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const pastor = await getPastorForUser(auth.userId);
+  const pastor = await getPastorForUserOperational(auth.userId);
   sendResponse(
     reply,
     200,
@@ -287,7 +377,7 @@ export async function getPastorDashboardStats(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const pastor = await getPastorForUser(auth.userId);
+  const pastor = await getPastorForUserOperational(auth.userId);
   const stats = await buildPastorDashboardStats(pastor._id);
 
   sendResponse(reply, 200, stats, 'Pastor dashboard stats loaded.');
@@ -303,7 +393,7 @@ export async function listPastorQuestions(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const pastor = await getPastorForUser(auth.userId);
+  const pastor = await getPastorForUserOperational(auth.userId);
   const pastorId = pastor._id;
 
   const limit = parsePositiveInteger(request.query.limit, 10, 100);
@@ -370,7 +460,7 @@ export async function getPastorQuestion(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const pastor = await getPastorForUser(auth.userId);
+  const pastor = await getPastorForUserOperational(auth.userId);
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
   }
@@ -403,7 +493,7 @@ export async function answerPastorQuestion(
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
 
-  const pastor = await getPastorForUser(auth.userId);
+  const pastor = await getPastorForUserOperational(auth.userId);
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
   }

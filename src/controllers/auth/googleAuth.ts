@@ -18,6 +18,7 @@ import {
 } from './auth.helpers';
 import { addUserToCache } from '../../utils/authCache';
 import type { ModelUser } from '../../lib/types/constants';
+import { throwAccountSuspendedError } from '../../utils/accountSuspendedError';
 
 export async function googleAuth(
   request: FastifyRequest<{ Body: { googleCode?: string } }>,
@@ -115,8 +116,12 @@ export async function googleAuth(
     return;
   }
 
-  if (user.accountStatus === 'suspended')
-    throw new AppError('Your account has been suspended', 403);
+  if (user.accountStatus === 'suspended') {
+    await throwAccountSuspendedError({
+      suspensionReason: user.suspensionReason,
+      suspensionDate: user.suspensionDate ?? null,
+    });
+  }
   if (user.accountStatus === 'deleted') throw new AppError('Account not found', 401);
 
   const jti = generateRandomString(16, 'JTI');

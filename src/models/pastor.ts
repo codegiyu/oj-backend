@@ -15,6 +15,15 @@ const pastorSchema = new Schema<ModelPastor>(
     rating: { type: Number, default: 0 },
     isFeatured: { type: Boolean, default: false, index: true },
     isActive: { type: Boolean, default: true, index: true },
+    profileStatus: {
+      type: String,
+      enum: ['active', 'deactivated', 'suspended'],
+      default: 'active',
+      index: true,
+    },
+    suspensionReason: { type: String, default: '' },
+    statusChangedAt: { type: Date, default: null },
+    statusChangedBy: { type: Schema.Types.ObjectId, default: null },
     displayOrder: { type: Number, default: 0, index: true },
   },
   { timestamps: true, collection: 'pastors' }
