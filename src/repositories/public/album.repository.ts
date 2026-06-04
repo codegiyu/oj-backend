@@ -1,5 +1,5 @@
 import { Album } from '../../models/album';
-import { ARTIST_POPULATE_SELECT } from '../../controllers/artist/artist.helpers';
+import { artistPublicPopulate } from '../../controllers/artist/artist.helpers';
 import { findByIdOrSlug } from '../community/shared';
 import { findByIdLean } from '../admin/paginatedList.repository';
 
@@ -12,7 +12,7 @@ export async function listPublishedAlbums(options: {
   const [items, total] = await Promise.all([
     Album.find(options.filter)
       .sort(options.sort)
-      .populate('artist', ARTIST_POPULATE_SELECT)
+      .populate(artistPublicPopulate)
       .skip(options.skip)
       .limit(options.limit)
       .lean(),
@@ -31,5 +31,5 @@ export async function findPublishedAlbumByIdOrSlug(
 export async function findPublishedAlbumByIdPopulated(
   id: unknown
 ): Promise<Record<string, unknown> | null> {
-  return findByIdLean(Album, String(id), { path: 'artist', select: ARTIST_POPULATE_SELECT });
+  return findByIdLean(Album, String(id), artistPublicPopulate);
 }

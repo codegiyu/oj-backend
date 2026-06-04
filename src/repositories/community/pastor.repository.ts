@@ -4,7 +4,7 @@ export async function listActivePastors(options: {
   skip: number;
   limit: number;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
-  const filter = { isActive: true };
+  const filter = { profileStatus: 'active', isActive: true };
   const [items, total] = await Promise.all([
     Pastor.find(filter)
       .sort({ displayOrder: 1, createdAt: -1 })

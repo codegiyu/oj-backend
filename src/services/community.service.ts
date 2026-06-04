@@ -408,7 +408,10 @@ export async function getAskAPastorQuestionByIdOrSlug(
 export async function getAskAPastorPastorByIdOrSlug(
   request: FastifyRequest<{ Params: { idOrSlug: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const doc = await findByIdOrSlug(Pastor, request.params.idOrSlug, { isActive: true });
+  const doc = await findByIdOrSlug(Pastor, request.params.idOrSlug, {
+    profileStatus: 'active',
+    isActive: true,
+  });
   if (!doc) throw new AppError('Pastor not found', 404);
 
   return {

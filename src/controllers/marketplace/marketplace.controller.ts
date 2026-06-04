@@ -183,6 +183,13 @@ export async function getVendorBySlug(
 ): Promise<void> {
   const vendor = await Vendor.findOne({ slug: request.params.slug, status: 'active' }).lean();
   if (!vendor) throw new AppError('Vendor not found', 404);
+
+  if (vendor.user) {
+    const owner = await User.findById(vendor.user).select('accountStatus').lean();
+    if (owner?.accountStatus === 'suspended') {
+      throw new AppError('Vendor not found', 404);
+    }
+  }
   const productCount = await Product.countDocuments({
     vendor: vendor._id,
     status: 'published',
