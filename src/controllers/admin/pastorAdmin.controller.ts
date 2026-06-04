@@ -28,6 +28,7 @@ function shapePastorItem(raw: Record<string, unknown>): Record<string, unknown> 
     rating: raw.rating ?? 0,
     isFeatured: raw.isFeatured,
     isActive: raw.isActive,
+    profileStatus: raw.profileStatus ?? (raw.isActive === false ? 'suspended' : 'active'),
     displayOrder: raw.displayOrder,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
