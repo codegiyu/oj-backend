@@ -13,6 +13,7 @@ import {
   listAdminPastorRows,
   findAdminPastorById,
 } from '../../repositories/admin/pastor.repository';
+import { applyAdminUnlinkedProfileFilter } from './adminListFilters';
 
 function shapePastorItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -37,7 +38,14 @@ function shapePastorItem(raw: Record<string, unknown>): Record<string, unknown> 
 
 export async function listAdminPastors(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      sort?: string;
+      unlinked?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -54,6 +62,8 @@ export async function listAdminPastors(
         filter.isActive = false;
         delete filter.status;
       }
+
+      applyAdminUnlinkedProfileFilter(filter, query);
     },
     listRows: listAdminPastorRows,
     shapeItem: shapePastorItem,

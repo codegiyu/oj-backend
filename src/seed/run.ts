@@ -10,7 +10,7 @@ const run = async (): Promise<void> => {
   try {
     await connectDb();
     logger.info('Running seed...');
-    seedDb();
+    await seedDb();
     logger.info('Seed completed successfully');
   } catch (error) {
     logger.error('Seed failed', { error });

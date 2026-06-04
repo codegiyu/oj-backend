@@ -10,6 +10,7 @@ import {
   assertPatchableAccountStatus,
   approveUserDeletionRequest,
   linkUserArtist,
+  linkUserPastor,
   linkUserVendor,
   parseUserLinkId,
   rejectUserDeletionRequest,
@@ -126,6 +127,7 @@ export async function updateAdminUser(
       suspensionReason?: string;
       artistId?: string | null;
       vendorId?: string | null;
+      pastorId?: string | null;
     };
   }>,
   reply: FastifyReply
@@ -137,8 +139,9 @@ export async function updateAdminUser(
   const hasAccountStatus = body.accountStatus != null;
   const hasArtistLink = body.artistId !== undefined;
   const hasVendorLink = body.vendorId !== undefined;
+  const hasPastorLink = body.pastorId !== undefined;
 
-  if (!hasAccountStatus && !hasArtistLink && !hasVendorLink) {
+  if (!hasAccountStatus && !hasArtistLink && !hasVendorLink && !hasPastorLink) {
     throw new AppError('No updatable fields provided', 400);
   }
 
@@ -158,6 +161,10 @@ export async function updateAdminUser(
 
   if (hasVendorLink) {
     await linkUserVendor(userId, parseUserLinkId(body.vendorId, 'vendorId'));
+  }
+
+  if (hasPastorLink) {
+    await linkUserPastor(userId, parseUserLinkId(body.pastorId, 'pastorId'));
   }
 
   const doc = await findAdminUserById(String(userId));

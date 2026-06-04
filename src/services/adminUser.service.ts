@@ -2,14 +2,17 @@ import mongoose from 'mongoose';
 import { User } from '../models/user';
 import { Artist } from '../models/artist';
 import { Vendor } from '../models/vendor';
+import { Pastor } from '../models/pastor';
 import { AppError } from '../utils/AppError';
 import { ACCOUNT_STATUSES, type AccountStatus } from '../lib/types/constants';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { parseNullableObjectId } from '../utils/parseNullableObjectId';
 
+export type UserLinkField = 'artistId' | 'vendorId' | 'pastorId';
+
 export function parseUserLinkId(
   value: string | null | undefined,
-  field: 'artistId' | 'vendorId'
+  field: UserLinkField
 ): mongoose.Types.ObjectId | null {
   return parseNullableObjectId(value, field);
 }
@@ -66,24 +69,57 @@ export async function linkUserVendor(
 
   if (vendorId == null) {
     await User.updateOne({ _id: userId }, { $set: { vendorId: null } });
+    await Vendor.updateMany({ user: userId }, { $set: { user: null } });
     return;
   }
 
-  const vendor = await Vendor.findById(vendorId).select('name storeName').lean();
+  const vendor = await Vendor.findById(vendorId).select('user name storeName').lean();
   if (!vendor) throw new AppError('Vendor not found', 404);
 
-  const existing = await User.findOne({
-    vendorId,
-    _id: { $ne: userId },
-  })
-    .select('_id')
-    .lean();
-
-  if (existing) {
+  const linkedUserId =
+    vendor.user != null ? parseObjectId(String(vendor.user), 'vendor.user') : null;
+  if (linkedUserId && !linkedUserId.equals(userId)) {
     throw new AppError('Vendor is already linked to another user', 409);
   }
 
+  const previousVendorId = user.vendorId;
+  if (previousVendorId && !previousVendorId.equals(vendorId)) {
+    await Vendor.updateOne({ _id: previousVendorId, user: userId }, { $set: { user: null } });
+  }
+
+  await Vendor.updateOne({ _id: vendorId }, { $set: { user: userId } });
   await User.updateOne({ _id: userId }, { $set: { vendorId } });
+}
+
+export async function linkUserPastor(
+  userId: mongoose.Types.ObjectId,
+  pastorId: mongoose.Types.ObjectId | null
+): Promise<void> {
+  const user = await User.findById(userId).select('pastorId').lean();
+  if (!user) throw new AppError('User not found', 404);
+
+  if (pastorId == null) {
+    await User.updateOne({ _id: userId }, { $set: { pastorId: null } });
+    await Pastor.updateMany({ user: userId }, { $set: { user: null } });
+    return;
+  }
+
+  const pastor = await Pastor.findById(pastorId).select('user name').lean();
+  if (!pastor) throw new AppError('Pastor not found', 404);
+
+  const linkedUserId =
+    pastor.user != null ? parseObjectId(String(pastor.user), 'pastor.user') : null;
+  if (linkedUserId && !linkedUserId.equals(userId)) {
+    throw new AppError('Pastor is already linked to another user', 409);
+  }
+
+  const previousPastorId = user.pastorId;
+  if (previousPastorId && !previousPastorId.equals(pastorId)) {
+    await Pastor.updateOne({ _id: previousPastorId, user: userId }, { $set: { user: null } });
+  }
+
+  await Pastor.updateOne({ _id: pastorId }, { $set: { user: userId } });
+  await User.updateOne({ _id: userId }, { $set: { pastorId } });
 }
 
 export async function approveUserDeletionRequest(

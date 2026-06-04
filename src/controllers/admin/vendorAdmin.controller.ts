@@ -8,6 +8,7 @@ import { generateUniqueSlug } from '../../utils/helpers';
 import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
 import { runAdminList } from '../../services/admin/runAdminListGet';
 import { listAdminVendorRows } from '../../repositories/admin/vendor.repository';
+import { applyAdminUnlinkedProfileFilter } from './adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
 
@@ -54,13 +55,23 @@ function shapeVendorItem(raw: Record<string, unknown>): Record<string, unknown> 
 
 export async function listAdminVendors(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      sort?: string;
+      unlinked?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const result = await runAdminList(request, {
     sortFields: SORT_FIELDS,
     searchFields: ['name', 'storeName', 'email', 'slug'],
+    extendFilter: (filter, query) => {
+      applyAdminUnlinkedProfileFilter(filter, query);
+    },
     listRows: listAdminVendorRows,
     shapeItem: shapeVendorItem,
     collectionKey: 'vendors',
