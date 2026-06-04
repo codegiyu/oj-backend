@@ -44,6 +44,7 @@ export function applyUserListStatusFilter(
 export function shapeUserListItem(raw: Record<string, unknown>): Record<string, unknown> {
   const artist = linkedProfileName(raw.artistId, 'name');
   const vendor = linkedProfileName(raw.vendorId, 'storeName');
+  const pastor = linkedProfileName(raw.pastorId, 'name');
   const auth = raw.auth as { lastLogin?: unknown } | undefined;
 
   return {
@@ -64,6 +65,7 @@ export function shapeUserListItem(raw: Record<string, unknown>): Record<string, 
       : {}),
     ...(artist.id ? { artistId: artist.id, linkedArtistName: artist.label ?? '' } : {}),
     ...(vendor.id ? { vendorId: vendor.id, linkedVendorName: vendor.label ?? '' } : {}),
+    ...(pastor.id ? { pastorId: pastor.id, linkedPastorName: pastor.label ?? '' } : {}),
     ...(raw.deleteRequestedAt != null ? { deleteRequestedAt: isoDate(raw.deleteRequestedAt) } : {}),
     createdAt: isoDate(raw.createdAt),
     ...(auth?.lastLogin != null ? { lastLogin: isoDate(auth.lastLogin) } : {}),
@@ -81,6 +83,7 @@ export function shapeUserDetail(raw: Record<string, unknown>): Record<string, un
     | undefined;
   const artist = linkedProfileName(raw.artistId, 'name');
   const vendor = linkedProfileName(raw.vendorId, 'storeName');
+  const pastor = linkedProfileName(raw.pastorId, 'name');
   const approvedBy = raw.deletionApprovedBy as
     | { _id?: unknown; firstName?: string; lastName?: string; email?: string }
     | undefined;
@@ -103,6 +106,7 @@ export function shapeUserDetail(raw: Record<string, unknown>): Record<string, un
     ...(vendor.id && vendor.label
       ? { linkedVendor: { _id: vendor.id, storeName: vendor.label } }
       : {}),
+    ...(pastor.id && pastor.label ? { linkedPastor: { _id: pastor.id, name: pastor.label } } : {}),
     ...(raw.deletionApprovedAt != null
       ? { deletionApprovedAt: isoDate(raw.deletionApprovedAt) }
       : {}),

@@ -1,19 +1,21 @@
 import { User } from '../../models/user';
 
 const LIST_SELECT =
-  'firstName lastName email avatar accountStatus artistId vendorId deleteRequestedAt createdAt auth.lastLogin';
+  'firstName lastName email avatar accountStatus artistId vendorId pastorId deleteRequestedAt createdAt auth.lastLogin';
 
 const DETAIL_SELECT =
-  'firstName lastName middleName title email avatar gender phoneNumber accountStatus artistId vendorId deleteRequestedAt deletionApprovedAt deletionApprovedBy kyc auth.roles auth.lastLogin createdAt updatedAt';
+  'firstName lastName middleName title email avatar gender phoneNumber accountStatus artistId vendorId pastorId deleteRequestedAt deletionApprovedAt deletionApprovedBy kyc auth.roles auth.lastLogin createdAt updatedAt';
 
 const LIST_POPULATE = [
   { path: 'artistId', select: 'name slug' },
   { path: 'vendorId', select: 'name storeName slug' },
+  { path: 'pastorId', select: 'name slug' },
 ];
 
 const DETAIL_POPULATE = [
   { path: 'artistId', select: 'name slug image' },
   { path: 'vendorId', select: 'name storeName slug logo' },
+  { path: 'pastorId', select: 'name slug image' },
   { path: 'deletionApprovedBy', select: 'firstName lastName email' },
 ];
 

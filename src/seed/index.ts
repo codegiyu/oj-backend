@@ -15,12 +15,15 @@ export {
 
 export { backfillMediaMetadataOnce } from './backfillMediaMetadata';
 export { wipePastorAskDataOnce } from './wipePastorAskData';
+export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
+
+import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
  * Uncomment the steps you need. Safe to run on every startup or via npm run seed.
  */
-export const seedDb = (): void => {
+export const seedDb = async (): Promise<void> => {
   try {
     // Roles, site settings, and admins (admins depend on roles)
     // await seedSiteSettings();
@@ -33,6 +36,7 @@ export const seedDb = (): void => {
     // await seedGospelVerses();
     // await wipePastorAskDataOnce();
     // await backfillMediaMetadataOnce();
+    await reconcileVendorUserLinksOnce();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;

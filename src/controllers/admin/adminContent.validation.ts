@@ -124,6 +124,7 @@ export const adminUserPatchBodySchema: FastifySchema = {
       suspensionReason: { type: 'string' },
       artistId: { type: ['string', 'null'] },
       vendorId: { type: ['string', 'null'] },
+      pastorId: { type: ['string', 'null'] },
     },
     additionalProperties: false,
   },

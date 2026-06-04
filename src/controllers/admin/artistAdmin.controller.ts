@@ -10,6 +10,7 @@ import {
   findAdminArtistById,
 } from '../../repositories/admin/artist.repository';
 import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
+import { applyAdminUnlinkedProfileFilter } from './adminListFilters';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name'];
 
@@ -34,7 +35,14 @@ function shapeArtistItem(raw: Record<string, unknown>): Record<string, unknown> 
 
 export async function listAdminArtists(
   request: FastifyRequest<{
-    Querystring: { page?: string; limit?: string; search?: string; status?: string; sort?: string };
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      sort?: string;
+      unlinked?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -51,6 +59,8 @@ export async function listAdminArtists(
         filter.isActive = false;
         delete filter.status;
       }
+
+      applyAdminUnlinkedProfileFilter(filter, query);
     },
     listRows: listAdminArtistRows,
     shapeItem: shapeArtistItem,
