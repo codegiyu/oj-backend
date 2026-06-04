@@ -30,6 +30,16 @@ import {
   resolveMonetizationPrice,
 } from '../../utils/monetizationValidation';
 import { coalesceMusicDownloadUrl } from '../../utils/musicDownloadUrl';
+import {
+  assertOwnerUserNotSuspended,
+  deactivateRoleProfile,
+  reactivateRoleProfile,
+  createRoleProfileAppeal,
+  loadAppealSummariesForProfile,
+  shapeRolePortalMeta,
+} from '../../services/roleProfileLifecycle.service';
+import { isArtistOrPastorRoleActive } from '../../services/profileVisibility';
+import { parseObjectId } from '../admin/admin.helpers';
 
 type MusicWithArtistLean = IMusic & {
   artist?: PopulatedArtistDoc | mongoose.Types.ObjectId | null;
@@ -67,12 +77,83 @@ async function getArtistForUser(userId: string): Promise<IArtist> {
   return artist;
 }
 
+async function getArtistForUserOperational(userId: string): Promise<IArtist> {
+  await assertOwnerUserNotSuspended(userId);
+  const artist = await getArtistForUser(userId);
+
+  if (!isArtistOrPastorRoleActive(artist)) {
+    const status = artist.profileStatus ?? (artist.isActive === false ? 'suspended' : 'active');
+    const message =
+      status === 'deactivated'
+        ? 'Your artist profile is deactivated'
+        : 'Your artist profile has been suspended';
+    throw new AppError(message, 403);
+  }
+
+  return artist;
+}
+
 export async function getArtistMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
   const artist = await getArtistForUser(auth.userId);
+  const appeals = await loadAppealSummariesForProfile('artist', artist._id);
   const serialized = serializeDocIds(artist as unknown as Record<string, unknown>);
-  sendResponse(reply, 200, { artist: serialized }, 'Artist profile loaded.');
+  const meta = shapeRolePortalMeta('artist', serialized, appeals);
+
+  sendResponse(reply, 200, { artist: serialized, ...meta }, 'Artist profile loaded.');
+}
+
+export async function deactivateArtistMe(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const artist = await getArtistForUser(auth.userId);
+
+  await deactivateRoleProfile({
+    profileType: 'artist',
+    profileId: artist._id,
+    userId: parseObjectId(auth.userId, 'userId'),
+  });
+
+  sendResponse(reply, 200, { success: true }, 'Artist profile deactivated.');
+}
+
+export async function reactivateArtistMe(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const artist = await getArtistForUser(auth.userId);
+
+  await reactivateRoleProfile({
+    profileType: 'artist',
+    profileId: artist._id,
+    userId: parseObjectId(auth.userId, 'userId'),
+  });
+
+  sendResponse(reply, 200, { success: true }, 'Artist profile reactivated.');
+}
+
+export async function submitArtistAppeal(
+  request: FastifyRequest<{ Body: { message?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
+  const artist = await getArtistForUser(auth.userId);
+
+  const appeal = await createRoleProfileAppeal({
+    profileType: 'artist',
+    profileId: artist._id,
+    userId: parseObjectId(auth.userId, 'userId'),
+    message: request.body?.message ?? '',
+  });
+
+  sendResponse(reply, 201, { appeal }, 'Appeal submitted.');
 }
 
 /**
@@ -138,6 +219,7 @@ export async function createArtistMe(
     socials: body.socials ?? {},
     isFeatured: false,
     isActive: true,
+    profileStatus: 'active',
     displayOrder: 0,
   })) as HydratedDocument<ModelArtist>;
 
@@ -171,7 +253,7 @@ export async function updateArtistMe(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artistLean = await getArtistForUser(auth.userId);
+  const artistLean = await getArtistForUserOperational(auth.userId);
   const artistDoc = await Artist.findById(artistLean._id);
   if (!artistDoc) throw new AppError('Artist profile not found', 404);
 
@@ -194,7 +276,7 @@ export async function getDashboardStats(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   const stats = await buildArtistDashboardStats(artistId, { includeTopLists: false });
@@ -224,7 +306,7 @@ export async function getRecentUploads(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const limit = parsePositiveInteger(request.query?.limit, 6, 20);
 
   const { buildArtistRecentUploads } = await import('../../services/artistRecentUploads.service');
@@ -265,7 +347,7 @@ export async function listMyMusic(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   const limit = parsePositiveInteger(request.query.limit, 10, 100);
@@ -319,7 +401,7 @@ export async function getMusicItem(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
@@ -377,7 +459,7 @@ export async function createMusic(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   const body = request.body;
@@ -473,7 +555,7 @@ export async function updateMusic(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
@@ -560,7 +642,7 @@ export async function deleteMusic(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);
@@ -613,7 +695,7 @@ export async function listMyVideos(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   const limit = parsePositiveInteger(request.query.limit, 10, 100);
@@ -667,7 +749,7 @@ export async function getVideoItem(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
@@ -725,7 +807,7 @@ export async function createVideo(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   const body = request.body;
@@ -818,7 +900,7 @@ export async function updateVideo(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
   const artistId = artist._id;
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
@@ -899,7 +981,7 @@ export async function deleteVideo(
 ): Promise<void> {
   const auth = getAuthUser(request);
   if (!auth || auth.scope !== 'client-access') throw new AppError('Unauthorized', 401);
-  const artist = await getArtistForUser(auth.userId);
+  const artist = await getArtistForUserOperational(auth.userId);
 
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     throw new AppError('Invalid id', 400);

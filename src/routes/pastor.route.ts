@@ -8,6 +8,9 @@ import { authenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getPastorMe,
+  deactivatePastorMe,
+  reactivatePastorMe,
+  submitPastorAppeal,
   submitPastorApplication,
   getPastorProfile,
   updatePastorProfile,
@@ -27,6 +30,13 @@ const pastorPreHandler: preHandlerAsyncHookHandler = async (
 export function registerPastorRoutes(app: FastifyInstance): void {
   /* eslint-disable @typescript-eslint/no-misused-promises -- Fastify preHandler + handler */
   app.get('/me', { preHandler: pastorPreHandler }, catchAsync(getPastorMe));
+  app.post('/me/deactivate', { preHandler: pastorPreHandler }, catchAsync(deactivatePastorMe));
+  app.post('/me/reactivate', { preHandler: pastorPreHandler }, catchAsync(reactivatePastorMe));
+  app.post<{ Body: { message?: string } }>(
+    '/me/appeals',
+    { preHandler: pastorPreHandler },
+    catchAsync(submitPastorAppeal)
+  );
 
   app.post<{
     Body: {

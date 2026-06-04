@@ -191,6 +191,21 @@ import {
   deleteAdminGospelVerse,
 } from '../controllers/admin/gospelVerseAdmin.controller';
 import { registerPrivilegedAuditHook } from '../hooks/privilegedAudit.hook';
+import {
+  suspendAdminVendor,
+  unsuspendAdminVendor,
+  suspendAdminArtist,
+  unsuspendAdminArtist,
+  suspendAdminPastor,
+  unsuspendAdminPastor,
+  listAdminRoleProfileAppeals,
+  acceptAdminRoleProfileAppeal,
+  rejectAdminRoleProfileAppeal,
+} from '../controllers/admin/roleProfileAdmin.controller';
+import {
+  suspendRoleProfileBodySchema,
+  rejectAppealBodySchema,
+} from '../controllers/admin/roleProfile.validation';
 
 const opts = { preHandler: [authenticate, requireConsoleAccess] };
 
@@ -216,6 +231,18 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     '/users/:id/reject-deletion',
     { ...opts, schema: idParamSchema },
     catchAsync(rejectAdminUserDeletion)
+  );
+
+  app.get('/role-profile-appeals', { ...opts }, catchAsync(listAdminRoleProfileAppeals));
+  app.post(
+    '/role-profile-appeals/:id/accept',
+    { ...opts, schema: idParamSchema },
+    catchAsync(acceptAdminRoleProfileAppeal)
+  );
+  app.post(
+    '/role-profile-appeals/:id/reject',
+    { ...opts, schema: { ...idParamSchema, ...rejectAppealBodySchema } },
+    catchAsync(rejectAdminRoleProfileAppeal)
   );
 
   // Music
@@ -450,6 +477,16 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     catchAsync(updateAdminArtist)
   );
   app.delete('/artists/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminArtist));
+  app.post(
+    '/artists/:id/suspend',
+    { ...opts, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
+    catchAsync(suspendAdminArtist)
+  );
+  app.post(
+    '/artists/:id/unsuspend',
+    { ...opts, schema: idParamSchema },
+    catchAsync(unsuspendAdminArtist)
+  );
 
   // Resources
   app.get(
@@ -494,6 +531,16 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     catchAsync(updateAdminPastor)
   );
   app.delete('/pastors/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminPastor));
+  app.post(
+    '/pastors/:id/suspend',
+    { ...opts, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
+    catchAsync(suspendAdminPastor)
+  );
+  app.post(
+    '/pastors/:id/unsuspend',
+    { ...opts, schema: idParamSchema },
+    catchAsync(unsuspendAdminPastor)
+  );
 
   // Pastor applications
   app.get(
@@ -539,6 +586,16 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     '/vendors/:id/reject',
     { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminVendor)
+  );
+  app.post(
+    '/vendors/:id/suspend',
+    { ...opts, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
+    catchAsync(suspendAdminVendor)
+  );
+  app.post(
+    '/vendors/:id/unsuspend',
+    { ...opts, schema: idParamSchema },
+    catchAsync(unsuspendAdminVendor)
   );
 
   // Products

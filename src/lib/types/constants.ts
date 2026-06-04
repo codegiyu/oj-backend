@@ -12,6 +12,9 @@ export interface IUser {
   avatar?: string;
   title?: string;
   accountStatus: AccountStatus;
+  suspensionReason?: string;
+  suspensionDate?: Date | null;
+  suspendedBy?: mongoose.Types.ObjectId | null;
   email: string;
   phoneNumber?: string;
   gender?: Gender;
@@ -410,6 +413,10 @@ export interface IArtistProfile {
   socials?: Record<string, string>;
   isFeatured: boolean;
   isActive: boolean;
+  profileStatus?: import('./roleProfile').ProfileStatus;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: mongoose.Types.ObjectId | null;
+  suspensionReason?: string;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -429,6 +436,10 @@ export interface IArtist {
   socials?: ArtistSocials;
   isFeatured: boolean;
   isActive: boolean;
+  profileStatus?: import('./roleProfile').ProfileStatus;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: mongoose.Types.ObjectId | null;
+  suspensionReason?: string;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -570,6 +581,10 @@ export interface IPastor {
   rating?: number;
   isFeatured: boolean;
   isActive: boolean;
+  profileStatus?: import('./roleProfile').ProfileStatus;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: mongoose.Types.ObjectId | null;
+  suspensionReason?: string;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -920,7 +935,10 @@ export interface IVendor {
   storeDescription?: string;
   logo?: string;
   coverImage?: string;
-  status: 'pending' | 'active' | 'suspended' | 'inactive';
+  status: 'pending' | 'active' | 'suspended' | 'inactive' | 'deactivated';
+  suspensionReason?: string;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: mongoose.Types.ObjectId | null;
   isVerified: boolean;
   whatsapp?: string;
   address?: string;

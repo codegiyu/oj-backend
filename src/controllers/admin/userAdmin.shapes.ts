@@ -53,6 +53,15 @@ export function shapeUserListItem(raw: Record<string, unknown>): Record<string, 
     email: raw.email ?? '',
     avatar: raw.avatar ?? '',
     accountStatus: raw.accountStatus ?? 'unverified',
+    ...(raw.suspensionReason ? { suspensionReason: raw.suspensionReason } : {}),
+    ...(raw.suspensionDate != null
+      ? {
+          suspensionDate:
+            raw.suspensionDate instanceof Date
+              ? raw.suspensionDate.toISOString()
+              : raw.suspensionDate,
+        }
+      : {}),
     ...(artist.id ? { artistId: artist.id, linkedArtistName: artist.label ?? '' } : {}),
     ...(vendor.id ? { vendorId: vendor.id, linkedVendorName: vendor.label ?? '' } : {}),
     ...(raw.deleteRequestedAt != null ? { deleteRequestedAt: isoDate(raw.deleteRequestedAt) } : {}),

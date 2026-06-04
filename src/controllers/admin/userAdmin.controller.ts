@@ -14,6 +14,7 @@ import {
   parseUserLinkId,
   rejectUserDeletionRequest,
 } from '../../services/adminUser.service';
+import { applyUserAccountStatusUpdate } from '../../services/userSuspension.service';
 import { applyUserListStatusFilter, shapeUserDetail, shapeUserListItem } from './userAdmin.shapes';
 
 export { applyUserListStatusFilter, shapeUserDetail, shapeUserListItem };
@@ -122,12 +123,14 @@ export async function updateAdminUser(
     Params: { id: string };
     Body: {
       accountStatus?: string;
+      suspensionReason?: string;
       artistId?: string | null;
       vendorId?: string | null;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
+  const admin = requireAdmin(request);
   const userId = parseObjectId(request.params.id);
   const body = request.body ?? {};
 
@@ -141,7 +144,12 @@ export async function updateAdminUser(
 
   if (hasAccountStatus) {
     const nextStatus = assertPatchableAccountStatus(String(body.accountStatus));
-    await User.updateOne({ _id: userId }, { $set: { accountStatus: nextStatus } });
+    await applyUserAccountStatusUpdate({
+      userId,
+      nextStatus,
+      suspensionReason: body.suspensionReason,
+      adminId: parseObjectId(admin.userId, 'adminId'),
+    });
   }
 
   if (hasArtistLink) {

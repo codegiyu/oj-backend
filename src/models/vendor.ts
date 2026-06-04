@@ -19,9 +19,12 @@ const vendorSchema = new Schema<ModelVendor>(
     bankName: { type: String, default: '' },
     status: {
       type: String,
-      enum: ['pending', 'active', 'suspended', 'inactive'],
+      enum: ['pending', 'active', 'suspended', 'inactive', 'deactivated'],
       default: 'pending',
     },
+    suspensionReason: { type: String, default: '' },
+    statusChangedAt: { type: Date, default: null },
+    statusChangedBy: { type: Schema.Types.ObjectId, default: null },
     isVerified: { type: Boolean, default: false },
     rejectionReason: { type: String, default: '' },
     rejectedAt: { type: Date, default: null },
