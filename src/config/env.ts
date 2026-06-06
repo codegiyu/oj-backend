@@ -33,6 +33,9 @@ export type Environment = {
     readonly clientId: string;
     readonly clientSecret: string;
   };
+  readonly youtube: {
+    readonly apiKey: string;
+  };
   readonly redis: {
     readonly url: string;
     readonly cacheExpiry: number;
@@ -224,6 +227,9 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
     google: {
       clientId: raw.GOOGLE_CLIENT_ID || '',
       clientSecret: raw.GOOGLE_CLIENT_SECRET || '',
+    },
+    youtube: {
+      apiKey: raw.YOUTUBE_API_KEY || '',
     },
     redis: {
       url: redisUrl,

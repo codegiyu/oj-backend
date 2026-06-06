@@ -39,18 +39,36 @@ describe('mediaMetadataBackfill helpers', () => {
     });
   });
 
-  it('skips non-probeable music URLs', () => {
+  it('includes YouTube videoUrl targets for probing', () => {
     expect(
       resolveMusicProbeTarget({
-        audioUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        audioUrl: '',
+        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       })
-    ).toBeNull();
+    ).toEqual({
+      mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      mediaKind: 'video',
+    });
   });
 
-  it('prefers videoFileUrl over videoUrl', () => {
+  it('prefers video embedUrl over legacy videoUrl', () => {
+    expect(
+      resolveVideoProbeTarget({
+        videoFileUrl: '',
+        embedUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: 'https://cdn.example/legacy.mp4',
+      })
+    ).toEqual({
+      mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      mediaKind: 'video',
+    });
+  });
+
+  it('prefers videoFileUrl over embedUrl and videoUrl', () => {
     expect(
       resolveVideoProbeTarget({
         videoFileUrl: 'https://cdn.example/file.mp4',
+        embedUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         videoUrl: 'https://cdn.example/legacy.mp4',
       })
     ).toEqual({

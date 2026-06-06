@@ -4,6 +4,22 @@ import { AppError } from './AppError';
 
 const MAX_TAGS = 32;
 const MAX_TAG_LENGTH = 64;
+const MAX_METADATA_STRING_LENGTH = 200;
+const MEDIA_METADATA_STRING_FIELDS = new Set([
+  'mimeType',
+  'codec',
+  'container',
+  'provider',
+  'probedAt',
+]);
+const MEDIA_METADATA_NUMBER_FIELDS = new Set([
+  'durationSeconds',
+  'fileSizeBytes',
+  'width',
+  'height',
+  'bitrate',
+  'sampleRate',
+]);
 
 export type PublishableContentTaxonomyInput = {
   scope: ContentCategoryScope;
@@ -60,6 +76,42 @@ export function normalizeTags(tags: unknown): string[] | undefined {
   return normalized;
 }
 
+function assertNonNegativeFiniteNumber(value: unknown, field: string): number {
+  const numeric = typeof value === 'number' ? value : Number(value);
+
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    throw new AppError(`Metadata ${field} must be a non-negative number`, 400);
+  }
+
+  return numeric;
+}
+
+function assertPositiveInteger(value: unknown, field: string): number {
+  const numeric = assertNonNegativeFiniteNumber(value, field);
+
+  if (!Number.isInteger(numeric) || numeric <= 0) {
+    throw new AppError(`Metadata ${field} must be a positive integer`, 400);
+  }
+
+  return numeric;
+}
+
+function assertMetadataString(value: unknown, field: string): string {
+  if (typeof value !== 'string') {
+    throw new AppError(`Metadata ${field} must be a string`, 400);
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length > MAX_METADATA_STRING_LENGTH) {
+    throw new AppError(
+      `Metadata ${field} must be at most ${MAX_METADATA_STRING_LENGTH} characters`,
+      400
+    );
+  }
+
+  return trimmed;
+}
+
 export function assertMediaMetadata(metadata: unknown): Record<string, unknown> {
   if (metadata === undefined || metadata === null) return {};
 
@@ -67,7 +119,30 @@ export function assertMediaMetadata(metadata: unknown): Record<string, unknown> 
     throw new AppError('Metadata must be an object', 400);
   }
 
-  return metadata as Record<string, unknown>;
+  const raw = metadata as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === undefined || value === null || value === '') continue;
+
+    if (MEDIA_METADATA_NUMBER_FIELDS.has(key)) {
+      if (key === 'durationSeconds' || key === 'width' || key === 'height') {
+        normalized[key] = assertPositiveInteger(value, key);
+      } else {
+        normalized[key] = assertNonNegativeFiniteNumber(value, key);
+      }
+      continue;
+    }
+
+    if (MEDIA_METADATA_STRING_FIELDS.has(key)) {
+      normalized[key] = assertMetadataString(value, key);
+      continue;
+    }
+
+    throw new AppError(`Unsupported metadata field: ${key}`, 400);
+  }
+
+  return normalized;
 }
 
 export async function assertPublishableContentTaxonomy(

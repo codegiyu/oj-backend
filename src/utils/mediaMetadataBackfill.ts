@@ -40,12 +40,19 @@ export function resolveMusicProbeTarget(doc: {
 
 export function resolveVideoProbeTarget(doc: {
   videoFileUrl?: unknown;
+  embedUrl?: unknown;
   videoUrl?: unknown;
 }): { mediaUrl: string; mediaKind: MediaKind } | null {
   const videoFileUrl = normalizeMediaUrl(doc.videoFileUrl);
 
   if (shouldEnqueueMetadataProbe('', videoFileUrl)) {
     return { mediaUrl: videoFileUrl, mediaKind: 'video' };
+  }
+
+  const embedUrl = normalizeMediaUrl(doc.embedUrl);
+
+  if (shouldEnqueueMetadataProbe('', embedUrl)) {
+    return { mediaUrl: embedUrl, mediaKind: 'video' };
   }
 
   const videoUrl = normalizeMediaUrl(doc.videoUrl);

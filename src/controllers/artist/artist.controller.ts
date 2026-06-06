@@ -40,6 +40,7 @@ import {
 } from '../../services/roleProfileLifecycle.service';
 import { isArtistOrPastorRoleActive } from '../../services/profileVisibility';
 import { parseObjectId } from '../admin/admin.helpers';
+import { assertMediaMetadata } from '../../utils/contentTaxonomyValidation';
 
 type MusicWithArtistLean = IMusic & {
   artist?: PopulatedArtistDoc | mongoose.Types.ObjectId | null;
@@ -453,6 +454,7 @@ export async function createMusic(
       category?: string;
       isMonetizable?: boolean;
       price?: number;
+      metadata?: Record<string, unknown>;
     };
   }>,
   reply: FastifyReply
@@ -464,6 +466,7 @@ export async function createMusic(
 
   const body = request.body;
   const isMonetizable = body.isMonetizable ?? false;
+  const metadata = assertMediaMetadata(body.metadata);
 
   assertMonetizationPrice(isMonetizable, body.price ?? 0);
 
@@ -486,6 +489,7 @@ export async function createMusic(
     videoUrl: body.videoUrl ?? '',
     downloadUrl: coalesceMusicDownloadUrl(body.audioUrl, undefined),
     category: body.category ?? '',
+    metadata,
     status: 'draft',
     isMonetizable,
     price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
@@ -549,6 +553,7 @@ export async function updateMusic(
       status?: string;
       isMonetizable?: boolean;
       price?: number;
+      metadata?: Record<string, unknown>;
     };
   }>,
   reply: FastifyReply
@@ -589,6 +594,7 @@ export async function updateMusic(
   }
   if (body.videoUrl !== undefined) music.videoUrl = body.videoUrl;
   if (body.category !== undefined) music.category = body.category;
+  if (body.metadata !== undefined) music.metadata = assertMediaMetadata(body.metadata);
   if (body.status !== undefined) music.status = body.status as 'draft' | 'published' | 'archived';
   if (body.isMonetizable !== undefined) music.isMonetizable = body.isMonetizable;
   if (body.price !== undefined || body.isMonetizable !== undefined) {
@@ -801,6 +807,7 @@ export async function createVideo(
       category?: string;
       isMonetizable?: boolean;
       price?: number;
+      metadata?: Record<string, unknown>;
     };
   }>,
   reply: FastifyReply
@@ -812,6 +819,7 @@ export async function createVideo(
 
   const body = request.body;
   const isMonetizable = body.isMonetizable ?? false;
+  const metadata = assertMediaMetadata(body.metadata);
 
   assertMonetizationPrice(isMonetizable, body.price ?? 0);
 
@@ -833,6 +841,7 @@ export async function createVideo(
     videoFileUrl: body.videoFileUrl ?? '',
     embedUrl: body.embedUrl ?? '',
     category: body.category ?? '',
+    metadata,
     status: 'draft',
     isMonetizable,
     price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
@@ -894,6 +903,7 @@ export async function updateVideo(
       status?: string;
       isMonetizable?: boolean;
       price?: number;
+      metadata?: Record<string, unknown>;
     };
   }>,
   reply: FastifyReply
@@ -931,6 +941,7 @@ export async function updateVideo(
   if (body.videoFileUrl !== undefined) video.videoFileUrl = body.videoFileUrl;
   if (body.embedUrl !== undefined) video.embedUrl = body.embedUrl;
   if (body.category !== undefined) video.category = body.category;
+  if (body.metadata !== undefined) video.metadata = assertMediaMetadata(body.metadata);
   if (body.status !== undefined) video.status = body.status as 'draft' | 'published' | 'archived';
   if (body.isMonetizable !== undefined) video.isMonetizable = body.isMonetizable;
   if (body.price !== undefined || body.isMonetizable !== undefined) {

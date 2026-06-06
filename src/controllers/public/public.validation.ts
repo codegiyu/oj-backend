@@ -3,7 +3,16 @@ import type { FastifySchema } from 'fastify';
 
 const MUSIC_TYPES = ['trending', 'featured', 'recent', 'charts'] as const;
 const MUSIC_PERIOD = ['weekly', 'monthly', 'alltime'] as const;
-const VIDEO_TYPES = ['trending', 'featured', 'recent', 'short-form', 'long-form'] as const;
+const VIDEO_TYPES = [
+  'trending',
+  'featured',
+  'recent',
+  'short-form',
+  'under-5',
+  '5-10',
+  '10-20',
+  'long-form',
+] as const;
 const NEWS_TYPES = ['featured', 'trending', 'latest', 'video', 'breaking'] as const;
 
 export const listPublicMusicQuerystringSchema: FastifySchema = {

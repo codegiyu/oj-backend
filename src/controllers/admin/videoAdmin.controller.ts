@@ -126,7 +126,7 @@ export async function createAdminVideo(
 
   const populated = await Video.findById(video._id).populate(artistPopulate).lean();
   const videoId = String(video._id);
-  const probeUrl = fileStored || (legacyVu && !isLikelyYoutubeUrl(legacyVu) ? legacyVu : '');
+  const probeUrl = fileStored || embedStored || legacyVu;
 
   if (shouldEnqueueMetadataProbe('', probeUrl)) {
     void enqueueMediaMetadataProbe({
@@ -174,6 +174,7 @@ export async function updateAdminVideo(
   const body = request.body ?? {};
   const prevVideoFileUrl = video.videoFileUrl;
   const prevVideoUrl = video.videoUrl;
+  const prevEmbedUrl = video.embedUrl;
   const nextMonetizable = body.isMonetizable ?? video.isMonetizable ?? false;
   const nextPrice =
     body.price !== undefined
@@ -235,6 +236,16 @@ export async function updateAdminVideo(
       entityType: 'video',
       entityId: videoId,
       mediaUrl: body.videoUrl,
+      mediaKind: 'video',
+    });
+  } else if (
+    body.embedUrl !== undefined &&
+    shouldEnqueueMetadataProbe(prevEmbedUrl, body.embedUrl)
+  ) {
+    void enqueueMediaMetadataProbe({
+      entityType: 'video',
+      entityId: videoId,
+      mediaUrl: video.embedUrl ?? '',
       mediaKind: 'video',
     });
   }

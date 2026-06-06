@@ -5,7 +5,8 @@ import type {
 } from '../lib/types/queues';
 import { addJobToQueue } from '../queues/main.queue';
 import { logger } from './logger';
-import { isLikelyYoutubeUrl } from './videoEmbed';
+
+export const MEDIA_METADATA_PROBE_DELAY_MS = 5_000;
 
 function normalizeMediaUrl(url: unknown): string {
   return typeof url === 'string' ? url.trim() : '';
@@ -22,7 +23,6 @@ export function shouldEnqueueMetadataProbe(oldUrl: unknown, newUrl: unknown): bo
   if (!next) return false;
   if (previous === next) return false;
   if (!isHttpMediaUrl(next)) return false;
-  if (isLikelyYoutubeUrl(next)) return false;
 
   return true;
 }
@@ -36,10 +36,10 @@ export async function enqueueMediaMetadataProbe(input: {
   const mediaUrl = normalizeMediaUrl(input.mediaUrl);
 
   if (!shouldEnqueueMetadataProbe('', mediaUrl)) {
-    return undefined;
-  }
-
-  if (input.mediaKind === 'video' && isLikelyYoutubeUrl(mediaUrl)) {
+    logger.info('Skipping media metadata probe enqueue', {
+      ...input,
+      reason: 'url-not-probeable',
+    });
     return undefined;
   }
 
@@ -52,7 +52,7 @@ export async function enqueueMediaMetadataProbe(input: {
   };
 
   try {
-    return await addJobToQueue(payload);
+    return await addJobToQueue(payload, { delay: MEDIA_METADATA_PROBE_DELAY_MS });
   } catch (err) {
     logger.error('Failed to enqueue media metadata probe', { ...input, err });
     return undefined;

@@ -1,12 +1,15 @@
 import dns from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { Readable } from 'node:stream';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import mongoose from 'mongoose';
 import { parseStream } from 'music-metadata';
+import { ENVIRONMENT } from '../config/env';
 import type { MediaMetadataEntityType, MediaKind } from '../lib/types/queues';
 import { Music } from '../models/music';
 import { Video } from '../models/video';
 import { AppError } from '../utils/AppError';
+import { parseYoutubeId } from '../utils/videoEmbed';
 
 export const MEDIA_PROBE_TIMEOUT_MS = 15_000;
 
@@ -17,6 +20,7 @@ export interface MediaProbeResult {
   sampleRate?: number;
   codec?: string;
   container?: string;
+  provider?: 'r2' | 'youtube' | 'external';
   mediaKind: MediaKind;
   probedAt: string;
 }
@@ -113,35 +117,152 @@ export async function assertSafeMediaUrl(rawUrl: string): Promise<URL> {
   return parsed;
 }
 
-async function fetchMediaStream(url: string): Promise<{ stream: Readable; mimeType?: string }> {
-  await assertSafeMediaUrl(url);
+function extractConfiguredR2KeyFromUrl(url: string): string | null {
+  const cdn = ENVIRONMENT.r2.cdnUrl?.trim();
+  const pub = ENVIRONMENT.r2.publicUrl?.trim();
 
-  const response = await fetch(url, {
-    method: 'GET',
-    redirect: 'follow',
-    signal: AbortSignal.timeout(MEDIA_PROBE_TIMEOUT_MS),
-    headers: {
-      'User-Agent': 'OJ-MediaMetadata/1.0',
+  if (cdn && url.startsWith(cdn)) return url.slice(cdn.length).replace(/^\//, '');
+  if (pub && url.startsWith(pub)) return url.slice(pub.length).replace(/^\//, '');
+
+  return null;
+}
+
+async function streamR2Object(key: string): Promise<{ stream: Readable; mimeType?: string }> {
+  const { r2Client, r2Config } = await import('../config/r2');
+  const response = await r2Client.send(
+    new GetObjectCommand({
+      Bucket: r2Config.bucketName,
+      Key: key,
       Range: 'bytes=0-5242880',
-    },
+    })
+  );
+
+  if (!response.Body) {
+    throw new AppError('R2 media probe response had no body', 422);
+  }
+
+  const body = response.Body as unknown;
+  let stream: Readable;
+  if (body instanceof Readable) {
+    stream = body;
+  } else if (
+    typeof body === 'object' &&
+    body !== null &&
+    'transformToWebStream' in body &&
+    typeof (body as { transformToWebStream?: unknown }).transformToWebStream === 'function'
+  ) {
+    stream = Readable.fromWeb(
+      (
+        body as { transformToWebStream: () => import('stream/web').ReadableStream }
+      ).transformToWebStream()
+    );
+  } else {
+    throw new AppError('R2 media probe response body is not streamable', 422);
+  }
+
+  return { stream, mimeType: response.ContentType || undefined };
+}
+
+async function fetchMediaStream(
+  url: string
+): Promise<{ stream: Readable; mimeType?: string; provider: 'r2' | 'external' }> {
+  await assertSafeMediaUrl(url);
+  const r2Key = extractConfiguredR2KeyFromUrl(url);
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(MEDIA_PROBE_TIMEOUT_MS),
+      headers: {
+        'User-Agent': 'OJ-MediaMetadata/1.0',
+        Range: 'bytes=0-5242880',
+      },
+    });
+
+    if (!response.ok) {
+      throw new AppError(`Media probe failed with HTTP ${response.status}`, 422);
+    }
+
+    const finalUrl = response.url || url;
+    await assertSafeMediaUrl(finalUrl);
+
+    if (!response.body) {
+      throw new AppError('Media probe response had no body', 422);
+    }
+
+    const mimeType = response.headers.get('content-type')?.split(';')[0]?.trim();
+
+    return {
+      stream: Readable.fromWeb(response.body as import('stream/web').ReadableStream),
+      mimeType: mimeType || undefined,
+      provider: r2Key ? 'r2' : 'external',
+    };
+  } catch (error) {
+    if (!r2Key) throw error;
+
+    const fallback = await streamR2Object(r2Key);
+    return { ...fallback, provider: 'r2' };
+  }
+}
+
+export function parseIso8601DurationSeconds(duration: string): number | undefined {
+  const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  if (!match) return undefined;
+
+  const days = Number(match[1] ?? 0);
+  const hours = Number(match[2] ?? 0);
+  const minutes = Number(match[3] ?? 0);
+  const seconds = Number(match[4] ?? 0);
+  const total = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+
+  return Number.isFinite(total) && total > 0 ? total : undefined;
+}
+
+async function probeYoutubeUrl(url: string): Promise<MediaProbeResult> {
+  const videoId = parseYoutubeId(url);
+  if (!videoId) {
+    throw new AppError('YouTube video id could not be parsed', 400);
+  }
+
+  const apiKey = ENVIRONMENT.youtube.apiKey.trim();
+  if (!apiKey) {
+    throw new AppError('YouTube API key is not configured', 422);
+  }
+
+  const apiUrl = new URL('https://www.googleapis.com/youtube/v3/videos');
+  apiUrl.searchParams.set('part', 'contentDetails');
+  apiUrl.searchParams.set('id', videoId);
+  apiUrl.searchParams.set('key', apiKey);
+
+  const response = await fetch(apiUrl, {
+    method: 'GET',
+    signal: AbortSignal.timeout(MEDIA_PROBE_TIMEOUT_MS),
+    headers: { 'User-Agent': 'OJ-MediaMetadata/1.0' },
   });
 
   if (!response.ok) {
-    throw new AppError(`Media probe failed with HTTP ${response.status}`, 422);
+    throw new AppError(`YouTube metadata probe failed with HTTP ${response.status}`, 422);
   }
 
-  const finalUrl = response.url || url;
-  await assertSafeMediaUrl(finalUrl);
-
-  if (!response.body) {
-    throw new AppError('Media probe response had no body', 422);
+  const data = (await response.json()) as {
+    items?: Array<{ contentDetails?: { duration?: string } }>;
+  };
+  const duration = data.items?.[0]?.contentDetails?.duration;
+  if (!duration) {
+    throw new AppError('YouTube metadata probe returned no duration', 422);
   }
 
-  const mimeType = response.headers.get('content-type')?.split(';')[0]?.trim();
+  const durationSeconds = parseIso8601DurationSeconds(duration);
+  if (!durationSeconds) {
+    throw new AppError('YouTube metadata duration could not be parsed', 422);
+  }
 
   return {
-    stream: Readable.fromWeb(response.body as import('stream/web').ReadableStream),
-    mimeType: mimeType || undefined,
+    durationSeconds,
+    mediaKind: 'video',
+    provider: 'youtube',
+    probedAt: new Date().toISOString(),
   };
 }
 
@@ -151,7 +272,11 @@ export async function probeMediaUrl(url: string, kind: MediaKind): Promise<Media
     throw new AppError('Media URL is required for probing', 400);
   }
 
-  const { stream, mimeType: responseMimeType } = await fetchMediaStream(trimmed);
+  if (kind === 'video' && parseYoutubeId(trimmed)) {
+    return probeYoutubeUrl(trimmed);
+  }
+
+  const { stream, mimeType: responseMimeType, provider } = await fetchMediaStream(trimmed);
   const metadata = await parseStream(
     stream,
     responseMimeType ? { mimeType: responseMimeType } : undefined,
@@ -172,6 +297,7 @@ export async function probeMediaUrl(url: string, kind: MediaKind): Promise<Media
     sampleRate: metadata.format.sampleRate,
     codec: metadata.format.codec,
     container: metadata.format.container,
+    provider,
     mediaKind: kind,
     probedAt: new Date().toISOString(),
   };
