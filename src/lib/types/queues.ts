@@ -5,6 +5,8 @@ export const JOB_TYPES = [
   'inviteAdmin',
   'extractMediaMetadata',
   'snapshotMusicDailyMetrics',
+  'snapshotVideoDailyMetrics',
+  'snapshotNewsDailyMetrics',
   'finalizeMusicChartSnapshots',
 ] as const;
 
@@ -72,6 +74,14 @@ export interface SnapshotMusicDailyMetricsJobData extends BaseJobData {
   type: 'snapshotMusicDailyMetrics';
 }
 
+export interface SnapshotVideoDailyMetricsJobData extends BaseJobData {
+  type: 'snapshotVideoDailyMetrics';
+}
+
+export interface SnapshotNewsDailyMetricsJobData extends BaseJobData {
+  type: 'snapshotNewsDailyMetrics';
+}
+
 export interface FinalizeMusicChartSnapshotsJobData extends BaseJobData {
   type: 'finalizeMusicChartSnapshots';
 }
@@ -83,4 +93,6 @@ export type JobData =
   | InviteAdminJobData
   | ExtractMediaMetadataJobData
   | SnapshotMusicDailyMetricsJobData
+  | SnapshotVideoDailyMetricsJobData
+  | SnapshotNewsDailyMetricsJobData
   | FinalizeMusicChartSnapshotsJobData;

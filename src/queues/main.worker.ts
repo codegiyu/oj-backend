@@ -5,10 +5,14 @@ import {
   type JobData,
   type ExtractMediaMetadataJobData,
   type SnapshotMusicDailyMetricsJobData,
+  type SnapshotVideoDailyMetricsJobData,
+  type SnapshotNewsDailyMetricsJobData,
   type FinalizeMusicChartSnapshotsJobData,
 } from '../lib/types/queues';
 import { extractMediaMetadata } from './handlers/extractMediaMetadata';
 import { snapshotMusicDailyMetrics } from './handlers/snapshotMusicDailyMetrics';
+import { snapshotVideoDailyMetrics } from './handlers/snapshotVideoDailyMetrics';
+import { snapshotNewsDailyMetrics } from './handlers/snapshotNewsDailyMetrics';
 import { finalizeMusicChartSnapshots } from './handlers/finalizeMusicChartSnapshots';
 import { sendEmail } from './handlers/sendEmail';
 import { logger } from '../utils/logger';
@@ -36,6 +40,12 @@ export const mainWorker = new Worker<JobData>(
     }
     if (type === 'snapshotMusicDailyMetrics') {
       return await snapshotMusicDailyMetrics(job as Job<SnapshotMusicDailyMetricsJobData>);
+    }
+    if (type === 'snapshotVideoDailyMetrics') {
+      return await snapshotVideoDailyMetrics(job as Job<SnapshotVideoDailyMetricsJobData>);
+    }
+    if (type === 'snapshotNewsDailyMetrics') {
+      return await snapshotNewsDailyMetrics(job as Job<SnapshotNewsDailyMetricsJobData>);
     }
     if (type === 'finalizeMusicChartSnapshots') {
       return await finalizeMusicChartSnapshots(job as Job<FinalizeMusicChartSnapshotsJobData>);

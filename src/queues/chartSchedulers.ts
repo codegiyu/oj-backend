@@ -15,6 +15,24 @@ export async function registerChartJobSchedulers(): Promise<void> {
   );
 
   await mainQueue.upsertJobScheduler(
+    'snapshot-video-daily-metrics',
+    { pattern: DAILY_METRICS_CRON },
+    {
+      name: 'snapshotVideoDailyMetrics',
+      data: { type: 'snapshotVideoDailyMetrics' },
+    }
+  );
+
+  await mainQueue.upsertJobScheduler(
+    'snapshot-news-daily-metrics',
+    { pattern: DAILY_METRICS_CRON },
+    {
+      name: 'snapshotNewsDailyMetrics',
+      data: { type: 'snapshotNewsDailyMetrics' },
+    }
+  );
+
+  await mainQueue.upsertJobScheduler(
     'finalize-music-chart-snapshots',
     { pattern: FINALIZE_CHARTS_CRON },
     {
