@@ -30,10 +30,14 @@ import {
   PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
 } from '../constants/pagination';
 import { resolveChartScopeKey } from '../constants/musicSections';
-import { buildBreakingNewsSectionFilter } from '../constants/newsSections';
+import {
+  buildBreakingNewsSectionFilter,
+  buildTrendingNewsSectionFilter,
+} from '../constants/newsSections';
 import { buildVideoDurationBucketFilter } from '../constants/videoSections';
 import { resolveDownloadRedirectUrl } from './r2.service';
 import { getChartList } from './musicCharts.service';
+import { getTrendingNewsList, getTrendingVideosList } from './mediaTrending.service';
 
 function isHttpFileUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
@@ -125,9 +129,41 @@ export async function listPublicMusic(
     filter.artist = new mongoose.Types.ObjectId(artistId);
   }
 
+  if (type === 'trending') {
+    const scopeKey = resolveChartScopeKey(category);
+    const { items, total } = await getChartList({
+      scopeKey,
+      period: 'weekly',
+      page,
+      limit,
+    });
+    const music = items.map((item, i) => {
+      const shaped = shapeMusicListItem(item.music, i, 'trending');
+
+      return {
+        ...shaped,
+        plays: item.periodPlays,
+        periodPlays: item.periodPlays,
+      };
+    });
+
+    return {
+      statusCode: 200,
+      data: {
+        music,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+      message: 'Music list loaded.',
+    };
+  }
+
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
-  if (type === 'trending') sort = { plays: -1, createdAt: -1 };
-  else if (type === 'featured') {
+  if (type === 'featured') {
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
@@ -198,9 +234,33 @@ export async function listPublicVideos(
     filter.artist = new mongoose.Types.ObjectId(artistId);
   }
 
+  const completeFilter = mergePublicFilter(filter, publishedVideoCompletenessFilter());
+
+  if (type === 'trending') {
+    const { items, total } = await getTrendingVideosList({
+      filter: completeFilter,
+      page,
+      limit,
+    });
+    const videos = items.map(shapeVideoListItem);
+
+    return {
+      statusCode: 200,
+      data: {
+        videos,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+      message: 'Videos list loaded.',
+    };
+  }
+
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
-  if (type === 'trending') sort = { views: -1, createdAt: -1 };
-  else if (type === 'featured') {
+  if (type === 'featured') {
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
@@ -215,9 +275,9 @@ export async function listPublicVideos(
     sort = { createdAt: -1 };
   }
 
-  const completeFilter = mergePublicFilter(filter, publishedVideoCompletenessFilter());
+  const videoCompleteFilter = mergePublicFilter(filter, publishedVideoCompletenessFilter());
   const { items, total } = await videoRepo.listPublishedVideos({
-    filter: completeFilter,
+    filter: videoCompleteFilter,
     sort,
     skip,
     limit,
@@ -281,12 +341,35 @@ export async function listPublicNews(
     });
   }
 
+  if (type === 'trending') {
+    filter = mergePublicFilter(filter, buildTrendingNewsSectionFilter());
+    const { items, total } = await getTrendingNewsList({
+      filter,
+      page,
+      limit,
+    });
+    const articles = items.map(shapeArticleListItem);
+
+    return {
+      statusCode: 200,
+      data: {
+        articles,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+      message: 'News list loaded.',
+    };
+  }
+
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
   if (type === 'featured') {
     filter = mergePublicFilter(filter, { isFeatured: true });
     sort = { displayOrder: 1, createdAt: -1 };
-  } else if (type === 'trending') sort = { views: -1, createdAt: -1 };
-  else if (type === 'latest') sort = { createdAt: -1 };
+  } else if (type === 'latest') sort = { createdAt: -1 };
   else if (type === 'video') sort = { createdAt: -1 };
   else if (type === 'breaking') {
     filter = mergePublicFilter(filter, buildBreakingNewsSectionFilter());
