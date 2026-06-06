@@ -15,10 +15,14 @@ export {
 
 export { backfillMediaMetadataOnce } from './backfillMediaMetadata';
 export { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
+export { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
+export { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
 export { wipePastorAskDataOnce } from './wipePastorAskData';
 export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 
 import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
+import { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
+import { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -39,6 +43,8 @@ export const seedDb = async (): Promise<void> => {
     // await backfillMediaMetadataOnce();
     // await migrateVideoMovieCategoryOnce();
     await reconcileVendorUserLinksOnce();
+    await migrateArtistSpotlightFieldsOnce();
+    await bootstrapMediaDailyMetricsOnce();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;
