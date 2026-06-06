@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../src/utils/AppError';
 import {
   assertNewsPriority,
+  assertMediaMetadata,
   assertPublishableContentTaxonomy,
   normalizeTags,
 } from '../../src/utils/contentTaxonomyValidation';
@@ -53,6 +54,38 @@ describe('contentTaxonomyValidation', () => {
 
     it('rejects non-array tags', () => {
       expect(() => normalizeTags('gospel')).toThrow(AppError);
+    });
+  });
+
+  describe('assertMediaMetadata', () => {
+    it('accepts manual durationSeconds and probe metadata fields', () => {
+      expect(assertMediaMetadata({ durationSeconds: 125 })).toEqual({ durationSeconds: 125 });
+      expect(
+        assertMediaMetadata({
+          durationSeconds: 90,
+          fileSizeBytes: 1024,
+          mimeType: 'video/mp4',
+          width: 1920,
+          height: 1080,
+          provider: 'r2',
+          probedAt: '2026-06-06T12:00:00.000Z',
+        })
+      ).toMatchObject({
+        durationSeconds: 90,
+        fileSizeBytes: 1024,
+        mimeType: 'video/mp4',
+      });
+    });
+
+    it('rejects invalid durationSeconds and unknown fields', () => {
+      expect(() => assertMediaMetadata({ durationSeconds: 0 })).toThrow(AppError);
+      expect(() => assertMediaMetadata({ durationSeconds: -5 })).toThrow(AppError);
+      expect(() => assertMediaMetadata({ unknownField: 1 })).toThrow(/Unsupported metadata field/);
+    });
+
+    it('returns empty object for nullish metadata', () => {
+      expect(assertMediaMetadata(undefined)).toEqual({});
+      expect(assertMediaMetadata(null)).toEqual({});
     });
   });
 

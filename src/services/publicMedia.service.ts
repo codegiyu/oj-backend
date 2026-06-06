@@ -31,10 +31,7 @@ import {
 } from '../constants/pagination';
 import { resolveChartScopeKey } from '../constants/musicSections';
 import { buildBreakingNewsSectionFilter } from '../constants/newsSections';
-import {
-  buildLongFormVideoSectionFilter,
-  buildShortFormVideoSectionFilter,
-} from '../constants/videoSections';
+import { buildVideoDurationBucketFilter } from '../constants/videoSections';
 import { resolveDownloadRedirectUrl } from './r2.service';
 import { getChartList } from './musicCharts.service';
 
@@ -207,11 +204,14 @@ export async function listPublicVideos(
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
-  else if (type === 'short-form') {
-    Object.assign(filter, buildShortFormVideoSectionFilter());
-    sort = { createdAt: -1 };
-  } else if (type === 'long-form') {
-    Object.assign(filter, buildLongFormVideoSectionFilter());
+  else if (
+    type === 'short-form' ||
+    type === 'under-5' ||
+    type === '5-10' ||
+    type === '10-20' ||
+    type === 'long-form'
+  ) {
+    Object.assign(filter, buildVideoDurationBucketFilter(type));
     sort = { createdAt: -1 };
   }
 

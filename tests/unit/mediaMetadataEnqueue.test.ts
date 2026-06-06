@@ -8,6 +8,7 @@ vi.mock('../../src/queues/main.queue', () => ({
 
 import {
   enqueueMediaMetadataProbe,
+  MEDIA_METADATA_PROBE_DELAY_MS,
   shouldEnqueueMetadataProbe,
 } from '../../src/utils/mediaMetadataEnqueue';
 
@@ -34,13 +35,13 @@ describe('mediaMetadataEnqueue', () => {
       expect(shouldEnqueueMetadataProbe('', 'ftp://cdn.example/track.mp3')).toBe(false);
     });
 
-    it('returns false for YouTube URLs', () => {
+    it('returns true for YouTube URLs', () => {
       expect(
         shouldEnqueueMetadataProbe(
           '',
           'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
         )
-      ).toBe(false);
+      ).toBe(true);
     });
 
     it('returns true when a probeable http(s) URL changes', () => {
@@ -64,21 +65,42 @@ describe('mediaMetadataEnqueue', () => {
       });
 
       expect(jobId).toBe('job-123');
-      expect(addJobToQueue).toHaveBeenCalledWith({
-        type: 'extractMediaMetadata',
-        entityType: 'music',
-        entityId: '507f1f77bcf86cd799439011',
-        mediaUrl: 'https://cdn.example/track.mp3',
-        mediaKind: 'audio',
-      });
+      expect(addJobToQueue).toHaveBeenCalledWith(
+        {
+          type: 'extractMediaMetadata',
+          entityType: 'music',
+          entityId: '507f1f77bcf86cd799439011',
+          mediaUrl: 'https://cdn.example/track.mp3',
+          mediaKind: 'audio',
+        },
+        { delay: MEDIA_METADATA_PROBE_DELAY_MS }
+      );
     });
 
-    it('skips enqueue for empty or YouTube URLs', async () => {
+    it('enqueues YouTube video URLs', async () => {
+      const jobId = await enqueueMediaMetadataProbe({
+        entityType: 'video',
+        entityId: '507f1f77bcf86cd799439011',
+        mediaUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        mediaKind: 'video',
+      });
+
+      expect(jobId).toBe('job-123');
+      expect(addJobToQueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mediaUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          mediaKind: 'video',
+        }),
+        { delay: MEDIA_METADATA_PROBE_DELAY_MS }
+      );
+    });
+
+    it('skips enqueue for empty URLs', async () => {
       await expect(
         enqueueMediaMetadataProbe({
           entityType: 'video',
           entityId: '507f1f77bcf86cd799439011',
-          mediaUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          mediaUrl: '',
           mediaKind: 'video',
         })
       ).resolves.toBeUndefined();
