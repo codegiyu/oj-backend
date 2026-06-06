@@ -434,13 +434,20 @@ export interface IArtist {
   coverImage?: string;
   genre?: string;
   socials?: ArtistSocials;
+  /** @deprecated Prefer isMusicFeatured; kept for legacy admin/API compatibility. */
   isFeatured: boolean;
+  isRising: boolean;
+  isMusicFeatured: boolean;
+  isCreatorSpotlight: boolean;
   isActive: boolean;
   profileStatus?: import('./roleProfile').ProfileStatus;
   statusChangedAt?: Date | null;
   statusChangedBy?: mongoose.Types.ObjectId | null;
   suspensionReason?: string;
   displayOrder: number;
+  risingArtistDisplayOrder: number;
+  musicFeaturedDisplayOrder: number;
+  creatorSpotlightDisplayOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
