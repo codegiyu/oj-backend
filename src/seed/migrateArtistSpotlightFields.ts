@@ -33,7 +33,8 @@ export async function migrateArtistSpotlightFields(): Promise<{ updated: number 
           creatorSpotlightDisplayOrder: { $ifNull: ['$creatorSpotlightDisplayOrder', 0] },
         },
       },
-    ]
+    ],
+    { updatePipeline: true }
   );
 
   return { updated: result.modifiedCount };
@@ -55,30 +56,64 @@ export async function migrateArtistSpotlightFieldsOnce(): Promise<void> {
 
   let migrationId: string | undefined;
 
-  try {
-    const migration = await DeploymentMigration.create({
+  const failedMigration = await DeploymentMigration.findOne({
+    name: ARTIST_SPOTLIGHT_FIELDS_MIGRATION,
+    status: 'failed',
+  }).lean();
+
+  if (failedMigration?._id) {
+    await DeploymentMigration.findByIdAndUpdate(failedMigration._id, {
+      $set: { status: 'running', errorMessage: '', startedAt: new Date() },
+    });
+    migrationId = String(failedMigration._id);
+  } else {
+    const runningMigration = await DeploymentMigration.findOne({
       name: ARTIST_SPOTLIGHT_FIELDS_MIGRATION,
       status: 'running',
-    });
-    migrationId = String(migration._id);
-  } catch (err: unknown) {
-    const isDuplicate =
-      err && typeof err === 'object' && 'code' in err && (err as { code?: number }).code === 11000;
+    }).lean();
 
-    if (isDuplicate) {
-      const inProgress = await DeploymentMigration.findOne({
-        name: ARTIST_SPOTLIGHT_FIELDS_MIGRATION,
-      }).lean();
-
-      if (inProgress?.status === 'completed') return;
-
+    if (runningMigration) {
       logger.info(
         'migrateArtistSpotlightFieldsOnce: another instance is running or already claimed'
       );
       return;
     }
 
-    throw err;
+    try {
+      const migration = await DeploymentMigration.create({
+        name: ARTIST_SPOTLIGHT_FIELDS_MIGRATION,
+        status: 'running',
+      });
+      migrationId = String(migration._id);
+    } catch (err: unknown) {
+      const isDuplicate =
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code?: number }).code === 11000;
+
+      if (isDuplicate) {
+        const existing = await DeploymentMigration.findOne({
+          name: ARTIST_SPOTLIGHT_FIELDS_MIGRATION,
+        }).lean();
+
+        if (existing?.status === 'completed') return;
+
+        if (existing?.status === 'failed' && existing._id) {
+          await DeploymentMigration.findByIdAndUpdate(existing._id, {
+            $set: { status: 'running', errorMessage: '', startedAt: new Date() },
+          });
+          migrationId = String(existing._id);
+        } else {
+          logger.info(
+            'migrateArtistSpotlightFieldsOnce: another instance is running or already claimed'
+          );
+          return;
+        }
+      } else {
+        throw err;
+      }
+    }
   }
 
   const stats: MigrationStats = { artistsUpdated: 0 };
