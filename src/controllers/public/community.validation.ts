@@ -102,6 +102,9 @@ export const listArtistsQuerystringSchema: FastifySchema = {
     properties: {
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
+      rising: { type: 'string', enum: ['true', 'false'] },
+      featured: { type: 'string', enum: ['true', 'false'] },
+      spotlight: { type: 'string', enum: ['true', 'false'] },
     },
   },
 };

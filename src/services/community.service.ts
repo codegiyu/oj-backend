@@ -25,6 +25,7 @@ import * as askPastorRepo from '../repositories/community/askPastor.repository';
 import * as pastorRepo from '../repositories/community/pastor.repository';
 import * as pollRepo from '../repositories/community/poll.repository';
 import * as resourceRepo from '../repositories/community/resource.repository';
+import { resolveArtistListScope } from '../constants/artistSections';
 import {
   countActiveCommunityArtists,
   listActiveCommunityArtists,
@@ -494,13 +495,22 @@ export async function getPollByIdOrSlug(
 
 // ----- GET /public/artists -----
 export async function listCommunityArtists(
-  request: FastifyRequest<{ Querystring?: { page?: string; limit?: string } }>
+  request: FastifyRequest<{
+    Querystring?: {
+      page?: string;
+      limit?: string;
+      rising?: string;
+      featured?: string;
+      spotlight?: string;
+    };
+  }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const limit = parsePositiveInteger(request.query?.limit, DEFAULT_LIMIT, MAX_LIMIT);
   const page = parsePositiveInteger(request.query?.page, 1, 1000);
   const skip = (page - 1) * limit;
+  const scope = resolveArtistListScope(request.query ?? {});
 
-  const { items, total } = await listActiveCommunityArtists({ skip, limit });
+  const { items, total } = await listActiveCommunityArtists({ skip, limit, scope });
 
   const artists = items.map(shapeArtistListItem);
   return {

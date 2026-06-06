@@ -27,6 +27,9 @@ const artistSchema = new Schema<IArtist>(
     genre: { type: String, default: '', index: true },
     socials: { type: socialsSchema, default: () => ({}) },
     isFeatured: { type: Boolean, default: false, index: true },
+    isRising: { type: Boolean, default: false, index: true },
+    isMusicFeatured: { type: Boolean, default: false, index: true },
+    isCreatorSpotlight: { type: Boolean, default: false, index: true },
     isActive: { type: Boolean, default: true, index: true },
     profileStatus: {
       type: String,
@@ -38,11 +41,17 @@ const artistSchema = new Schema<IArtist>(
     statusChangedAt: { type: Date, default: null },
     statusChangedBy: { type: Schema.Types.ObjectId, default: null },
     displayOrder: { type: Number, default: 0, index: true },
+    risingArtistDisplayOrder: { type: Number, default: 0, index: true },
+    musicFeaturedDisplayOrder: { type: Number, default: 0, index: true },
+    creatorSpotlightDisplayOrder: { type: Number, default: 0, index: true },
   },
   { timestamps: true, collection: 'artists' }
 );
 
 artistSchema.index({ isActive: 1, isFeatured: 1, displayOrder: 1 });
+artistSchema.index({ isActive: 1, isRising: 1, risingArtistDisplayOrder: 1 });
+artistSchema.index({ isActive: 1, isMusicFeatured: 1, musicFeaturedDisplayOrder: 1 });
+artistSchema.index({ isActive: 1, isCreatorSpotlight: 1, creatorSpotlightDisplayOrder: 1 });
 artistSchema.index({ user: 1 }, { sparse: true });
 
 export const Artist = model<IArtist>('Artist', artistSchema);

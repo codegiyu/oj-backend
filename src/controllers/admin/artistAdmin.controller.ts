@@ -25,9 +25,15 @@ function shapeArtistItem(raw: Record<string, unknown>): Record<string, unknown> 
     genre: raw.genre,
     socials: raw.socials,
     isFeatured: raw.isFeatured,
+    isRising: raw.isRising ?? false,
+    isMusicFeatured: raw.isMusicFeatured ?? raw.isFeatured ?? false,
+    isCreatorSpotlight: raw.isCreatorSpotlight ?? false,
     isActive: raw.isActive,
     profileStatus: raw.profileStatus ?? (raw.isActive === false ? 'suspended' : 'active'),
     displayOrder: raw.displayOrder,
+    risingArtistDisplayOrder: raw.risingArtistDisplayOrder ?? 0,
+    musicFeaturedDisplayOrder: raw.musicFeaturedDisplayOrder ?? raw.displayOrder ?? 0,
+    creatorSpotlightDisplayOrder: raw.creatorSpotlightDisplayOrder ?? 0,
     createdAt: raw.createdAt instanceof Date ? raw.createdAt.toISOString() : raw.createdAt,
     updatedAt: raw.updatedAt instanceof Date ? raw.updatedAt.toISOString() : raw.updatedAt,
   };
@@ -102,8 +108,14 @@ export async function createAdminArtist(
         website?: string;
       };
       isFeatured?: boolean;
+      isRising?: boolean;
+      isMusicFeatured?: boolean;
+      isCreatorSpotlight?: boolean;
       isActive?: boolean;
       displayOrder?: number;
+      risingArtistDisplayOrder?: number;
+      musicFeaturedDisplayOrder?: number;
+      creatorSpotlightDisplayOrder?: number;
     };
   }>,
   reply: FastifyReply
@@ -114,6 +126,7 @@ export async function createAdminArtist(
   }
 
   const slug = await generateUniqueSlug(Artist, body.name.trim());
+  const isMusicFeatured = body.isMusicFeatured ?? body.isFeatured ?? false;
 
   const artist = await Artist.create({
     name: body.name.trim(),
@@ -123,9 +136,15 @@ export async function createAdminArtist(
     coverImage: body.coverImage ?? '',
     genre: body.genre ?? '',
     socials: body.socials ?? {},
-    isFeatured: body.isFeatured ?? false,
+    isFeatured: isMusicFeatured,
+    isRising: body.isRising ?? false,
+    isMusicFeatured,
+    isCreatorSpotlight: body.isCreatorSpotlight ?? false,
     isActive: body.isActive ?? true,
     displayOrder: body.displayOrder ?? 0,
+    risingArtistDisplayOrder: body.risingArtistDisplayOrder ?? 0,
+    musicFeaturedDisplayOrder: body.musicFeaturedDisplayOrder ?? body.displayOrder ?? 0,
+    creatorSpotlightDisplayOrder: body.creatorSpotlightDisplayOrder ?? 0,
   });
 
   const populated = await Artist.findById(artist._id).lean();
@@ -154,8 +173,14 @@ export async function updateAdminArtist(
         website?: string;
       };
       isFeatured?: boolean;
+      isRising?: boolean;
+      isMusicFeatured?: boolean;
+      isCreatorSpotlight?: boolean;
       isActive?: boolean;
       displayOrder?: number;
+      risingArtistDisplayOrder?: number;
+      musicFeaturedDisplayOrder?: number;
+      creatorSpotlightDisplayOrder?: number;
     };
   }>,
   reply: FastifyReply
@@ -171,9 +196,26 @@ export async function updateAdminArtist(
   if (body.coverImage !== undefined) artist.coverImage = body.coverImage;
   if (body.genre !== undefined) artist.genre = body.genre;
   if (body.socials !== undefined) artist.socials = body.socials ?? artist.socials;
-  if (body.isFeatured !== undefined) artist.isFeatured = body.isFeatured;
+  if (body.isMusicFeatured !== undefined) {
+    artist.isMusicFeatured = body.isMusicFeatured;
+    artist.isFeatured = body.isMusicFeatured;
+  } else if (body.isFeatured !== undefined) {
+    artist.isFeatured = body.isFeatured;
+    artist.isMusicFeatured = body.isFeatured;
+  }
+  if (body.isRising !== undefined) artist.isRising = body.isRising;
+  if (body.isCreatorSpotlight !== undefined) artist.isCreatorSpotlight = body.isCreatorSpotlight;
   if (body.isActive !== undefined) artist.isActive = body.isActive;
   if (body.displayOrder !== undefined) artist.displayOrder = body.displayOrder;
+  if (body.risingArtistDisplayOrder !== undefined) {
+    artist.risingArtistDisplayOrder = body.risingArtistDisplayOrder;
+  }
+  if (body.musicFeaturedDisplayOrder !== undefined) {
+    artist.musicFeaturedDisplayOrder = body.musicFeaturedDisplayOrder;
+  }
+  if (body.creatorSpotlightDisplayOrder !== undefined) {
+    artist.creatorSpotlightDisplayOrder = body.creatorSpotlightDisplayOrder;
+  }
 
   await artist.save();
 
