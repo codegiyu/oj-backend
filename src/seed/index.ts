@@ -14,6 +14,7 @@ export {
 } from './functions';
 
 export { backfillMediaMetadataOnce } from './backfillMediaMetadata';
+export { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
 export { wipePastorAskDataOnce } from './wipePastorAskData';
 export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 
@@ -36,6 +37,7 @@ export const seedDb = async (): Promise<void> => {
     // await seedGospelVerses();
     // await wipePastorAskDataOnce();
     // await backfillMediaMetadataOnce();
+    // await migrateVideoMovieCategoryOnce();
     await reconcileVendorUserLinksOnce();
   } catch (error) {
     logger.error('seedDb failed', { error });

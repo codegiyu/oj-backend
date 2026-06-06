@@ -82,7 +82,7 @@ describe('video section filters', () => {
                 { 'metadata.durationSeconds': { $lte: 0 } },
               ],
             },
-            { category: { $in: ['movie', 'movies-long-form'] } },
+            { category: { $in: ['movies', 'movies-long-form'] } },
           ],
         },
       ])

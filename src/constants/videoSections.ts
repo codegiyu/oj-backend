@@ -2,7 +2,7 @@
 export const SHORT_FORM_CATEGORY_SLUGS = ['short', 'short-clips'] as const;
 
 /** Category slugs treated as long-form / movie content (legacy + catalog). */
-export const LONG_FORM_CATEGORY_SLUGS = ['movie', 'movies-long-form'] as const;
+export const LONG_FORM_CATEGORY_SLUGS = ['movies', 'movies-long-form'] as const;
 
 /** Duration bucket: under 5 minutes — `0 < duration < 300`. */
 export const VIDEO_DURATION_BUCKET_UNDER_5_MAX_SECONDS = 300;
