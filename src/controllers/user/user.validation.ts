@@ -113,6 +113,26 @@ export const addFavoriteBodySchema: FastifySchema = {
   },
 };
 
+export const listArtistFollowsQuerystringSchema: FastifySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      page: { type: 'string', pattern: '^[0-9]+$' },
+      limit: { type: 'string', pattern: '^[0-9]+$' },
+    },
+  },
+};
+
+export const artistFollowArtistIdParamSchema: FastifySchema = {
+  params: {
+    type: 'object',
+    required: ['artistId'],
+    properties: {
+      artistId: { type: 'string' },
+    },
+  },
+};
+
 export const favoriteEntityParamsSchema: FastifySchema = {
   params: {
     type: 'object',

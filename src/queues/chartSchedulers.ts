@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 
 const DAILY_METRICS_CRON = '10 0 * * *';
 const FINALIZE_CHARTS_CRON = '30 0 * * *';
+const RECONCILE_ARTIST_FOLLOWERS_CRON = '0 3 * * 0';
 
 export async function registerChartJobSchedulers(): Promise<void> {
   await mainQueue.upsertJobScheduler(
@@ -38,6 +39,15 @@ export async function registerChartJobSchedulers(): Promise<void> {
     {
       name: 'finalizeMusicChartSnapshots',
       data: { type: 'finalizeMusicChartSnapshots' },
+    }
+  );
+
+  await mainQueue.upsertJobScheduler(
+    'reconcile-artist-follower-counts',
+    { pattern: RECONCILE_ARTIST_FOLLOWERS_CRON },
+    {
+      name: 'reconcileArtistFollowerCounts',
+      data: { type: 'reconcileArtistFollowerCounts' },
     }
   );
 

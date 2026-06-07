@@ -44,6 +44,7 @@ const artistSchema = new Schema<IArtist>(
     risingArtistDisplayOrder: { type: Number, default: 0, index: true },
     musicFeaturedDisplayOrder: { type: Number, default: 0, index: true },
     creatorSpotlightDisplayOrder: { type: Number, default: 0, index: true },
+    followerCount: { type: Number, default: 0, index: true },
   },
   { timestamps: true, collection: 'artists' }
 );

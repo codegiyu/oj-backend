@@ -8,12 +8,14 @@ import {
   type SnapshotVideoDailyMetricsJobData,
   type SnapshotNewsDailyMetricsJobData,
   type FinalizeMusicChartSnapshotsJobData,
+  type ReconcileArtistFollowerCountsJobData,
 } from '../lib/types/queues';
 import { extractMediaMetadata } from './handlers/extractMediaMetadata';
 import { snapshotMusicDailyMetrics } from './handlers/snapshotMusicDailyMetrics';
 import { snapshotVideoDailyMetrics } from './handlers/snapshotVideoDailyMetrics';
 import { snapshotNewsDailyMetrics } from './handlers/snapshotNewsDailyMetrics';
 import { finalizeMusicChartSnapshots } from './handlers/finalizeMusicChartSnapshots';
+import { reconcileArtistFollowerCounts } from './handlers/reconcileArtistFollowerCounts';
 import { sendEmail } from './handlers/sendEmail';
 import { logger } from '../utils/logger';
 
@@ -49,6 +51,9 @@ export const mainWorker = new Worker<JobData>(
     }
     if (type === 'finalizeMusicChartSnapshots') {
       return await finalizeMusicChartSnapshots(job as Job<FinalizeMusicChartSnapshotsJobData>);
+    }
+    if (type === 'reconcileArtistFollowerCounts') {
+      return await reconcileArtistFollowerCounts(job as Job<ReconcileArtistFollowerCountsJobData>);
     }
     logger.warn(`Unknown job type: ${type}`);
   },

@@ -312,30 +312,52 @@ export function shapePollDetail(raw: Record<string, unknown>): Record<string, un
   };
 }
 
+export type ArtistResponseStats = {
+  songs?: number;
+  videos?: number;
+};
+
 /** Shape artist (community) for list item. */
-export function shapeArtistListItem(raw: Record<string, unknown>): Record<string, unknown> {
-  return {
+export function shapeArtistListItem(
+  raw: Record<string, unknown>,
+  options?: { stats?: ArtistResponseStats; isFollowing?: boolean }
+): Record<string, unknown> {
+  const followers =
+    typeof raw.followerCount === 'number' ? raw.followerCount : Number(raw.followers ?? 0);
+
+  const shaped: Record<string, unknown> = {
     _id: idStr(raw._id),
     name: raw.name,
     slug: raw.slug,
     image: raw.image,
     genre: raw.genre,
-    followers: 0,
-    verified: false,
-    songs: 0,
+    followers,
+    verified: Boolean(raw.user),
+    songs: options?.stats?.songs ?? 0,
   };
+
+  if (options?.stats?.videos != null) {
+    shaped.videos = options.stats.videos;
+  }
+
+  if (options?.isFollowing != null) {
+    shaped.isFollowing = options.isFollowing;
+  }
+
+  return shaped;
 }
 
 /** Shape artist for detail. */
-export function shapeArtistDetail(raw: Record<string, unknown>): Record<string, unknown> {
+export function shapeArtistDetail(
+  raw: Record<string, unknown>,
+  options?: { stats?: ArtistResponseStats; isFollowing?: boolean }
+): Record<string, unknown> {
+  const list = shapeArtistListItem(raw, options);
+
   return {
-    _id: idStr(raw._id),
-    name: raw.name,
-    slug: raw.slug,
-    image: raw.image,
+    ...list,
     coverImage: raw.coverImage,
     bio: raw.bio,
-    genre: raw.genre,
     socials: raw.socials,
   };
 }
