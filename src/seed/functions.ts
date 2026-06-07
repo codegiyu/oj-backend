@@ -442,17 +442,14 @@ export const seedContentCategories = async (): Promise<void> => {
       .select('_id')
       .lean();
 
+    // Filter keys (scope, slug) must not repeat in $set/$setOnInsert — MongoDB upsert conflicts (code 40).
     await ContentCategory.findOneAndUpdate(
       { scope: category.scope, slug: categorySlug },
       {
         $set: {
           name: category.name,
-          scope: category.scope,
           displayOrder: category.displayOrder,
           isActive: true,
-        },
-        $setOnInsert: {
-          slug: categorySlug,
         },
       },
       { upsert: true, runValidators: true, setDefaultsOnInsert: true }
