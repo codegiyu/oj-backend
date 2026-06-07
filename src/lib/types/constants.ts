@@ -448,8 +448,16 @@ export interface IArtist {
   risingArtistDisplayOrder: number;
   musicFeaturedDisplayOrder: number;
   creatorSpotlightDisplayOrder: number;
+  followerCount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IArtistFollow {
+  _id: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
+  artist: mongoose.Types.ObjectId;
+  createdAt: Date;
 }
 
 export interface ArtistSocials {
@@ -1155,6 +1163,7 @@ export type ModelAskPastorAnswerLike = IAskPastorAnswerLike & IModelIndex & Docu
 export type ModelPoll = IPoll & IModelIndex & Document;
 export type ModelPollVote = IPollVote & IModelIndex & Document;
 export type ModelPrayerSolidarity = IPrayerSolidarity & IModelIndex & Document;
+export type ModelArtistFollow = IArtistFollow & IModelIndex & Document;
 export type ModelVendor = IVendor & IModelIndex & Document;
 export type ModelCategory = ICategory & IModelIndex & Document;
 export type ModelSubCategory = ISubCategory & IModelIndex & Document;

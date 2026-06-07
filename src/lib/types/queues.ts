@@ -8,6 +8,7 @@ export const JOB_TYPES = [
   'snapshotVideoDailyMetrics',
   'snapshotNewsDailyMetrics',
   'finalizeMusicChartSnapshots',
+  'reconcileArtistFollowerCounts',
 ] as const;
 
 export type JOB_TYPE = (typeof JOB_TYPES)[number];
@@ -86,6 +87,10 @@ export interface FinalizeMusicChartSnapshotsJobData extends BaseJobData {
   type: 'finalizeMusicChartSnapshots';
 }
 
+export interface ReconcileArtistFollowerCountsJobData extends BaseJobData {
+  type: 'reconcileArtistFollowerCounts';
+}
+
 export type JobData =
   | OTPJobData
   | ResetPasswordJobData
@@ -95,4 +100,5 @@ export type JobData =
   | SnapshotMusicDailyMetricsJobData
   | SnapshotVideoDailyMetricsJobData
   | SnapshotNewsDailyMetricsJobData
-  | FinalizeMusicChartSnapshotsJobData;
+  | FinalizeMusicChartSnapshotsJobData
+  | ReconcileArtistFollowerCountsJobData;

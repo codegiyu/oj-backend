@@ -21,6 +21,11 @@ import {
   removeFavorite,
 } from '../controllers/user/contentFavorite.controller';
 import {
+  listArtistFollows,
+  followArtistRoute,
+  unfollowArtistRoute,
+} from '../controllers/user/artistFollow.controller';
+import {
   listMyCommunityQuestions,
   getMyCommunityQuestion,
   closeMyCommunityQuestion,
@@ -37,6 +42,8 @@ import {
   listFavoritesQuerystringSchema,
   addFavoriteBodySchema,
   favoriteEntityParamsSchema,
+  listArtistFollowsQuerystringSchema,
+  artistFollowArtistIdParamSchema,
   cartBodySchema,
   updateCartBodySchema,
   cartProductIdParamSchema,
@@ -84,6 +91,22 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     '/favorites/:entityType/:entityId',
     { preHandler: authenticate, schema: favoriteEntityParamsSchema },
     catchAsync(removeFavorite)
+  );
+
+  app.get<{ Querystring: { page?: string; limit?: string } }>(
+    '/artist-follows',
+    { preHandler: authenticate, schema: listArtistFollowsQuerystringSchema },
+    catchAsync(listArtistFollows)
+  );
+  app.post<{ Params: { artistId: string } }>(
+    '/artist-follows/:artistId',
+    { preHandler: authenticate, schema: artistFollowArtistIdParamSchema },
+    catchAsync(followArtistRoute)
+  );
+  app.delete<{ Params: { artistId: string } }>(
+    '/artist-follows/:artistId',
+    { preHandler: authenticate, schema: artistFollowArtistIdParamSchema },
+    catchAsync(unfollowArtistRoute)
   );
 
   app.get('/cart', { preHandler: authenticate }, catchAsync(getCart));

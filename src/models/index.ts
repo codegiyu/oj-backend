@@ -20,6 +20,7 @@ export { Pastor } from './pastor';
 export { Poll } from './poll';
 export { PollVote } from './pollVote';
 export { PrayerSolidarity } from './prayerSolidarity';
+export { ArtistFollow } from './artistFollow';
 export { Resource } from './resource';
 export { Cart } from './cart';
 export { ContentFavorite } from './contentFavorite';

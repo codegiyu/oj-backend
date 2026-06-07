@@ -18,10 +18,13 @@ export async function listActiveCommunityArtists(options: {
   skip: number;
   limit: number;
   scope?: ArtistPublicListScope;
+  filter?: Record<string, unknown>;
+  sort?: Record<string, 1 | -1>;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
   const scope = options.scope ?? 'directory';
-  const { filter: scopeFilter, sort } = artistScopeFilterAndSort(scope);
-  const filter = { ...activeArtistFilter, ...scopeFilter };
+  const { filter: scopeFilter, sort: scopeSort } = artistScopeFilterAndSort(scope);
+  const filter = { ...activeArtistFilter, ...scopeFilter, ...(options.filter ?? {}) };
+  const sort = options.sort ?? scopeSort;
 
   const [items, total] = await Promise.all([
     Artist.find(filter).sort(sort).skip(options.skip).limit(options.limit).lean(),
