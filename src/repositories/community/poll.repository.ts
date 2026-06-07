@@ -11,10 +11,12 @@ export async function listPolls(options: {
   filter: Record<string, unknown>;
   skip: number;
   limit: number;
+  sort?: Record<string, 1 | -1>;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
+  const sort = options.sort ?? { createdAt: -1 };
   const [items, total] = await Promise.all([
     Poll.find(options.filter)
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .populate('submittedBy', 'firstName lastName')
       .skip(options.skip)
       .limit(options.limit)

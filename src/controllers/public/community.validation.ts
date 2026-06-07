@@ -12,8 +12,14 @@ const DEVOTIONAL_TYPES = [
 const TESTIMONY_TYPES = ['all', 'featured', 'latest'] as const;
 const PRAYER_STATUS = ['active', 'answered'] as const;
 const QUESTION_STATUS = ['active', 'answered'] as const;
-const POLL_STATUS = ['pending', 'active', 'closed', 'rejected'] as const;
+const POLL_STATUS = ['all', 'pending', 'active', 'closed', 'rejected'] as const;
 const RESOURCE_TYPES = ['ebook', 'template', 'beat', 'wallpaper', 'affiliate'] as const;
+const PUBLIC_LIST_SORT = ['newest', 'popular', 'featured'] as const;
+
+const publicListSearchSortQuery = {
+  q: { type: 'string', maxLength: 100 },
+  sort: { type: 'string', enum: [...PUBLIC_LIST_SORT] },
+} as const;
 
 const idOrSlugParam = {
   params: {
@@ -23,10 +29,16 @@ const idOrSlugParam = {
   },
 } as const;
 
-const baseListQuerystring = {
-  category: { type: 'string' },
+const publicListBrowseQuery = {
+  q: { type: 'string', minLength: 2, maxLength: 100 },
+  sort: { type: 'string', enum: [...PUBLIC_LIST_SORT] },
   page: { type: 'string', pattern: '^[0-9]+$' },
   limit: { type: 'string', pattern: '^[0-9]+$' },
+} as const;
+
+const baseListQuerystring = {
+  ...publicListBrowseQuery,
+  category: { type: 'string' },
   status: { type: 'string' },
   type: { type: 'string' },
 };
@@ -69,6 +81,7 @@ export const listPrayerRequestsQuerystringSchema: FastifySchema = {
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: [...PRAYER_STATUS] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -81,6 +94,7 @@ export const listAskAPastorQuestionsQuerystringSchema: FastifySchema = {
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: [...QUESTION_STATUS] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -92,6 +106,7 @@ export const listPollsQuerystringSchema: FastifySchema = {
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: [...POLL_STATUS] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -105,6 +120,7 @@ export const listArtistsQuerystringSchema: FastifySchema = {
       rising: { type: 'string', enum: ['true', 'false'] },
       featured: { type: 'string', enum: ['true', 'false'] },
       spotlight: { type: 'string', enum: ['true', 'false'] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -126,6 +142,7 @@ export const listResourcesQuerystringSchema: FastifySchema = {
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       type: { type: 'string', enum: [...RESOURCE_TYPES] },
+      ...publicListSearchSortQuery,
     },
   },
 };

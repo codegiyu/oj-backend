@@ -174,11 +174,18 @@ export async function listResourceCounts(
 
 export async function listResources(
   request: FastifyRequest<{
-    Querystring: { type?: string; page?: string; limit?: string };
+    Querystring: { type?: string; page?: string; limit?: string; q?: string; sort?: string };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   await respond(reply, await communityService.listResources(request));
+}
+
+export async function getResourceByIdOrSlug(
+  request: FastifyRequest<{ Params: { idOrSlug: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  await respond(reply, await communityService.getResourceByIdOrSlug(request));
 }
 
 export async function submitPrayerRequest(

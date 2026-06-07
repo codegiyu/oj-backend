@@ -3,7 +3,12 @@ import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { leanIdToString } from '../utils/leanId';
-import { parsePositiveInteger, parseString } from '../utils/helpers';
+import { parseString } from '../utils/helpers';
+import {
+  applyTextSearch,
+  parseListQueryParams,
+  withPopularSortField,
+} from '../utils/publicListQuery';
 import { isLikelyYoutubeUrl } from '../utils/videoEmbed';
 import {
   isCompleteMusic,
@@ -25,10 +30,6 @@ import {
   shapeArticleListItem,
   shapeArticleDetail,
 } from './publicMedia.shaping';
-import {
-  PUBLIC_LIST_DEFAULT_LIMIT as DEFAULT_LIMIT,
-  PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
-} from '../constants/pagination';
 import { resolveChartScopeKey } from '../constants/musicSections';
 import {
   buildBreakingNewsSectionFilter,
@@ -74,18 +75,19 @@ export async function listPublicMusic(
       status?: string;
       type?: string;
       period?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<PublicMediaServiceResult> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const status = parseString(request.query.status);
   const category = parseString(request.query.category);
   const excludeCategory = parseString(request.query.excludeCategory);
   const artistId = parseString(request.query.artist);
   const type = parseString(request.query.type);
   const period = parseString(request.query.period);
+  const explicitSort = parseString(request.query.sort);
 
   if (type === 'charts') {
     const scopeKey = resolveChartScopeKey(category);
@@ -120,7 +122,7 @@ export async function listPublicMusic(
     };
   }
 
-  const filter: Record<string, unknown> = {};
+  let filter: Record<string, unknown> = {};
   if (status === 'published') filter.status = 'published';
   else filter.status = 'published'; // public: only published
   if (category && category !== 'all') filter.category = category;
@@ -128,6 +130,8 @@ export async function listPublicMusic(
   if (artistId && mongoose.Types.ObjectId.isValid(artistId)) {
     filter.artist = new mongoose.Types.ObjectId(artistId);
   }
+
+  filter = applyTextSearch(filter, q, ['title', 'excerpt']);
 
   if (type === 'trending') {
     const scopeKey = resolveChartScopeKey(category);
@@ -163,7 +167,13 @@ export async function listPublicMusic(
   }
 
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
-  if (type === 'featured') {
+
+  if (explicitSort) {
+    sort = sortPreset === 'popular' ? withPopularSortField(mongoSort, 'plays') : { ...mongoSort };
+    if (sortPreset === 'featured') {
+      filter.isFeatured = true;
+    }
+  } else if (type === 'featured') {
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
@@ -215,24 +225,27 @@ export async function listPublicVideos(
       limit?: string;
       status?: string;
       type?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<PublicMediaServiceResult> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const status = parseString(request.query.status);
   const category = parseString(request.query.category);
   const artistId = parseString(request.query.artist);
   const type = parseString(request.query.type);
+  const explicitSort = parseString(request.query.sort);
 
-  const filter: Record<string, unknown> = {};
+  let filter: Record<string, unknown> = {};
   if (status === 'published') filter.status = 'published';
   else filter.status = 'published';
   if (category && category !== 'all') filter.category = category;
   if (artistId && mongoose.Types.ObjectId.isValid(artistId)) {
     filter.artist = new mongoose.Types.ObjectId(artistId);
   }
+
+  filter = applyTextSearch(filter, q, ['title', 'description']);
 
   const completeFilter = mergePublicFilter(filter, publishedVideoCompletenessFilter());
 
@@ -260,7 +273,13 @@ export async function listPublicVideos(
   }
 
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
-  if (type === 'featured') {
+
+  if (explicitSort) {
+    sort = sortPreset === 'popular' ? withPopularSortField(mongoSort, 'views') : { ...mongoSort };
+    if (sortPreset === 'featured') {
+      filter.isFeatured = true;
+    }
+  } else if (type === 'featured') {
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'recent') sort = { createdAt: -1 };
@@ -321,17 +340,20 @@ export async function listPublicNews(
       limit?: string;
       status?: string;
       type?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<PublicMediaServiceResult> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const category = parseString(request.query.category);
   const type = parseString(request.query.type);
+  const explicitSort = parseString(request.query.sort);
 
-  const base: Record<string, unknown> = { status: 'published' };
+  let base: Record<string, unknown> = { status: 'published' };
   if (category && category !== 'all') base.category = category;
+
+  base = applyTextSearch(base, q, ['title', 'excerpt']);
 
   let filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
 
@@ -366,7 +388,13 @@ export async function listPublicNews(
   }
 
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
-  if (type === 'featured') {
+
+  if (explicitSort) {
+    sort = sortPreset === 'popular' ? withPopularSortField(mongoSort, 'views') : { ...mongoSort };
+    if (sortPreset === 'featured') {
+      filter = mergePublicFilter(filter, { isFeatured: true });
+    }
+  } else if (type === 'featured') {
     filter = mergePublicFilter(filter, { isFeatured: true });
     sort = { displayOrder: 1, createdAt: -1 };
   } else if (type === 'latest') sort = { createdAt: -1 };

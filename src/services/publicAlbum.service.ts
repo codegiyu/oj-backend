@@ -1,7 +1,13 @@
 import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
-import { parsePositiveInteger, parseString } from '../utils/helpers';
+import { parseString } from '../utils/helpers';
+import {
+  applyTextSearch,
+  parseListQueryParams,
+  resolveListSortOptions,
+  withPopularSortField,
+} from '../utils/publicListQuery';
 import * as albumRepo from '../repositories/public/album.repository';
 import {
   countMusicTracksForAlbum,
@@ -9,10 +15,6 @@ import {
 } from '../repositories/admin/album.repository';
 import { leanIdToString } from '../utils/leanId';
 import { shapeAlbumDetail, shapeAlbumListItem, shapeAlbumTrackItem } from './publicAlbum.shaping';
-import {
-  PUBLIC_LIST_DEFAULT_LIMIT as DEFAULT_LIMIT,
-  PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
-} from '../constants/pagination';
 
 export type PublicAlbumServiceResult = {
   statusCode: number;
@@ -27,14 +29,15 @@ export async function listPublicAlbums(
       page?: string;
       limit?: string;
       type?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<PublicAlbumServiceResult> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset } = parseListQueryParams(request.query);
   const artistId = parseString(request.query.artist);
   const type = parseString(request.query.type);
+  const explicitSort = parseString(request.query.sort);
 
   const filter: Record<string, unknown> = { status: 'published' };
 
@@ -44,13 +47,21 @@ export async function listPublicAlbums(
 
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
 
-  if (type === 'featured') {
+  if (explicitSort) {
+    const resolved = resolveListSortOptions(explicitSort);
+    sort = sortPreset === 'popular' ? withPopularSortField(resolved.sort, 'plays') : resolved.sort;
+    if (resolved.featuredFilter) {
+      filter.isFeatured = true;
+    }
+  } else if (type === 'featured') {
     filter.isFeatured = true;
     sort = { displayOrder: 1, createdAt: -1 };
   }
 
+  const searchFilter = applyTextSearch(filter, q, ['title', 'excerpt']);
+
   const { items, total } = await albumRepo.listPublishedAlbums({
-    filter,
+    filter: searchFilter,
     sort,
     skip,
     limit,

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { catchAsync } from '../utils/catchAsync';
-import { authenticatePreHandler } from '../middleware/auth.middleware';
+import { authenticatePreHandler, optionalAuthenticate } from '../middleware/auth.middleware';
 import {
   listPublicMusic,
   getPublicMusicByIdOrSlug,
@@ -37,6 +37,7 @@ import {
   getCommunityArtistByIdOrSlug,
   listResourceCounts,
   listResources,
+  getResourceByIdOrSlug,
   submitPrayerRequest,
   submitQuestion,
   submitTestimony,
@@ -303,14 +304,23 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
     catchAsync(createPoll)
   );
 
-  app.get('/artists', { schema: listArtistsQuerystringSchema }, catchAsync(listCommunityArtists));
+  app.get(
+    '/artists',
+    { preHandler: [optionalAuthenticate], schema: listArtistsQuerystringSchema },
+    catchAsync(listCommunityArtists)
+  );
   app.get<{ Params: { idOrSlug: string } }>(
     '/artists/:idOrSlug',
-    { schema: communityIdOrSlugParamSchema },
+    { preHandler: [optionalAuthenticate], schema: communityIdOrSlugParamSchema },
     catchAsync(getCommunityArtistByIdOrSlug)
   );
 
   app.get('/resources/counts', catchAsync(listResourceCounts));
+  app.get<{ Params: { idOrSlug: string } }>(
+    '/resources/:idOrSlug',
+    { schema: communityIdOrSlugParamSchema },
+    catchAsync(getResourceByIdOrSlug)
+  );
   app.get('/resources', { schema: listResourcesQuerystringSchema }, catchAsync(listResources));
 
   app.post<{
