@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
 // import { backfillMediaMetadataOnce } from './backfillMediaMetadata';
 // import { wipePastorAskDataOnce } from './wipePastorAskData';
-// import { seedContentCategories } from './functions';
+import { seedContentCategories } from './functions';
 
 export {
   seedMarketplaceCategories,
@@ -23,6 +23,7 @@ export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 import { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
 import { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
+import { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -37,11 +38,11 @@ export const seedDb = async (): Promise<void> => {
     // Idempotent: upsert categories and subcategories from MARKETPLACE_CATEGORIES
     // await seedMarketplaceCategories();
     // await seedPromotionContent();
-    // await seedContentCategories();
+    await seedContentCategories();
     // await seedGospelVerses();
     // await wipePastorAskDataOnce();
     // await backfillMediaMetadataOnce();
-    // await migrateVideoMovieCategoryOnce();
+    await migrateVideoMovieCategoryOnce();
     await reconcileVendorUserLinksOnce();
     await migrateArtistSpotlightFieldsOnce();
     await bootstrapMediaDailyMetricsOnce();
