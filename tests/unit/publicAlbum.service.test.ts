@@ -9,10 +9,14 @@ vi.mock('../../src/repositories/public/album.repository', () => ({
 
 vi.mock('../../src/repositories/admin/album.repository', () => ({
   listMusicTracksForAlbum: vi.fn(),
+  countMusicTracksForAlbum: vi.fn(),
 }));
 
 import * as albumRepo from '../../src/repositories/public/album.repository';
-import { listMusicTracksForAlbum } from '../../src/repositories/admin/album.repository';
+import {
+  countMusicTracksForAlbum,
+  listMusicTracksForAlbum,
+} from '../../src/repositories/admin/album.repository';
 import { getPublicAlbumByIdOrSlug, listPublicAlbums } from '../../src/services/publicAlbum.service';
 
 describe('publicAlbum.service', () => {
@@ -21,6 +25,7 @@ describe('publicAlbum.service', () => {
   });
 
   it('lists published albums with pagination', async () => {
+    vi.mocked(countMusicTracksForAlbum).mockResolvedValue(0);
     vi.mocked(albumRepo.listPublishedAlbums).mockResolvedValue({
       items: [
         {

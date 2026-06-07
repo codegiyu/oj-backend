@@ -159,14 +159,23 @@ export function shapeVideoDetail(raw: Record<string, unknown>): Record<string, u
   };
 }
 
+function newsListExcerpt(raw: Record<string, unknown>): string {
+  const stored = typeof raw.excerpt === 'string' ? raw.excerpt.trim() : '';
+  if (stored) return stored;
+
+  const content = typeof raw.content === 'string' ? raw.content.trim() : '';
+
+  return content ? content.slice(0, 160) : '';
+}
+
 export function shapeArticleListItem(raw: Record<string, unknown>): Record<string, unknown> {
-  const excerpt = raw.excerpt ?? (typeof raw.content === 'string' ? raw.content.slice(0, 160) : '');
+  const excerpt = newsListExcerpt(raw);
 
   return {
     _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
     title: raw.title,
     slug: raw.slug,
-    excerpt: excerpt || raw.excerpt,
+    excerpt,
     category: raw.category,
     coverImage: raw.coverImage,
     author: raw.author,

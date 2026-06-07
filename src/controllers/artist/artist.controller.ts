@@ -682,6 +682,11 @@ function shapeVideoItem(raw: VideoWithArtistLean): Record<string, unknown> {
     videoFileUrl: raw.videoFileUrl,
     embedUrl: raw.embedUrl,
     category: raw.category,
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+    metadata:
+      raw.metadata != null && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)
+        ? raw.metadata
+        : {},
     isMonetizable: Boolean(raw.isMonetizable),
     price: typeof raw.price === 'number' ? raw.price : Number(raw.price) || 0,
     views: raw.views ?? 0,
