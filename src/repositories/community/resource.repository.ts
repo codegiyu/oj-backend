@@ -1,5 +1,6 @@
 import { Resource } from '../../models/resource';
 import { RESOURCE_TYPES } from '../../lib/types/constants';
+import { findByIdOrSlug } from './shared';
 import {
   mergePublicFilter,
   publishedResourceCompletenessFilter,
@@ -38,15 +39,19 @@ export async function listPublishedResources(options: {
   filter: Record<string, unknown>;
   skip: number;
   limit: number;
+  sort?: Record<string, 1 | -1>;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
+  const sort = options.sort ?? { displayOrder: 1, createdAt: -1 };
   const [items, total] = await Promise.all([
-    Resource.find(options.filter)
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .skip(options.skip)
-      .limit(options.limit)
-      .lean(),
+    Resource.find(options.filter).sort(sort).skip(options.skip).limit(options.limit).lean(),
     Resource.countDocuments(options.filter),
   ]);
 
   return { items: items as unknown as Record<string, unknown>[], total };
+}
+
+export async function findPublishedResourceByIdOrSlug(
+  idOrSlug: string
+): Promise<Record<string, unknown> | null> {
+  return findByIdOrSlug(Resource, idOrSlug, { status: 'published' });
 }

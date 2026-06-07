@@ -10,13 +10,11 @@ export async function listPrayerRequests(options: {
   filter: Record<string, unknown>;
   skip: number;
   limit: number;
+  sort?: Record<string, 1 | -1>;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
+  const sort = options.sort ?? { createdAt: -1 };
   const [items, total] = await Promise.all([
-    PrayerRequest.find(options.filter)
-      .sort({ createdAt: -1 })
-      .skip(options.skip)
-      .limit(options.limit)
-      .lean(),
+    PrayerRequest.find(options.filter).sort(sort).skip(options.skip).limit(options.limit).lean(),
     PrayerRequest.countDocuments(options.filter),
   ]);
 

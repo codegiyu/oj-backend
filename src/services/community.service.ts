@@ -5,7 +5,13 @@
 import type { FastifyRequest } from 'fastify';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
-import { parsePositiveInteger, parseString, generateUniqueSlug } from '../utils/helpers';
+import { parseString, generateUniqueSlug } from '../utils/helpers';
+import {
+  applyFeaturedListFilter,
+  applyTextSearch,
+  parseListQueryParams,
+  withPopularSortField,
+} from '../utils/publicListQuery';
 import { normalizePollOptionTexts } from '../utils/pollOptions';
 import * as devotionalRepo from '../repositories/community/devotional.repository';
 import * as testimonyRepo from '../repositories/community/testimony.repository';
@@ -54,11 +60,10 @@ import {
   shapeArtistListItem,
   shapeArtistDetail,
   shapeResourceListItem,
+  shapeResourceDetail,
 } from '../controllers/public/community.helpers';
 
 import {
-  PUBLIC_LIST_DEFAULT_LIMIT as DEFAULT_LIMIT,
-  PUBLIC_LIST_MAX_LIMIT as MAX_LIMIT,
   FEATURED_TESTIMONIES_LIMIT,
   TRENDING_DEVOTIONALS_LIMIT,
   RELATED_DEVOTIONALS_LIMIT,
@@ -67,17 +72,46 @@ import {
 import {
   isCompleteDevotional,
   isCompletePrayerRequest,
+  isCompleteResource,
   isCompleteTestimony,
   mergePublicFilter,
   publishedResourceCompletenessFilter,
   publishedTextContentCompletenessFilter,
 } from '../utils/contentCompleteness';
 import { getAuthUser } from '../utils/getAuthUser';
+import { leanIdToString } from '../utils/leanId';
+import {
+  getPublishedContentCountsByArtistIds,
+  type ArtistPublishedContentCounts,
+} from './artistPublicStats.service';
+import { isUserFollowingArtist, listFollowedArtistIdSet } from './artistFollow.service';
 import { publicQuestionVisibilityFilter, normalizeQuestionAnswers } from './pastor.service';
 import { findByIdOrSlug } from '../repositories/community/shared';
 
 function pagination(page: number, limit: number, total: number) {
   return { page, limit, total, totalPages: Math.ceil(total / limit) };
+}
+
+const DEVOTIONAL_SORT_TYPES = new Set(['latest', 'popular']);
+
+const DEFAULT_NEWEST_SORT: Record<string, 1 | -1> = { createdAt: -1 };
+const DEFAULT_RESOURCE_LIST_SORT: Record<string, 1 | -1> = { displayOrder: 1, createdAt: -1 };
+
+function resolveExplicitSort(
+  explicitSort: string | undefined,
+  sortPreset: 'newest' | 'popular' | 'featured',
+  mongoSort: Record<string, 1 | -1>,
+  popularField: string
+): Record<string, 1 | -1> {
+  if (!explicitSort) {
+    return DEFAULT_NEWEST_SORT;
+  }
+
+  if (sortPreset === 'popular') {
+    return withPopularSortField(mongoSort, popularField);
+  }
+
+  return { ...mongoSort };
 }
 
 /** Get voter identifier for poll vote (cookie, header, or IP+UA). */
@@ -97,6 +131,34 @@ function getSolidarityIdentifier(request: FastifyRequest): string {
   if (auth?.userId) return `user:${auth.userId}`;
 
   return getVoterIdentifier(request);
+}
+
+function getClientUserObjectId(request: FastifyRequest): mongoose.Types.ObjectId | null {
+  const auth = getAuthUser(request);
+  if (!auth || auth.scope !== 'client-access' || !auth.userId) return null;
+  if (!mongoose.Types.ObjectId.isValid(auth.userId)) return null;
+
+  return new mongoose.Types.ObjectId(auth.userId);
+}
+
+async function resolveFollowingSet(
+  request: FastifyRequest,
+  artistIds: mongoose.Types.ObjectId[]
+): Promise<Set<string> | undefined> {
+  const userId = getClientUserObjectId(request);
+  if (!userId || artistIds.length === 0) return undefined;
+
+  return listFollowedArtistIdSet(userId, artistIds);
+}
+
+async function resolveArtistIsFollowing(
+  request: FastifyRequest,
+  artistId: mongoose.Types.ObjectId | null
+): Promise<boolean | undefined> {
+  const userId = getClientUserObjectId(request);
+  if (!userId || !artistId) return undefined;
+
+  return isUserFollowingArtist(userId, artistId);
 }
 
 // ----- GET /public/community -----
@@ -165,26 +227,33 @@ export async function listDevotionals(
       page?: string;
       limit?: string;
       status?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const type = parseString(request.query.type);
   const category = parseString(request.query.category);
+  const explicitSort = parseString(request.query.sort);
 
-  const filter = mergePublicFilter(
+  let filter = mergePublicFilter(
     {
       status: 'published',
       ...(category && category !== 'all' ? { category } : {}),
-      ...(type ? { type } : {}),
+      ...(type && !DEVOTIONAL_SORT_TYPES.has(type) ? { type } : {}),
     },
     publishedTextContentCompletenessFilter()
   );
 
+  filter = applyTextSearch(filter, q, ['title', 'excerpt', 'content', 'category', 'author']);
+
   let sort: Record<string, 1 | -1> = { createdAt: -1 };
-  if (type === 'popular') sort = { views: -1, createdAt: -1 };
+
+  if (explicitSort) {
+    sort = resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'views');
+    filter = applyFeaturedListFilter(filter, sortPreset);
+  } else if (type === 'popular') sort = { views: -1, createdAt: -1 };
   else if (type === 'latest') sort = { createdAt: -1 };
   else if (type) sort = { type: 1, createdAt: -1 };
 
@@ -244,23 +313,35 @@ export async function listTestimonies(
       page?: string;
       limit?: string;
       status?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const type = parseString(request.query.type);
   const category = parseString(request.query.category);
+  const explicitSort = parseString(request.query.sort);
 
-  const base: Record<string, unknown> = { status: 'published' };
+  let base: Record<string, unknown> = { status: 'published' };
   if (category && category !== 'all') base.category = category;
   if (type === 'featured') base.isFeatured = true;
 
-  const filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
+  base = applyTextSearch(base, q, ['content', 'author', 'category']);
 
-  const sort: Record<string, 1 | -1> =
-    type === 'latest' || type === 'all' ? { createdAt: -1 } : { isFeatured: -1, createdAt: -1 };
+  let filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
+
+  let sort: Record<string, 1 | -1>;
+
+  if (explicitSort) {
+    sort = resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'likes');
+    if (sortPreset === 'featured') {
+      filter = mergePublicFilter(filter, { isFeatured: true });
+    }
+  } else {
+    sort =
+      type === 'latest' || type === 'all' ? { createdAt: -1 } : { isFeatured: -1, createdAt: -1 };
+  }
 
   const { items, total } = await testimonyRepo.listPublishedTestimonies({
     filter,
@@ -304,22 +385,33 @@ export async function getTestimonyByIdOrSlug(
 // ----- GET /public/prayer-requests -----
 export async function listPrayerRequests(
   request: FastifyRequest<{
-    Querystring: { status?: string; category?: string; page?: string; limit?: string };
+    Querystring: {
+      status?: string;
+      category?: string;
+      page?: string;
+      limit?: string;
+      q?: string;
+      sort?: string;
+    };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const status = parseString(request.query.status);
   const category = parseString(request.query.category);
+  const explicitSort = parseString(request.query.sort);
 
-  const base: Record<string, unknown> = {};
+  let base: Record<string, unknown> = {};
   if (status) base.status = status;
   if (category && category !== 'all') base.category = category;
 
-  const filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
+  base = applyTextSearch(base, q, ['title', 'content', 'author', 'category']);
 
-  const { items, total } = await queryPrayerRequests({ filter, skip, limit });
+  const filter = mergePublicFilter(base, publishedTextContentCompletenessFilter());
+  const sort = explicitSort
+    ? resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'prayers')
+    : DEFAULT_NEWEST_SORT;
+
+  const { items, total } = await queryPrayerRequests({ filter, skip, limit, sort });
 
   const prayerRequests = items.map(shapePrayerRequestListItem);
   return {
@@ -345,22 +437,39 @@ export async function getPrayerRequestByIdOrSlug(
 // ----- GET /public/ask-a-pastor/questions -----
 export async function listAskAPastorQuestions(
   request: FastifyRequest<{
-    Querystring: { status?: string; category?: string; page?: string; limit?: string };
+    Querystring: {
+      status?: string;
+      category?: string;
+      page?: string;
+      limit?: string;
+      q?: string;
+      sort?: string;
+    };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const status = parseString(request.query.status);
   const category = parseString(request.query.category);
+  const explicitSort = parseString(request.query.sort);
 
-  const filter: Record<string, unknown> = {
+  let filter: Record<string, unknown> = {
     ...publicQuestionVisibilityFilter(),
   };
   if (status) filter.status = status;
   if (category && category !== 'all') filter.category = category;
 
-  const { items, total } = await askPastorRepo.listAskPastorQuestions({ filter, skip, limit });
+  filter = applyTextSearch(filter, q, ['question', 'author', 'category']);
+
+  const sort = explicitSort
+    ? resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'upvotes')
+    : DEFAULT_NEWEST_SORT;
+
+  const { items, total } = await askPastorRepo.listAskPastorQuestions({
+    filter,
+    skip,
+    limit,
+    sort,
+  });
 
   const questions = items.map(raw => {
     const pastor = raw.pastor as Record<string, unknown> | null | undefined;
@@ -426,9 +535,7 @@ export async function getAskAPastorPastorByIdOrSlug(
 export async function listAskAPastorPastors(
   request: FastifyRequest<{ Querystring?: { page?: string; limit?: string } }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query?.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query?.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parseListQueryParams(request.query ?? {});
 
   const { items, total } = await pastorRepo.listActivePastors({ skip, limit });
 
@@ -443,22 +550,30 @@ export async function listAskAPastorPastors(
 // ----- GET /public/polls -----
 export async function listPolls(
   request: FastifyRequest<{
-    Querystring: { status?: string; page?: string; limit?: string };
+    Querystring: { status?: string; page?: string; limit?: string; q?: string; sort?: string };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query?.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query?.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const status = parseString(request.query?.status);
+  const explicitSort = parseString(request.query?.sort);
 
-  const filter: Record<string, unknown> = {};
-  if (status) {
+  let filter: Record<string, unknown> = {};
+
+  if (status === 'all') {
+    filter.status = { $in: ['active', 'closed'] };
+  } else if (status) {
     filter.status = status;
   } else {
     filter.status = 'active';
   }
 
-  const { items, total } = await pollRepo.listPolls({ filter, skip, limit });
+  filter = applyTextSearch(filter, q, ['question', 'description', 'category']);
+
+  const sort = explicitSort
+    ? resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'totalVotes')
+    : DEFAULT_NEWEST_SORT;
+
+  const { items, total } = await pollRepo.listPolls({ filter, skip, limit, sort });
 
   const polls = items.map(shapePollListItem);
   return {
@@ -502,17 +617,48 @@ export async function listCommunityArtists(
       rising?: string;
       featured?: string;
       spotlight?: string;
+      q?: string;
+      sort?: string;
     };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query?.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query?.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query ?? {});
   const scope = resolveArtistListScope(request.query ?? {});
+  const explicitSort = parseString(request.query?.sort);
 
-  const { items, total } = await listActiveCommunityArtists({ skip, limit, scope });
+  const textFilter = applyTextSearch({}, q, ['name', 'genre', 'bio']);
+  const sort = explicitSort
+    ? resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'followerCount')
+    : undefined;
 
-  const artists = items.map(shapeArtistListItem);
+  const { items, total } = await listActiveCommunityArtists({
+    skip,
+    limit,
+    scope,
+    filter: textFilter,
+    sort,
+  });
+
+  const artistObjectIds = items
+    .map(item => leanIdToString(item._id))
+    .filter(id => mongoose.Types.ObjectId.isValid(id))
+    .map(id => new mongoose.Types.ObjectId(id));
+
+  const [contentCounts, followingSet] = await Promise.all([
+    getPublishedContentCountsByArtistIds(artistObjectIds),
+    resolveFollowingSet(request, artistObjectIds),
+  ]);
+
+  const artists = items.map(item => {
+    const artistId = leanIdToString(item._id);
+    const stats = contentCounts.get(artistId);
+
+    return shapeArtistListItem(item, {
+      stats: { songs: stats?.songs ?? 0, videos: stats?.videos ?? 0 },
+      isFollowing: followingSet?.has(artistId),
+    });
+  });
+
   return {
     statusCode: 200,
     data: { artists, pagination: pagination(page, limit, total) },
@@ -526,7 +672,33 @@ export async function getCommunityArtistByIdOrSlug(
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
   const doc = await findActiveArtistByIdOrSlug(request.params.idOrSlug);
   if (!doc) throw new AppError('Artist not found', 404);
-  return { statusCode: 200, data: { artist: shapeArtistDetail(doc) }, message: 'Artist loaded.' };
+
+  const artistId = leanIdToString(doc._id);
+  const artistObjectId = mongoose.Types.ObjectId.isValid(artistId)
+    ? new mongoose.Types.ObjectId(artistId)
+    : null;
+
+  const [contentCounts, isFollowing] = await Promise.all([
+    artistObjectId
+      ? getPublishedContentCountsByArtistIds([artistObjectId])
+      : Promise.resolve(new Map<string, ArtistPublishedContentCounts>()),
+    resolveArtistIsFollowing(request, artistObjectId),
+  ]);
+
+  const stats: ArtistPublishedContentCounts | undefined = artistObjectId
+    ? contentCounts.get(artistId)
+    : undefined;
+
+  return {
+    statusCode: 200,
+    data: {
+      artist: shapeArtistDetail(doc, {
+        stats: { songs: stats?.songs ?? 0, videos: stats?.videos ?? 0 },
+        isFollowing,
+      }),
+    },
+    message: 'Artist loaded.',
+  };
 }
 
 // ----- GET /public/resources/counts -----
@@ -547,26 +719,49 @@ export async function listResourceCounts(): Promise<{
 // ----- GET /public/resources -----
 export async function listResources(
   request: FastifyRequest<{
-    Querystring: { type?: string; page?: string; limit?: string };
+    Querystring: { type?: string; page?: string; limit?: string; q?: string; sort?: string };
   }>
 ): Promise<{ statusCode: number; data: unknown; message: string }> {
-  const limit = parsePositiveInteger(request.query?.limit, DEFAULT_LIMIT, MAX_LIMIT);
-  const page = parsePositiveInteger(request.query?.page, 1, 1000);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, q, sortPreset, mongoSort } = parseListQueryParams(request.query);
   const type = parseString(request.query?.type);
+  const explicitSort = parseString(request.query?.sort);
 
-  const base: Record<string, unknown> = { status: 'published' };
+  let base: Record<string, unknown> = { status: 'published' };
   if (type) base.type = type;
 
-  const filter = mergePublicFilter(base, publishedResourceCompletenessFilter());
+  base = applyTextSearch(base, q, ['title', 'description', 'type', 'category']);
 
-  const { items, total } = await resourceRepo.listPublishedResources({ filter, skip, limit });
+  let filter = mergePublicFilter(base, publishedResourceCompletenessFilter());
+
+  if (explicitSort && sortPreset === 'featured') {
+    filter = applyFeaturedListFilter(filter, sortPreset);
+  }
+
+  const sort = explicitSort
+    ? resolveExplicitSort(explicitSort, sortPreset, mongoSort, 'downloads')
+    : DEFAULT_RESOURCE_LIST_SORT;
+
+  const { items, total } = await resourceRepo.listPublishedResources({ filter, skip, limit, sort });
 
   const resources = items.map(shapeResourceListItem);
   return {
     statusCode: 200,
     data: { resources, pagination: pagination(page, limit, total) },
     message: 'Resources list loaded.',
+  };
+}
+
+// ----- GET /public/resources/:idOrSlug -----
+export async function getResourceByIdOrSlug(
+  request: FastifyRequest<{ Params: { idOrSlug: string } }>
+): Promise<{ statusCode: number; data: unknown; message: string }> {
+  const doc = await resourceRepo.findPublishedResourceByIdOrSlug(request.params.idOrSlug);
+  if (!doc || !isCompleteResource(doc)) throw new AppError('Resource not found', 404);
+
+  return {
+    statusCode: 200,
+    data: { resource: shapeResourceDetail(doc) },
+    message: 'Resource loaded.',
   };
 }
 

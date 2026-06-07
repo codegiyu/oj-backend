@@ -14,6 +14,12 @@ const VIDEO_TYPES = [
   'long-form',
 ] as const;
 const NEWS_TYPES = ['featured', 'trending', 'latest', 'video', 'breaking'] as const;
+const PUBLIC_LIST_SORT = ['newest', 'popular', 'featured'] as const;
+
+const publicListSearchSortQuery = {
+  q: { type: 'string', maxLength: 100 },
+  sort: { type: 'string', enum: [...PUBLIC_LIST_SORT] },
+} as const;
 
 export const listPublicMusicQuerystringSchema: FastifySchema = {
   querystring: {
@@ -27,6 +33,7 @@ export const listPublicMusicQuerystringSchema: FastifySchema = {
       status: { type: 'string', enum: ['published'] },
       type: { type: 'string', enum: [...MUSIC_TYPES] },
       period: { type: 'string', enum: [...MUSIC_PERIOD] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -41,6 +48,7 @@ export const listPublicVideosQuerystringSchema: FastifySchema = {
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: ['published'] },
       type: { type: 'string', enum: [...VIDEO_TYPES] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -54,6 +62,7 @@ export const listPublicNewsQuerystringSchema: FastifySchema = {
       limit: { type: 'string', pattern: '^[0-9]+$' },
       status: { type: 'string', enum: ['published'] },
       type: { type: 'string', enum: [...NEWS_TYPES] },
+      ...publicListSearchSortQuery,
     },
   },
 };
@@ -66,6 +75,7 @@ export const listPublicAlbumsQuerystringSchema: FastifySchema = {
       page: { type: 'string', pattern: '^[0-9]+$' },
       limit: { type: 'string', pattern: '^[0-9]+$' },
       type: { type: 'string', enum: ['featured'] },
+      ...publicListSearchSortQuery,
     },
   },
 };

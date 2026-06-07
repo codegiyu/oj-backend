@@ -9,10 +9,12 @@ export async function listAskPastorQuestions(options: {
   filter: Record<string, unknown>;
   skip: number;
   limit: number;
+  sort?: Record<string, 1 | -1>;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
+  const sort = options.sort ?? { createdAt: -1 };
   const [items, total] = await Promise.all([
     AskPastorQuestion.find(options.filter)
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .populate('pastor')
       .skip(options.skip)
       .limit(options.limit)
