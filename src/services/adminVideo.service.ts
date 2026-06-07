@@ -78,6 +78,11 @@ export function shapeVideoItem(raw: Record<string, unknown>): Record<string, unk
     views: raw.views ?? 0,
     plays: raw.plays ?? 0,
     category: raw.category ?? '',
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+    metadata:
+      raw.metadata != null && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)
+        ? raw.metadata
+        : {},
     isFeatured: raw.isFeatured ?? false,
     isMonetizable: raw.isMonetizable ?? false,
     displayOrder: raw.displayOrder ?? 0,

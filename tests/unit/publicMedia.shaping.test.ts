@@ -94,6 +94,18 @@ describe('publicMedia.shaping taxonomy fields', () => {
     expect(shaped.priority).toBe(5);
   });
 
+  it('shapeArticleListItem derives excerpt from content when excerpt is empty', () => {
+    const shaped = shapeArticleListItem({
+      _id: 'news2',
+      title: 'Artists of the week',
+      slug: 'artists-of-the-week',
+      excerpt: '',
+      content: 'Pitakhing is our fast rising artist of the week!',
+    });
+
+    expect(shaped.excerpt).toBe('Pitakhing is our fast rising artist of the week!');
+  });
+
   it('shapeArticleDetail exposes priority', () => {
     const shaped = shapeArticleDetail({
       _id: 'news1',

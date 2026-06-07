@@ -22,6 +22,7 @@ export const mockArtistSummary = {
   name: 'Artist',
   slug: 'artist-slug',
   image: '',
+  linkable: true,
 } as const;
 
 export const mockAlternateArtistSummary = {
