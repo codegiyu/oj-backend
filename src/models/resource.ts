@@ -37,5 +37,6 @@ const resourceSchema = new Schema<ModelResource>(
 );
 
 resourceSchema.index({ status: 1, type: 1, createdAt: -1 });
+resourceSchema.index({ title: 'text', description: 'text', type: 'text', category: 'text' });
 
 export const Resource = model<ModelResource>('Resource', resourceSchema);

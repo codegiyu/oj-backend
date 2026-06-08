@@ -19,6 +19,7 @@ export { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields
 export { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
 export { wipePastorAskDataOnce } from './wipePastorAskData';
 export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
+export { ensureSearchTextIndexes } from './ensureSearchTextIndexes';
 
 import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 import { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
@@ -46,6 +47,7 @@ export const seedDb = async (): Promise<void> => {
     await reconcileVendorUserLinksOnce();
     await migrateArtistSpotlightFieldsOnce();
     await bootstrapMediaDailyMetricsOnce();
+    // await ensureSearchTextIndexes();
   } catch (error) {
     logger.error('seedDb failed', { error });
     throw error;

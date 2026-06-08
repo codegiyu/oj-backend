@@ -54,5 +54,6 @@ artistSchema.index({ isActive: 1, isRising: 1, risingArtistDisplayOrder: 1 });
 artistSchema.index({ isActive: 1, isMusicFeatured: 1, musicFeaturedDisplayOrder: 1 });
 artistSchema.index({ isActive: 1, isCreatorSpotlight: 1, creatorSpotlightDisplayOrder: 1 });
 artistSchema.index({ user: 1 }, { sparse: true });
+artistSchema.index({ name: 'text', genre: 'text', bio: 'text' });
 
 export const Artist = model<IArtist>('Artist', artistSchema);

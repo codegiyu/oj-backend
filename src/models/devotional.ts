@@ -52,5 +52,12 @@ const devotionalSchema = new Schema<ModelDevotional>(
 
 devotionalSchema.index({ status: 1, type: 1, createdAt: -1 });
 devotionalSchema.index({ status: 1, category: 1, createdAt: -1 });
+devotionalSchema.index({
+  title: 'text',
+  excerpt: 'text',
+  content: 'text',
+  category: 'text',
+  author: 'text',
+});
 
 export const Devotional = model<ModelDevotional>('Devotional', devotionalSchema);

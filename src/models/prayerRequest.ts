@@ -27,5 +27,6 @@ const prayerRequestSchema = new Schema<ModelPrayerRequest>(
 
 prayerRequestSchema.index({ status: 1, createdAt: -1 });
 prayerRequestSchema.index({ status: 1, category: 1, createdAt: -1 });
+prayerRequestSchema.index({ title: 'text', content: 'text', author: 'text', category: 'text' });
 
 export const PrayerRequest = model<ModelPrayerRequest>('PrayerRequest', prayerRequestSchema);

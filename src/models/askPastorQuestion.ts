@@ -48,6 +48,7 @@ const askPastorQuestionSchema = new Schema<ModelAskPastorQuestion>(
 askPastorQuestionSchema.index({ status: 1, createdAt: -1 });
 askPastorQuestionSchema.index({ status: 1, category: 1, createdAt: -1 });
 askPastorQuestionSchema.index({ isPrivate: 1, status: 1, createdAt: -1 });
+askPastorQuestionSchema.index({ question: 'text', author: 'text', category: 'text' });
 
 export const AskPastorQuestion = model<ModelAskPastorQuestion>(
   'AskPastorQuestion',

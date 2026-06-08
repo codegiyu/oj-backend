@@ -40,5 +40,6 @@ const pollSchema = new Schema<ModelPoll>(
 );
 
 pollSchema.index({ status: 1, createdAt: -1 });
+pollSchema.index({ question: 'text', description: 'text', category: 'text' });
 
 export const Poll = model<ModelPoll>('Poll', pollSchema);

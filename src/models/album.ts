@@ -26,5 +26,6 @@ const albumSchema = new Schema<ModelAlbum>(
 
 albumSchema.index({ artist: 1, status: 1, createdAt: -1 });
 albumSchema.index({ slug: 1, artist: 1 }, { unique: true });
+albumSchema.index({ title: 'text', description: 'text', excerpt: 'text' });
 
 export const Album: mongoose.Model<ModelAlbum> = model<ModelAlbum>('Album', albumSchema);
