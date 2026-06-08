@@ -35,6 +35,22 @@ describe('frontendRevalidation.service', () => {
     );
   });
 
+  it('accepts REVALIDATION_SECRET as an alias for the webhook secret', async () => {
+    vi.stubEnv('FRONTEND_REVALIDATION_SECRET', '');
+    vi.stubEnv('REVALIDATION_SECRET', 'canonical-secret');
+
+    await requestFrontendRevalidation(['/music']);
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/revalidate',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-revalidate-secret': 'canonical-secret',
+        }),
+      })
+    );
+  });
+
   it('no-ops when frontend revalidation env is missing', async () => {
     vi.stubEnv('FRONTEND_REVALIDATION_URL', '');
     await requestFrontendRevalidation(['/music']);
