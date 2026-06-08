@@ -11,7 +11,7 @@ export type PaginatedListOptions = {
 export async function paginatedFind<T>(
   model: Model<T>,
   options: PaginatedListOptions
-): Promise<{ items: Record<string, unknown>[]; total: number }> {
+): Promise<{ items: T[]; total: number }> {
   let query = model.find(options.filter).sort(options.sort).skip(options.skip).limit(options.limit);
 
   if (options.populate) {
@@ -22,19 +22,19 @@ export async function paginatedFind<T>(
     }
   }
 
-  const [items, total] = await Promise.all([query.lean(), model.countDocuments(options.filter)]);
+  const [items, total] = await Promise.all([
+    query.lean<T[]>(),
+    model.countDocuments(options.filter),
+  ]);
 
-  return {
-    items: items as unknown as Record<string, unknown>[],
-    total,
-  };
+  return { items, total };
 }
 
 export async function findByIdLean<T>(
   model: Model<T>,
   id: string,
   populate?: PopulateOptions | PopulateOptions[]
-): Promise<Record<string, unknown> | null> {
+): Promise<T | null> {
   let query = model.findById(id);
 
   if (populate) {
@@ -45,7 +45,7 @@ export async function findByIdLean<T>(
     }
   }
 
-  const doc = await query.lean();
+  const doc = await query.lean<T>();
 
-  return doc as unknown as Record<string, unknown> | null;
+  return doc ?? null;
 }

@@ -170,7 +170,12 @@ export async function updateAdminUser(
   const doc = await findAdminUserById(String(userId));
   if (!doc) throw new AppError('User not found', 404);
 
-  sendResponse(reply, 200, { user: shapeUserDetail(doc) }, 'User updated.');
+  sendResponse(
+    reply,
+    200,
+    { user: shapeUserDetail(doc as unknown as Record<string, unknown>) },
+    'User updated.'
+  );
 }
 
 export async function approveAdminUserDeletion(
@@ -198,5 +203,10 @@ export async function rejectAdminUserDeletion(
   const doc = await findAdminUserById(String(userId));
   if (!doc) throw new AppError('User not found', 404);
 
-  sendResponse(reply, 200, { user: shapeUserDetail(doc) }, 'Deletion request rejected.');
+  sendResponse(
+    reply,
+    200,
+    { user: shapeUserDetail(doc as unknown as Record<string, unknown>) },
+    'Deletion request rejected.'
+  );
 }

@@ -1,4 +1,5 @@
 import { User } from '../../models/user';
+import type { ModelUser } from '../../lib/types/constants';
 
 const LIST_SELECT =
   'firstName lastName email avatar accountStatus artistId vendorId pastorId deleteRequestedAt createdAt auth.lastLogin';
@@ -24,7 +25,7 @@ export async function listAdminUserRows(options: {
   sort: string;
   skip: number;
   limit: number;
-}) {
+}): Promise<{ items: ModelUser[]; total: number }> {
   let query = User.find(options.filter)
     .select(LIST_SELECT)
     .sort(options.sort)
@@ -35,22 +36,22 @@ export async function listAdminUserRows(options: {
     query = query.populate(population);
   }
 
-  const [items, total] = await Promise.all([query.lean(), User.countDocuments(options.filter)]);
+  const [items, total] = await Promise.all([
+    query.lean<ModelUser[]>(),
+    User.countDocuments(options.filter),
+  ]);
 
-  return {
-    items: items as unknown as Record<string, unknown>[],
-    total,
-  };
+  return { items, total };
 }
 
-export async function findAdminUserById(id: string) {
+export async function findAdminUserById(id: string): Promise<ModelUser | null> {
   let query = User.findById(id).select(DETAIL_SELECT);
 
   for (const population of DETAIL_POPULATE) {
     query = query.populate(population);
   }
 
-  const doc = await query.lean();
+  const doc = await query.lean<ModelUser>();
 
-  return doc as unknown as Record<string, unknown> | null;
+  return doc ?? null;
 }

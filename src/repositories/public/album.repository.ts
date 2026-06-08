@@ -1,4 +1,5 @@
 import { Album } from '../../models/album';
+import type { ModelAlbum } from '../../lib/types/constants';
 import { artistPublicPopulate } from '../../controllers/artist/artist.helpers';
 import { findByIdOrSlug } from '../community/shared';
 import { findByIdLean } from '../admin/paginatedList.repository';
@@ -28,8 +29,6 @@ export async function findPublishedAlbumByIdOrSlug(
   return findByIdOrSlug(Album, idOrSlug, { status: 'published' });
 }
 
-export async function findPublishedAlbumByIdPopulated(
-  id: unknown
-): Promise<Record<string, unknown> | null> {
-  return findByIdLean(Album, String(id), artistPublicPopulate);
+export async function findPublishedAlbumByIdPopulated(id: unknown): Promise<ModelAlbum | null> {
+  return findByIdLean<ModelAlbum>(Album, String(id), artistPublicPopulate);
 }
