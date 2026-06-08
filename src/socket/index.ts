@@ -131,7 +131,7 @@ export function attachSocketServer(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
     transports: ['polling', 'websocket'],
     cors: {
-      origin: ENVIRONMENT.cors.origin,
+      origin: [...ENVIRONMENT.cors.origins],
       credentials: true,
     },
   });
