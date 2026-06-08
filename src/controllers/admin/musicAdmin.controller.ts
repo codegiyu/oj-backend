@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { Music } from '../../models/music';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { generateUniqueSlug } from '../../utils/helpers';
+import { generateUniqueSlug, withDuplicateKeyRetry } from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 import * as adminMusicService from '../../services/adminMusic.service';
 import { shapeMusicItem } from '../../services/adminMusic.service';
@@ -105,7 +105,6 @@ export async function createAdminMusic(
     artistId: body.artistId,
   });
   const slugFilter = resolvedArtistId ? { artist: resolvedArtistId } : { artist: null };
-  const slug = await generateUniqueSlug(Music, body.title, slugFilter);
 
   let albumRef: mongoose.Types.ObjectId | null = null;
   const albumAssignment = parseAlbumAssignmentInput(body.albumId);
@@ -117,29 +116,33 @@ export async function createAdminMusic(
     });
   }
 
-  const music = await Music.create({
-    title: body.title,
-    slug,
-    artist: resolvedArtistId ?? null,
-    album: albumRef,
-    description: body.description ?? '',
-    lyrics: body.lyrics ?? '',
-    coverImage: body.coverImage ?? '',
-    audioUrl: body.audioUrl ?? '',
-    videoUrl: body.videoUrl ?? '',
-    downloadUrl: coalesceMusicDownloadUrl(body.audioUrl, body.downloadUrl),
-    excerpt: body.excerpt ?? '',
-    category,
-    tags,
-    metadata,
-    status,
-    isMonetizable,
-    price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
-    isFeatured: false,
-    displayOrder: 0,
-    views: 0,
-    plays: 0,
-    downloads: 0,
+  const music = await withDuplicateKeyRetry(async () => {
+    const slug = await generateUniqueSlug(Music, body.title, slugFilter);
+
+    return Music.create({
+      title: body.title,
+      slug,
+      artist: resolvedArtistId ?? null,
+      album: albumRef,
+      description: body.description ?? '',
+      lyrics: body.lyrics ?? '',
+      coverImage: body.coverImage ?? '',
+      audioUrl: body.audioUrl ?? '',
+      videoUrl: body.videoUrl ?? '',
+      downloadUrl: coalesceMusicDownloadUrl(body.audioUrl, body.downloadUrl),
+      excerpt: body.excerpt ?? '',
+      category,
+      tags,
+      metadata,
+      status,
+      isMonetizable,
+      price: resolveMonetizationPrice(isMonetizable, body.price ?? 0),
+      isFeatured: false,
+      displayOrder: 0,
+      views: 0,
+      plays: 0,
+      downloads: 0,
+    });
   });
 
   const populated = await Music.findById(music._id).populate(artistPopulate).lean();
