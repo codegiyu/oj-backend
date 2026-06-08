@@ -34,7 +34,13 @@ export async function requestPasswordReset(
     resolvedAccessType = 'client';
     name = user.firstName ?? emailLower;
   } else {
-    throw new AppError('User not found', 404);
+    sendResponse(
+      reply,
+      200,
+      { success: true },
+      'If this email is registered, a password reset link has been sent.'
+    );
+    return;
   }
 
   await sendPasswordResetLink({
