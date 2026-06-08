@@ -35,5 +35,6 @@ newsArticleSchema.index({ status: 1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, priority: -1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, category: 1, createdAt: -1 });
 newsArticleSchema.index({ status: 1, isFeatured: 1 });
+newsArticleSchema.index({ title: 'text', category: 'text', content: 'text' });
 
 export const NewsArticle = model<ModelNewsArticle>('NewsArticle', newsArticleSchema);

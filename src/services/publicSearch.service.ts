@@ -26,6 +26,7 @@ import {
   publishedVideoCompletenessFilter,
 } from '../utils/contentCompleteness';
 import { leanIdToString } from '../utils/leanId';
+import { mergeSearchIntoFilter } from '../utils/searchQuery';
 
 export const SEARCH_DEFAULT_LIMIT = 24;
 export const SEARCH_MAX_LIMIT = 50;
@@ -64,11 +65,6 @@ function searchDisplayStr(value: unknown): string {
   return '';
 }
 
-export function buildRegex(q: string): RegExp {
-  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(escaped, 'i');
-}
-
 export function buildSearchPagination(
   loaded: number,
   page: number,
@@ -86,14 +82,12 @@ export function buildSearchPagination(
   };
 }
 
-async function fetchMusicResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchMusicResults(q: string): Promise<SearchResultItem[]> {
   const docs = await Music.find(
-    mergePublicFilter(
-      {
-        status: 'published',
-        $or: [{ title: regex }, { description: regex }, { category: regex }],
-      },
-      publishedMusicCompletenessFilter()
+    mergeSearchIntoFilter(
+      mergePublicFilter({ status: 'published' }, publishedMusicCompletenessFilter()),
+      q,
+      ['title', 'description', 'category']
     )
   )
     .populate('artist', ARTIST_POPULATE_SELECT)
@@ -118,11 +112,10 @@ async function fetchMusicResults(regex: RegExp): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchAlbumResults(regex: RegExp): Promise<SearchResultItem[]> {
-  const docs = await Album.find({
-    status: 'published',
-    $or: [{ title: regex }, { description: regex }, { excerpt: regex }],
-  })
+async function fetchAlbumResults(q: string): Promise<SearchResultItem[]> {
+  const docs = await Album.find(
+    mergeSearchIntoFilter({ status: 'published' }, q, ['title', 'description', 'excerpt'])
+  )
     .populate('artist', ARTIST_POPULATE_SELECT)
     .limit(SEARCH_PER_TYPE_LIMIT)
     .lean();
@@ -141,14 +134,12 @@ async function fetchAlbumResults(regex: RegExp): Promise<SearchResultItem[]> {
   });
 }
 
-async function fetchNewsResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchNewsResults(q: string): Promise<SearchResultItem[]> {
   const docs = await NewsArticle.find(
-    mergePublicFilter(
-      {
-        status: 'published',
-        $or: [{ title: regex }, { category: regex }, { content: regex }],
-      },
-      publishedTextContentCompletenessFilter()
+    mergeSearchIntoFilter(
+      mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
+      q,
+      ['title', 'category', 'content']
     )
   )
     .limit(SEARCH_PER_TYPE_LIMIT)
@@ -171,14 +162,12 @@ async function fetchNewsResults(regex: RegExp): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchVideoResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchVideoResults(q: string): Promise<SearchResultItem[]> {
   const docs = await Video.find(
-    mergePublicFilter(
-      {
-        status: 'published',
-        $or: [{ title: regex }, { description: regex }, { category: regex }],
-      },
-      publishedVideoCompletenessFilter()
+    mergeSearchIntoFilter(
+      mergePublicFilter({ status: 'published' }, publishedVideoCompletenessFilter()),
+      q,
+      ['title', 'description', 'category']
     )
   )
     .populate('artist', ARTIST_POPULATE_SELECT)
@@ -203,20 +192,12 @@ async function fetchVideoResults(regex: RegExp): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchDevotionalResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchDevotionalResults(q: string): Promise<SearchResultItem[]> {
   const docs = await Devotional.find(
-    mergePublicFilter(
-      {
-        status: 'published',
-        $or: [
-          { title: regex },
-          { excerpt: regex },
-          { content: regex },
-          { category: regex },
-          { author: regex },
-        ],
-      },
-      publishedTextContentCompletenessFilter()
+    mergeSearchIntoFilter(
+      mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
+      q,
+      ['title', 'excerpt', 'content', 'category', 'author']
     )
   )
     .limit(SEARCH_PER_TYPE_LIMIT)
@@ -238,14 +219,12 @@ async function fetchDevotionalResults(regex: RegExp): Promise<SearchResultItem[]
   return results;
 }
 
-async function fetchTestimonyResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchTestimonyResults(q: string): Promise<SearchResultItem[]> {
   const docs = await Testimony.find(
-    mergePublicFilter(
-      {
-        status: 'published',
-        $or: [{ content: regex }, { author: regex }, { category: regex }],
-      },
-      publishedTextContentCompletenessFilter()
+    mergeSearchIntoFilter(
+      mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
+      q,
+      ['content', 'author', 'category']
     )
   )
     .limit(SEARCH_PER_TYPE_LIMIT)
@@ -270,14 +249,14 @@ async function fetchTestimonyResults(regex: RegExp): Promise<SearchResultItem[]>
   return results;
 }
 
-async function fetchPrayerRequestResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchPrayerRequestResults(q: string): Promise<SearchResultItem[]> {
   const docs = await PrayerRequest.find(
-    mergePublicFilter(
-      {
-        $or: [{ title: regex }, { content: regex }, { author: regex }, { category: regex }],
-      },
-      publishedTextContentCompletenessFilter()
-    )
+    mergeSearchIntoFilter(mergePublicFilter({}, publishedTextContentCompletenessFilter()), q, [
+      'title',
+      'content',
+      'author',
+      'category',
+    ])
   )
     .limit(SEARCH_PER_TYPE_LIMIT)
     .lean();
@@ -298,11 +277,10 @@ async function fetchPrayerRequestResults(regex: RegExp): Promise<SearchResultIte
   return results;
 }
 
-async function fetchQuestionResults(regex: RegExp): Promise<SearchResultItem[]> {
-  const docs = await AskPastorQuestion.find({
-    isPrivate: { $ne: true },
-    $or: [{ question: regex }, { author: regex }, { category: regex }],
-  })
+async function fetchQuestionResults(q: string): Promise<SearchResultItem[]> {
+  const docs = await AskPastorQuestion.find(
+    mergeSearchIntoFilter({ isPrivate: { $ne: true } }, q, ['question', 'author', 'category'])
+  )
     .limit(SEARCH_PER_TYPE_LIMIT)
     .lean();
 
@@ -315,11 +293,10 @@ async function fetchQuestionResults(regex: RegExp): Promise<SearchResultItem[]> 
   }));
 }
 
-async function fetchPollResults(regex: RegExp): Promise<SearchResultItem[]> {
-  const docs = await Poll.find({
-    status: 'active',
-    $or: [{ question: regex }, { description: regex }, { category: regex }],
-  })
+async function fetchPollResults(q: string): Promise<SearchResultItem[]> {
+  const docs = await Poll.find(
+    mergeSearchIntoFilter({ status: 'active' }, q, ['question', 'description', 'category'])
+  )
     .limit(SEARCH_PER_TYPE_LIMIT)
     .lean();
 
@@ -337,12 +314,10 @@ async function fetchPollResults(regex: RegExp): Promise<SearchResultItem[]> {
   });
 }
 
-async function fetchArtistResults(regex: RegExp): Promise<SearchResultItem[]> {
-  const docs = await Artist.find({
-    profileStatus: 'active',
-    isActive: true,
-    $or: [{ name: regex }, { genre: regex }, { bio: regex }],
-  })
+async function fetchArtistResults(q: string): Promise<SearchResultItem[]> {
+  const docs = await Artist.find(
+    mergeSearchIntoFilter({ profileStatus: 'active', isActive: true }, q, ['name', 'genre', 'bio'])
+  )
     .limit(SEARCH_PER_TYPE_LIMIT)
     .lean();
 
@@ -356,14 +331,12 @@ async function fetchArtistResults(regex: RegExp): Promise<SearchResultItem[]> {
   }));
 }
 
-async function fetchResourceResults(regex: RegExp): Promise<SearchResultItem[]> {
+async function fetchResourceResults(q: string): Promise<SearchResultItem[]> {
   const docs = await Resource.find(
-    mergePublicFilter(
-      {
-        status: 'published',
-        $or: [{ title: regex }, { description: regex }, { type: regex }, { category: regex }],
-      },
-      publishedResourceCompletenessFilter()
+    mergeSearchIntoFilter(
+      mergePublicFilter({ status: 'published' }, publishedResourceCompletenessFilter()),
+      q,
+      ['title', 'description', 'type', 'category']
     )
   )
     .limit(SEARCH_PER_TYPE_LIMIT)
@@ -423,33 +396,32 @@ export async function runPublicSearch(options: {
     };
   }
 
-  const regex = buildRegex(q);
   const searchTypes = resolveSearchTypes(typeFilter);
 
   const fetchTasks = searchTypes.map(type => {
     switch (type) {
       case 'music':
-        return fetchMusicResults(regex);
+        return fetchMusicResults(q);
       case 'album':
-        return fetchAlbumResults(regex);
+        return fetchAlbumResults(q);
       case 'news':
-        return fetchNewsResults(regex);
+        return fetchNewsResults(q);
       case 'video':
-        return fetchVideoResults(regex);
+        return fetchVideoResults(q);
       case 'devotional':
-        return fetchDevotionalResults(regex);
+        return fetchDevotionalResults(q);
       case 'testimony':
-        return fetchTestimonyResults(regex);
+        return fetchTestimonyResults(q);
       case 'prayer-request':
-        return fetchPrayerRequestResults(regex);
+        return fetchPrayerRequestResults(q);
       case 'question':
-        return fetchQuestionResults(regex);
+        return fetchQuestionResults(q);
       case 'poll':
-        return fetchPollResults(regex);
+        return fetchPollResults(q);
       case 'artist':
-        return fetchArtistResults(regex);
+        return fetchArtistResults(q);
       case 'resource':
-        return fetchResourceResults(regex);
+        return fetchResourceResults(q);
       default:
         return Promise.resolve([]);
     }

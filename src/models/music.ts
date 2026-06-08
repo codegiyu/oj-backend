@@ -43,5 +43,6 @@ const musicSchema = new Schema<ModelMusic>(
 musicSchema.index({ artist: 1, status: 1, createdAt: -1 });
 musicSchema.index({ status: 1, category: 1, createdAt: -1 });
 musicSchema.index({ album: 1, displayOrder: 1 });
+musicSchema.index({ title: 'text', description: 'text', category: 'text' });
 
 export const Music = model<ModelMusic>('Music', musicSchema);
