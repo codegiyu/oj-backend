@@ -4,7 +4,7 @@ import { Role } from '../../models/role';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generateRandomString } from '../../utils/helpers';
-import { authService } from '../../services/auth.service';
+import { hashPassword } from '../../services/auth.service';
 import { assertEmailNotRegisteredAsUser } from '../auth/auth.helpers';
 import { sendAdminInviteLink } from '../auth/sendPasswordResetLink';
 import { recordAuditEvent } from '../../services/auditLog.service';
@@ -105,12 +105,12 @@ export async function inviteAdminStaff(
       : rolePermissions.map(p => p.slug);
 
   const placeholderPassword = generateRandomString(32);
-  const hashedPlaceholder = await authService.hashPassword(placeholderPassword);
+  const hashedPlaceholder = await hashPassword(placeholderPassword);
   if (!hashedPlaceholder) {
     throw new AppError('Failed to prepare invite', 500);
   }
 
-  const jti = generateRandomString(16, 'JTI');
+  const jti = generateRandomString(16, 'RJTI');
   const adminPermissions =
     bodyPermissions && bodyPermissions.length > 0
       ? rolePermissions.filter(p => permissionSlugs.includes(p.slug))

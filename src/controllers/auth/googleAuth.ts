@@ -9,12 +9,11 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { User } from '../../models/user';
 import { getRoleWithSlug } from '../../services/role.service';
-import { signAccess, signRefresh } from '../../utils/token';
-import { generateRandomString } from '../../utils/helpers';
 import {
   setAuthCookies,
   assertEmailNotRegisteredAsAdmin,
   buildClientUserPayload,
+  issueAuthTokens,
 } from './auth.helpers';
 import { addUserToCache } from '../../utils/authCache';
 import type { ModelUser } from '../../lib/types/constants';
@@ -67,8 +66,6 @@ export async function googleAuth(
 
     if (!customerRole) throw new AppError('Customer role not found', 500);
 
-    const jti = generateRandomString(16, 'JTI');
-
     const newUser = await User.create({
       firstName: given_name || namesSplit[0] || 'User',
       lastName:
@@ -77,7 +74,6 @@ export async function googleAuth(
       googleId: sub,
       avatar: picture || '',
       auth: {
-        refreshTokenJTI: jti,
         roles: [{ roleId: customerRole._id, slug: customerRole.slug }],
       },
       accountStatus: payload.email_verified ? 'active' : 'unverified',
@@ -90,25 +86,22 @@ export async function googleAuth(
       },
     });
 
+    const tokens = issueAuthTokens({
+      userId: String(newUser._id),
+      email: newUser.email,
+      scope: 'client-access',
+    });
+
+    await User.findByIdAndUpdate(newUser._id, {
+      'auth.refreshTokenJTI': tokens.refreshJti,
+      'auth.lastLogin': new Date(),
+    });
+
     user = await User.findById(newUser._id).lean<ModelUser>();
 
     if (!user) throw new AppError('Failed to create user', 500);
 
-    const accessToken = signAccess({
-      userId: String(user._id),
-      email: user.email,
-      scope: 'client-access',
-      jti,
-    });
-
-    const refreshToken = signRefresh({
-      userId: String(user._id),
-      email: user.email,
-      scope: 'client-access',
-      jti,
-    });
-
-    setAuthCookies(reply, accessToken, refreshToken);
+    setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
     await addUserToCache(user);
     const populatedUser = await buildClientUserPayload(user);
 
@@ -124,29 +117,19 @@ export async function googleAuth(
   }
   if (user.accountStatus === 'deleted') throw new AppError('Account not found', 401);
 
-  const jti = generateRandomString(16, 'JTI');
+  const tokens = issueAuthTokens({
+    userId: String(user._id),
+    email: user.email,
+    scope: 'client-access',
+  });
 
   await User.findByIdAndUpdate(user._id, {
     ...(user.googleId ? {} : { googleId: sub }),
-    'auth.refreshTokenJTI': jti,
+    'auth.refreshTokenJTI': tokens.refreshJti,
     'auth.lastLogin': new Date(),
   });
 
-  const accessToken = signAccess({
-    userId: String(user._id),
-    email: user.email,
-    scope: 'client-access',
-    jti,
-  });
-
-  const refreshToken = signRefresh({
-    userId: String(user._id),
-    email: user.email,
-    scope: 'client-access',
-    jti,
-  });
-
-  setAuthCookies(reply, accessToken, refreshToken);
+  setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
   const updated = await User.findById(user._id).lean<ModelUser>();
 
   const effectiveUser = updated ?? user;

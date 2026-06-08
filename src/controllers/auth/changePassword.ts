@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { Admin } from '../../models/admin';
 import { User } from '../../models/user';
-import { authService } from '../../services/auth.service';
+import { comparePassword } from '../../services/auth.service';
 import { getAuthUser } from '../../utils/getAuthUser';
 import { processPasswordChange } from './auth.helpers';
 import { recordAuditEvent } from '../../services/auditLog.service';
@@ -40,7 +40,7 @@ export async function changePassword(
   const currentHash = user.auth?.password?.value;
   if (!currentHash) throw new AppError('Password not created yet', 400);
 
-  const valid = await authService.comparePassword(currentPassword, currentHash);
+  const valid = await comparePassword(currentPassword, currentHash);
   if (!valid) throw new AppError('Incorrect current password', 401);
 
   await processPasswordChange({
