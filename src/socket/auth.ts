@@ -13,6 +13,10 @@ export interface SocketUser {
   userModel: 'User' | 'Admin';
 }
 
+/**
+ * Authenticates a socket using the access JWT only. Access tokens are stateless until expiry;
+ * refresh JTI tracking applies to refresh rotation, not live socket connections.
+ */
 export async function authenticateSocket(socket: Socket): Promise<SocketUser | null> {
   const auth = socket.handshake.auth as Record<string, string | undefined>;
   const accessToken =
@@ -37,13 +41,8 @@ export async function authenticateSocket(socket: Socket): Promise<SocketUser | n
   const scope = payload.scope;
 
   if (scope === 'console-access') {
-    const admin = await Admin.findById(userId)
-      .select('_id email accountStatus auth.refreshTokenJTI')
-      .lean();
+    const admin = await Admin.findById(userId).select('_id email accountStatus').lean();
     if (!admin || admin.accountStatus === 'deleted' || admin.accountStatus === 'suspended') {
-      return null;
-    }
-    if (payload.jti && admin.auth?.refreshTokenJTI !== payload.jti) {
       return null;
     }
     return {
@@ -54,13 +53,8 @@ export async function authenticateSocket(socket: Socket): Promise<SocketUser | n
     };
   }
 
-  const user = await User.findById(userId)
-    .select('_id email accountStatus auth.refreshTokenJTI')
-    .lean();
+  const user = await User.findById(userId).select('_id email accountStatus').lean();
   if (!user || user.accountStatus === 'deleted' || user.accountStatus === 'suspended') {
-    return null;
-  }
-  if (payload.jti && user.auth?.refreshTokenJTI !== payload.jti) {
     return null;
   }
   return {

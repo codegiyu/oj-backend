@@ -4,7 +4,7 @@ import { CookieSerializeOptions } from '@fastify/cookie';
 import { ENVIRONMENT } from '../../config/env';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { authService } from '../../services/auth.service';
+import { hashPassword, comparePassword } from '../../services/auth.service';
 import { signAccess, signRefresh } from '../../utils/token';
 import { generateRandomString } from '../../utils/helpers';
 import { deleteFields } from '../../utils/helpers';
@@ -92,6 +92,28 @@ export function clearAuthCookies(reply: FastifyReply, request?: FastifyRequest):
   attachAuthTokenHeaders(reply, { access: '', refresh: '' });
 }
 
+export function issueAuthTokens(params: {
+  userId: string;
+  email: string;
+  scope: 'client-access' | 'console-access';
+}): {
+  accessToken: string;
+  refreshToken: string;
+  accessJti: string;
+  refreshJti: string;
+} {
+  const accessJti = generateRandomString(16, 'AJTI');
+  const refreshJti = generateRandomString(16, 'RJTI');
+  const { userId, email, scope } = params;
+
+  return {
+    accessJti,
+    refreshJti,
+    accessToken: signAccess({ userId, email, scope, jti: accessJti }),
+    refreshToken: signRefresh({ userId, email, scope, jti: refreshJti }),
+  };
+}
+
 export type AccessType = 'client' | 'console';
 
 /**
@@ -155,7 +177,7 @@ export async function processPasswordChange(options: {
 }): Promise<void> {
   const { reply, user, password, accessType } = options;
 
-  const hashedPassword = await authService.hashPassword(password);
+  const hashedPassword = await hashPassword(password);
   if (!hashedPassword) throw new AppError('Failed to create password', 500);
 
   const isInvitedAdmin =
@@ -163,20 +185,20 @@ export async function processPasswordChange(options: {
   const currentHash = user.auth?.password?.value;
 
   if (currentHash && !isInvitedAdmin) {
-    const same = await authService.comparePassword(password, currentHash);
+    const same = await comparePassword(password, currentHash);
     if (same) throw new AppError('New password cannot be the same as the current password', 400);
   }
 
-  const jti = generateRandomString(16, 'JTI');
   const scope = accessType === 'console' ? 'console-access' : 'client-access';
   const userId = String((user as { _id: unknown })._id);
   const email = user.email;
+  const tokens = issueAuthTokens({ userId, email, scope });
 
   await invalidateAuthCache(email, accessType === 'console' ? 'admin' : 'user');
 
   if (accessType === 'console') {
     const adminUpdate: Record<string, unknown> = {
-      'auth.refreshTokenJTI': jti,
+      'auth.refreshTokenJTI': tokens.refreshJti,
       'auth.password.value': hashedPassword,
       'auth.password.passwordChangedAt': new Date(),
     };
@@ -190,16 +212,14 @@ export async function processPasswordChange(options: {
     await User.findOneAndUpdate(
       { email },
       {
-        'auth.refreshTokenJTI': jti,
+        'auth.refreshTokenJTI': tokens.refreshJti,
         'auth.password.value': hashedPassword,
         'auth.password.passwordChangedAt': new Date(),
       }
     );
   }
 
-  const accessToken = signAccess({ userId, email, scope, jti });
-  const refreshToken = signRefresh({ userId, email, scope, jti });
-  setAuthCookies(reply, accessToken, refreshToken);
+  setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
 
   const updated =
     accessType === 'console' ? await findAdminByEmail(email) : await findUserByEmail(email);

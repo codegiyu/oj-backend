@@ -1,11 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
-import { authService } from '../../services/auth.service';
-import { signAccess, signRefresh } from '../../utils/token';
-import { generateRandomString } from '../../utils/helpers';
+import { comparePassword } from '../../services/auth.service';
 import { deleteFields } from '../../utils/helpers';
-import { setAuthCookies, clearAuthCookies, buildClientUserPayload } from './auth.helpers';
+import {
+  setAuthCookies,
+  clearAuthCookies,
+  buildClientUserPayload,
+  issueAuthTokens,
+} from './auth.helpers';
 import { addAdminToCache, invalidateAuthCache } from '../../utils/authCache';
 import { Admin } from '../../models/admin';
 import { User } from '../../models/user';
@@ -33,7 +36,7 @@ export async function login(
 
   if (!hasPassword) throw new AppError('Invalid email or password', 401);
 
-  const valid = await authService.comparePassword(password, hasPassword);
+  const valid = await comparePassword(password, hasPassword);
 
   if (!valid) throw new AppError('Invalid email or password', 401);
   if (admin.accountStatus === 'invited') {
@@ -46,28 +49,18 @@ export async function login(
     throw new AppError('Your account has been suspended', 403);
   if (admin.accountStatus === 'deleted') throw new AppError('Account not found', 401);
 
-  const jti = generateRandomString(16, 'JTI');
-
-  const accessToken = signAccess({
+  const tokens = issueAuthTokens({
     userId: String(admin._id),
     email: admin.email,
     scope: 'console-access',
-    jti,
-  });
-
-  const refreshToken = signRefresh({
-    userId: String(admin._id),
-    email: admin.email,
-    scope: 'console-access',
-    jti,
   });
 
   await Admin.findByIdAndUpdate(admin._id, {
-    'auth.refreshTokenJTI': jti,
+    'auth.refreshTokenJTI': tokens.refreshJti,
     'auth.lastLogin': new Date(),
   });
 
-  setAuthCookies(reply, accessToken, refreshToken);
+  setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
 
   const sanitized = deleteFields(
     admin.toObject() as unknown as Record<string, unknown>,
@@ -104,8 +97,6 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
   if (scope === 'console-access') {
     const admin = await Admin.findById(user.userId).lean<ModelAdmin>();
 
-    // console.log('admin', admin);
-
     if (!admin || admin.accountStatus === 'deleted') {
       clearAuthCookies(reply, request);
       sendResponse(reply, 200, { user: null }, 'No session.');
@@ -113,15 +104,12 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
     }
 
     const sanitized = deleteFields(admin as unknown as Record<string, unknown>, adminUnselected);
-    // console.log('sanitized', sanitized);
 
     sendResponse(reply, 200, { user: sanitized }, 'Session loaded.');
     return;
   }
 
   const userDoc = await User.findById(user.userId).lean<ModelUser>();
-
-  // console.log('userDoc', userDoc);
 
   if (!userDoc || userDoc.accountStatus === 'deleted') {
     clearAuthCookies(reply, request);
@@ -130,7 +118,6 @@ export async function session(request: FastifyRequest, reply: FastifyReply): Pro
   }
 
   const payload = await buildClientUserPayload(userDoc);
-  // console.log('payload', payload);
 
   sendResponse(reply, 200, { user: payload }, 'Session loaded.');
 }

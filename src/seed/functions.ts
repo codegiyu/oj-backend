@@ -14,7 +14,7 @@ import { SiteSettings, defaultSiteSettings } from '../models/siteSettings';
 import { Admin } from '../models/admin';
 import { ContentCategory } from '../models/contentCategory';
 import { GospelVerse } from '../models/gospelVerse';
-import { authService } from '../services/auth.service';
+import { hashPassword } from '../services/auth.service';
 import { ICategory, IRole, ISubCategory, type ContentCategoryScope } from '../lib/types/constants';
 import { ADMIN_PERMISSIONS, DEFAULT_ADMIN_ROLE_PERMISSIONS } from '../constants/adminPermissions';
 import { permissionsForRoleSlug } from '../services/adminPermission.service';
@@ -501,7 +501,7 @@ export const seedAdmins = async (): Promise<void> => {
     { email: 'eomegbu@gmail.com', firstName: 'Code', lastName: 'Giyu' },
   ];
 
-  const hashedPassword = await authService.hashPassword(ADMIN_SEED_PASSWORD);
+  const hashedPassword = await hashPassword(ADMIN_SEED_PASSWORD);
   if (!hashedPassword) {
     logger.warn('seedAdmins: failed to hash password, skipping');
     return;
