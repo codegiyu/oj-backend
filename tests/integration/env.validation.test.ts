@@ -44,6 +44,8 @@ describe('loadEnvironment (production)', () => {
     expect(env.databaseUrl).toBe(productionBase.DATABASE_URL);
     expect(env.jwt.secret).toBe(productionBase.JWT_SECRET);
     expect(env.jwt.refreshSecret).toBe(productionBase.REFRESH_TOKEN_SECRET);
+    expect(env.auth.requireRefreshToken).toBe(true);
+    expect(env.jwt.expiresIn).toBe('1h');
   });
 });
 

@@ -75,7 +75,7 @@ export type Environment = {
     readonly logoUrl: string;
   };
   readonly cors: {
-    readonly origin: string;
+    readonly origins: readonly string[];
   };
   readonly rateLimit: {
     readonly max: number;
@@ -126,6 +126,22 @@ function resolveNodeEnv(raw: NodeJS.ProcessEnv): string {
 
 function usesDevDefaults(nodeEnv: string): boolean {
   return nodeEnv === 'development' || nodeEnv === 'test';
+}
+
+export function resolveRequireRefreshToken(raw: NodeJS.ProcessEnv, nodeEnv: string): boolean {
+  const value = raw.REQUIRE_REFRESH_TOKEN?.trim().toLowerCase();
+
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+
+  return nodeEnv === 'production' || nodeEnv === 'staging';
+}
+
+export function parseCorsOrigins(raw: NodeJS.ProcessEnv): string[] {
+  return (raw.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
 }
 
 function assertProductionSecret(name: string, value: string): void {
@@ -205,10 +221,10 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
     databaseUrl,
     jwt: {
       secret: jwtSecret,
-      expiresIn: raw.JWT_EXPIRES_IN || '7d',
+      expiresIn: raw.JWT_EXPIRES_IN || '1h',
       refreshSecret,
       refreshExpiresIn: raw.REFRESH_TOKEN_EXPIRES_IN || '30d',
-      accessCookieMaxAge: parseInt(raw.ACCESS_COOKIE_MAX_AGE || String(7 * 24 * 60 * 60), 10),
+      accessCookieMaxAge: parseInt(raw.ACCESS_COOKIE_MAX_AGE || String(60 * 60), 10),
       refreshCookieMaxAge: parseInt(raw.REFRESH_COOKIE_MAX_AGE || String(30 * 24 * 60 * 60), 10),
     },
     tokenNames: {
@@ -222,7 +238,7 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
       },
     },
     auth: {
-      requireRefreshToken: raw.REQUIRE_REFRESH_TOKEN === 'true',
+      requireRefreshToken: resolveRequireRefreshToken(raw, nodeEnv),
     },
     google: {
       clientId: raw.GOOGLE_CLIENT_ID || '',
@@ -270,7 +286,7 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
       logoUrl: raw.LOGO_URL || '',
     },
     cors: {
-      origin: raw.CORS_ORIGIN || 'http://localhost:3000',
+      origins: parseCorsOrigins(raw),
     },
     rateLimit: {
       max: parseInt(raw.RATE_LIMIT_MAX || '100', 10),

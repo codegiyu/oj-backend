@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises -- Fastify preHandler async hooks */
 import { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
