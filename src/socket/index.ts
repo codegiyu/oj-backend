@@ -4,6 +4,7 @@ import { ENVIRONMENT } from '../config/env';
 import { authenticateSocket, type SocketUser } from './auth';
 import { buildUserRoomId, getNewNotificationEventName, SOCKET_EVENTS } from './events';
 import { sendSocketResponse } from './response';
+import { isAllowedSocketRoom } from './roomAccess';
 import { listNotificationsForUser } from '../services/notification.service';
 import { logger } from '../utils/logger';
 
@@ -49,29 +50,49 @@ export function sendRealTimeNotification(
 
 function initializeEventListeners(_io: Server, socket: Socket & { user: SocketUser }): void {
   socket.on(SOCKET_EVENTS.SUBSCRIBE, (roomId: string, ack?: (arg: unknown) => void) => {
-    if (roomId && typeof roomId === 'string') {
-      void socket.join(roomId);
-      sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
-    } else {
+    if (!roomId || typeof roomId !== 'string') {
       sendSocketResponse(socket, ack, {
         success: false,
         message: 'roomId required',
         responseCode: 400,
       });
+      return;
     }
+
+    if (!isAllowedSocketRoom(socket.user, roomId)) {
+      sendSocketResponse(socket, ack, {
+        success: false,
+        message: 'Forbidden: you cannot subscribe to this room',
+        responseCode: 403,
+      });
+      return;
+    }
+
+    void socket.join(roomId);
+    sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
   });
 
   socket.on(SOCKET_EVENTS.UNSUBSCRIBE, (roomId: string, ack?: (arg: unknown) => void) => {
-    if (roomId && typeof roomId === 'string') {
-      void socket.leave(roomId);
-      sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
-    } else {
+    if (!roomId || typeof roomId !== 'string') {
       sendSocketResponse(socket, ack, {
         success: false,
         message: 'roomId required',
         responseCode: 400,
       });
+      return;
     }
+
+    if (!isAllowedSocketRoom(socket.user, roomId)) {
+      sendSocketResponse(socket, ack, {
+        success: false,
+        message: 'Forbidden: you cannot unsubscribe from this room',
+        responseCode: 403,
+      });
+      return;
+    }
+
+    void socket.leave(roomId);
+    sendSocketResponse(socket, ack, { success: true, data: { roomId }, responseCode: 200 });
   });
 
   socket.on(
