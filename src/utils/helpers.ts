@@ -127,7 +127,7 @@ export async function generateSubCategorySlug<
 }
 
 export function deleteFields<T extends Record<string, unknown>>(obj: T, fields: string[]): T {
-  const result = JSON.parse(JSON.stringify(obj)) as T;
+  const result = structuredClone(obj);
   for (const field of fields) {
     const parts = field.replace('+', '').split('.');
     let target: Record<string, unknown> = result;
