@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import { AppError } from './AppError';
 
 const DEFAULT_RANDOM_ALPHABET = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
 
@@ -43,28 +44,55 @@ export function slugify(text: string): string {
 
 type WithSlug = { slug: string };
 
+export const SLUG_MAX_ATTEMPTS = 50;
+
+export function isMongoDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code: number }).code === 11000
+  );
+}
+
+export async function withDuplicateKeyRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isMongoDuplicateKeyError(error) || attempt === maxRetries - 1) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 export async function generateUniqueSlug<T extends WithSlug>(
   model: mongoose.Model<T>,
   base: string,
-  filter: Record<string, unknown> = {}
+  filter: Record<string, unknown> = {},
+  maxAttempts = SLUG_MAX_ATTEMPTS
 ): Promise<string> {
   const baseSlug = slugify(base);
   let slug = baseSlug;
-  let n = 0;
 
-  // Ensure uniqueness with optional extra filter (e.g. vendor, category)
-
-  while (true) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const existing = await model
       .findOne({ ...filter, slug })
       .select('_id')
       .lean();
-    if (!existing) break;
-    n += 1;
-    slug = `${baseSlug}-${n}`;
+
+    if (!existing) return slug;
+
+    slug = `${baseSlug}-${randomFromAlphabet('1234567890', 4)}`;
   }
 
-  return slug;
+  throw new AppError('Could not generate a unique slug after maximum attempts', 500);
 }
 
 export async function generateVendorProductSlug<T extends WithSlug>(
