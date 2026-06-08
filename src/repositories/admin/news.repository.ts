@@ -1,4 +1,5 @@
 import { NewsArticle } from '../../models/newsArticle';
+import type { ModelNewsArticle } from '../../lib/types/constants';
 import { paginatedFind, findByIdLean } from './paginatedList.repository';
 
 export type ListAdminNewsOptions = {
@@ -10,8 +11,8 @@ export type ListAdminNewsOptions = {
 
 export async function listAdminNewsRows(
   options: ListAdminNewsOptions
-): Promise<{ items: Record<string, unknown>[]; total: number }> {
-  return paginatedFind(NewsArticle, {
+): Promise<{ items: ModelNewsArticle[]; total: number }> {
+  return paginatedFind<ModelNewsArticle>(NewsArticle, {
     filter: options.filter,
     sort: options.sort,
     skip: options.skip,
@@ -19,6 +20,6 @@ export async function listAdminNewsRows(
   });
 }
 
-export async function findAdminNewsById(id: string): Promise<Record<string, unknown> | null> {
-  return findByIdLean(NewsArticle, id);
+export async function findAdminNewsById(id: string): Promise<ModelNewsArticle | null> {
+  return findByIdLean<ModelNewsArticle>(NewsArticle, id);
 }

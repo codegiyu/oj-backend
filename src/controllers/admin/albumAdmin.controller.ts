@@ -110,7 +110,7 @@ export async function getAdminAlbum(
 
   const trackRows = await listMusicTracksForAlbum(leanIdToString(doc._id));
   const tracks = trackRows.map(shapeAlbumTrackItem);
-  const album = await shapeAlbumItemWithTrackCount(doc);
+  const album = await shapeAlbumItemWithTrackCount(doc as unknown as Record<string, unknown>);
 
   sendResponse(reply, 200, { album: { ...album, tracks } }, 'Album loaded.');
 }

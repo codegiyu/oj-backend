@@ -19,7 +19,7 @@ type AdminListQuerystring = {
   [key: string]: string | undefined;
 };
 
-export async function runAdminList<Q extends AdminListQuerystring>(
+export async function runAdminList<Q extends AdminListQuerystring, TRow>(
   request: FastifyRequest<{ Querystring: Q }>,
   config: {
     sortFields: string[];
@@ -31,7 +31,7 @@ export async function runAdminList<Q extends AdminListQuerystring>(
       sort: string;
       skip: number;
       limit: number;
-    }) => Promise<{ items: Record<string, unknown>[]; total: number }>;
+    }) => Promise<{ items: TRow[]; total: number }>;
     shapeItem: (raw: Record<string, unknown>) => Record<string, unknown>;
     collectionKey: string;
     message: string;
@@ -49,7 +49,7 @@ export async function runAdminList<Q extends AdminListQuerystring>(
   config.extendFilter?.(filter, request.query as Q);
 
   const { items, total } = await config.listRows({ filter, sort, skip, limit });
-  const rows = items.map(config.shapeItem);
+  const rows = items.map(item => config.shapeItem(item as unknown as Record<string, unknown>));
 
   return {
     statusCode: 200,
@@ -58,10 +58,10 @@ export async function runAdminList<Q extends AdminListQuerystring>(
   };
 }
 
-export async function runAdminGet(
+export async function runAdminGet<TRow>(
   request: FastifyRequest<{ Params: { id: string } }>,
   config: {
-    findById: (id: string) => Promise<Record<string, unknown> | null>;
+    findById: (id: string) => Promise<TRow | null>;
     shapeItem: (raw: Record<string, unknown>) => Record<string, unknown>;
     itemKey: string;
     message: string;
@@ -77,7 +77,7 @@ export async function runAdminGet(
 
   return {
     statusCode: 200,
-    data: { [config.itemKey]: config.shapeItem(doc) },
+    data: { [config.itemKey]: config.shapeItem(doc as unknown as Record<string, unknown>) },
     message: config.message,
   };
 }

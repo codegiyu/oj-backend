@@ -57,7 +57,7 @@ export async function listAdminNews(
   });
   applyCategoryFilter(filter, request.query.category);
   const { items, total } = await listAdminNewsRows({ filter, sort, skip, limit });
-  const news = items.map(shapeNewsItem);
+  const news = items.map(item => shapeNewsItem(item as unknown as Record<string, unknown>));
 
   return adminListServiceResult('news', 'News list loaded.', page, limit, total, news);
 }
@@ -72,5 +72,9 @@ export async function getAdminNews(
     throw new AppError('News article not found', 404);
   }
 
-  return { statusCode: 200, data: { news: shapeNewsItem(doc) }, message: 'News article loaded.' };
+  return {
+    statusCode: 200,
+    data: { news: shapeNewsItem(doc as unknown as Record<string, unknown>) },
+    message: 'News article loaded.',
+  };
 }

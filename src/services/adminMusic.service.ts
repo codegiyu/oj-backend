@@ -113,7 +113,7 @@ export async function listAdminMusic(
   applyCategoryFilter(filter, request.query.category);
   applyArtistFilter(filter, request.query.artist);
   const { items, total } = await listAdminMusicRows({ filter, sort, skip, limit });
-  const music = items.map(shapeMusicItem);
+  const music = items.map(item => shapeMusicItem(item as unknown as Record<string, unknown>));
 
   return adminListServiceResult('music', 'Music list loaded.', page, limit, total, music);
 }
@@ -128,7 +128,7 @@ export async function getAdminMusic(
     throw new AppError('Music not found', 404);
   }
 
-  const shaped = shapeMusicItem(doc);
+  const shaped = shapeMusicItem(doc as unknown as Record<string, unknown>);
   const music = {
     ...shaped,
     lyrics: doc.lyrics,

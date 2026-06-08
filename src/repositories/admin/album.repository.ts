@@ -23,8 +23,8 @@ export type ListAdminAlbumOptions = {
 
 export async function listAdminAlbumRows(
   options: ListAdminAlbumOptions
-): Promise<{ items: Record<string, unknown>[]; total: number }> {
-  return paginatedFind(Album, {
+): Promise<{ items: ModelAlbum[]; total: number }> {
+  return paginatedFind<ModelAlbum>(Album, {
     filter: options.filter,
     sort: options.sort,
     skip: options.skip,
@@ -33,8 +33,8 @@ export async function listAdminAlbumRows(
   });
 }
 
-export async function findAdminAlbumById(id: string): Promise<Record<string, unknown> | null> {
-  return findByIdLean(Album, id, adminArtistPopulate);
+export async function findAdminAlbumById(id: string): Promise<ModelAlbum | null> {
+  return findByIdLean<ModelAlbum>(Album, id, adminArtistPopulate);
 }
 
 export async function createAlbumDoc(
@@ -49,8 +49,8 @@ export async function findAlbumDocumentById(
   return Album.findById(id);
 }
 
-export async function findAlbumPopulatedLean(id: unknown): Promise<Record<string, unknown> | null> {
-  return findByIdLean(Album, String(id), adminArtistPopulate);
+export async function findAlbumPopulatedLean(id: unknown): Promise<ModelAlbum | null> {
+  return findByIdLean<ModelAlbum>(Album, String(id), adminArtistPopulate);
 }
 
 export async function deleteAlbumDocumentById(

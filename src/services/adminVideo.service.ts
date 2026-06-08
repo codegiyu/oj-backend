@@ -118,7 +118,7 @@ export async function listAdminVideos(
   applyCategoryFilter(filter, request.query.category);
   applyArtistFilter(filter, request.query.artist);
   const { items, total } = await listAdminVideoRows({ filter, sort, skip, limit });
-  const videos = items.map(shapeVideoItem);
+  const videos = items.map(item => shapeVideoItem(item as unknown as Record<string, unknown>));
 
   return adminListServiceResult('videos', 'Videos list loaded.', page, limit, total, videos);
 }
@@ -133,7 +133,7 @@ export async function getAdminVideo(
     throw new AppError('Video not found', 404);
   }
 
-  const shaped = shapeVideoItem(doc);
+  const shaped = shapeVideoItem(doc as unknown as Record<string, unknown>);
 
   return {
     statusCode: 200,
