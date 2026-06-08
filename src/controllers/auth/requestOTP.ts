@@ -21,7 +21,15 @@ export async function requestOTP(
   }
 
   const user = await findUserByEmail(email.toLowerCase());
-  if (!user) throw new AppError('User not found', 404);
+  if (!user) {
+    sendResponse(
+      reply,
+      200,
+      { message: 'If this email is registered, a verification code has been sent.' },
+      'If this email is registered, a verification code has been sent.'
+    );
+    return;
+  }
 
   const name = user.firstName ?? email;
   await sendVerification({
