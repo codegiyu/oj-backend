@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  release-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Production boot smoke
+        run: |
+          node dist/server.js &
+          pid=$!
+          sleep 3
+          kill $pid
+          wait $pid 2>/dev/null || true
+
+      - name: Release check
+        run: npm run release:check
