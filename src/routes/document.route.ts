@@ -1,5 +1,4 @@
 import { FastifyInstance } from 'fastify';
-import { adminPreHandlers } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import {
   listDocuments,
@@ -13,6 +12,7 @@ import {
   verifyDocumentBodySchema,
   verifyDocumentAdminParamsSchema,
 } from '../controllers/document/document.validation';
+import { adminModerateRoute, adminSystemReadRoute } from '../utils/adminRouteHandlers';
 
 export function registerDocumentRoutes(app: FastifyInstance): void {
   app.post<{ Body: { documentId?: string; key?: string } }>(
@@ -36,7 +36,7 @@ export function registerAdminDocumentRoutes(app: FastifyInstance): void {
   }>(
     '/',
     {
-      preHandler: adminPreHandlers,
+      ...adminSystemReadRoute,
       schema: listDocumentsQuerystringSchema,
     },
     catchAsync(listDocuments)
@@ -44,7 +44,7 @@ export function registerAdminDocumentRoutes(app: FastifyInstance): void {
   app.get<{ Params: { documentId: string } }>(
     '/:documentId',
     {
-      preHandler: adminPreHandlers,
+      ...adminSystemReadRoute,
       schema: getDocumentDetailsParamsSchema,
     },
     catchAsync(getDocumentDetails)
@@ -52,7 +52,7 @@ export function registerAdminDocumentRoutes(app: FastifyInstance): void {
   app.post<{ Params: { documentId: string } }>(
     '/verify/:documentId',
     {
-      preHandler: adminPreHandlers,
+      ...adminModerateRoute,
       schema: verifyDocumentAdminParamsSchema,
     },
     catchAsync(verifyDocumentAdmin)

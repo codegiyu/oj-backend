@@ -7,6 +7,8 @@ import { logger } from '../utils/logger';
 import { setAuthCookies } from '../controllers/auth/auth.helpers';
 import { rotateSessionFromRefresh } from '../utils/refreshSession';
 import { attachAuthTokenHeaders } from '../utils/authHeaders';
+import { adminHasRequiredPermissions } from '../services/adminPermission.service';
+import type { AdminPermissionSlug } from '../constants/adminPermissions';
 
 const accessCookieName = ENVIRONMENT.tokenNames.cookies.access;
 const refreshCookieName = ENVIRONMENT.tokenNames.cookies.refresh;
@@ -299,7 +301,31 @@ export const requireConsoleAccessPreHandler: preHandlerAsyncHookHandler = async 
   await requireConsoleAccess(request, reply);
 };
 
+export function requireAdminPermissionPreHandler(
+  ...requiredSlugs: AdminPermissionSlug[]
+): preHandlerAsyncHookHandler {
+  return async (request, _reply) => {
+    const authUser = request.authUser;
+
+    if (!authUser || authUser.scope !== 'console-access') {
+      throw new AppError('Unauthorized', 401);
+    }
+
+    const allowed = await adminHasRequiredPermissions(authUser.userId, requiredSlugs);
+
+    if (!allowed) {
+      logger.info('auth: admin permission denied', {
+        ...authRequestSnapshot(request),
+        requiredSlugs,
+        userId: authUser.userId,
+      });
+      throw new AppError('Forbidden: insufficient permissions', 403);
+    }
+  };
+}
+
 export const adminPreHandlers: preHandlerAsyncHookHandler[] = [
   authenticatePreHandler,
   requireConsoleAccessPreHandler,
+  requireAdminPermissionPreHandler('admin.content.read'),
 ];

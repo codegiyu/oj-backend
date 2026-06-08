@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/require-await */
 import type { FastifyInstance } from 'fastify';
-import { authenticate, requireConsoleAccess } from '../middleware/auth.middleware';
+import {
+  adminDeleteRoute,
+  adminModerateRoute,
+  adminReadRoute,
+  adminUsersRoute,
+  adminWriteRoute,
+} from '../utils/adminRouteHandlers';
 import { catchAsync } from '../utils/catchAsync';
 import {
   answerPrayerRequestBodySchema,
@@ -207,507 +213,621 @@ import {
   rejectAppealBodySchema,
 } from '../controllers/admin/roleProfile.validation';
 
-const opts = { preHandler: [authenticate, requireConsoleAccess] };
-
 export async function registerAdminContentRoutes(app: FastifyInstance): Promise<void> {
   registerPrivilegedAuditHook(app);
   app.get(
     '/users',
-    { ...opts, schema: adminUsersQuerystringSchema },
+    { ...adminUsersRoute, schema: adminUsersQuerystringSchema },
     catchAsync(listOrSearchAdminUsers)
   );
-  app.get('/users/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminUser));
+  app.get('/users/:id', { ...adminUsersRoute, schema: idParamSchema }, catchAsync(getAdminUser));
   app.patch(
     '/users/:id',
-    { ...opts, schema: { ...idParamSchema, ...adminUserPatchBodySchema } },
+    { ...adminUsersRoute, schema: { ...idParamSchema, ...adminUserPatchBodySchema } },
     catchAsync(updateAdminUser)
   );
   app.post(
     '/users/:id/approve-deletion',
-    { ...opts, schema: idParamSchema },
+    { ...adminUsersRoute, schema: idParamSchema },
     catchAsync(approveAdminUserDeletion)
   );
   app.post(
     '/users/:id/reject-deletion',
-    { ...opts, schema: idParamSchema },
+    { ...adminUsersRoute, schema: idParamSchema },
     catchAsync(rejectAdminUserDeletion)
   );
 
-  app.get('/role-profile-appeals', { ...opts }, catchAsync(listAdminRoleProfileAppeals));
+  app.get('/role-profile-appeals', { ...adminReadRoute }, catchAsync(listAdminRoleProfileAppeals));
   app.post(
     '/role-profile-appeals/:id/accept',
-    { ...opts, schema: idParamSchema },
+    { ...adminWriteRoute, schema: idParamSchema },
     catchAsync(acceptAdminRoleProfileAppeal)
   );
   app.post(
     '/role-profile-appeals/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectAppealBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectAppealBodySchema } },
     catchAsync(rejectAdminRoleProfileAppeal)
   );
 
   // Music
-  app.get('/music', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminMusic));
-  app.post('/music', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminMusic));
-  app.get('/music/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminMusic));
+  app.get(
+    '/music',
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminMusic)
+  );
+  app.post(
+    '/music',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminMusic)
+  );
+  app.get('/music/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminMusic));
   app.patch(
     '/music/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminMusic)
   );
-  app.delete('/music/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminMusic));
-  app.post('/music/:id/approve', { ...opts, schema: idParamSchema }, catchAsync(approveAdminMusic));
+  app.delete(
+    '/music/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminMusic)
+  );
+  app.post(
+    '/music/:id/approve',
+    { ...adminModerateRoute, schema: idParamSchema },
+    catchAsync(approveAdminMusic)
+  );
   app.post(
     '/music/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminMusic)
   );
 
   // Albums
-  app.get('/albums', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminAlbums));
-  app.post('/albums', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminAlbum));
-  app.get('/albums/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminAlbum));
+  app.get(
+    '/albums',
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminAlbums)
+  );
+  app.post(
+    '/albums',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminAlbum)
+  );
+  app.get('/albums/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminAlbum));
   app.patch(
     '/albums/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminAlbum)
   );
-  app.delete('/albums/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminAlbum));
+  app.delete(
+    '/albums/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminAlbum)
+  );
 
   // Videos
-  app.get('/videos', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminVideos));
-  app.post('/videos', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminVideo));
-  app.get('/videos/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminVideo));
+  app.get(
+    '/videos',
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminVideos)
+  );
+  app.post(
+    '/videos',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminVideo)
+  );
+  app.get('/videos/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminVideo));
   app.patch(
     '/videos/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminVideo)
   );
-  app.delete('/videos/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminVideo));
+  app.delete(
+    '/videos/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminVideo)
+  );
   app.post(
     '/videos/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminVideo)
   );
   app.post(
     '/videos/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminVideo)
   );
 
   // News
-  app.get('/news', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminNews));
-  app.post('/news', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminNews));
-  app.get('/news/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminNews));
+  app.get(
+    '/news',
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminNews)
+  );
+  app.post(
+    '/news',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminNews)
+  );
+  app.get('/news/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminNews));
   app.patch(
     '/news/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminNews)
   );
-  app.delete('/news/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminNews));
+  app.delete(
+    '/news/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminNews)
+  );
 
   // Devotionals
   app.get(
     '/devotionals',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminDevotionals)
   );
   app.post(
     '/devotionals',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminDevotional)
   );
-  app.get('/devotionals/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminDevotional));
+  app.get(
+    '/devotionals/:id',
+    { ...adminReadRoute, schema: idParamSchema },
+    catchAsync(getAdminDevotional)
+  );
   app.patch(
     '/devotionals/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminDevotional)
   );
   app.delete(
     '/devotionals/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminDevotional)
   );
   app.post(
     '/devotionals/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminDevotional)
   );
   app.post(
     '/devotionals/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminDevotional)
   );
 
   // Testimonies
   app.get(
     '/testimonies',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminTestimonies)
   );
   app.post(
     '/testimonies',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminTestimony)
   );
-  app.get('/testimonies/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminTestimony));
+  app.get(
+    '/testimonies/:id',
+    { ...adminReadRoute, schema: idParamSchema },
+    catchAsync(getAdminTestimony)
+  );
   app.patch(
     '/testimonies/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminTestimony)
   );
   app.delete(
     '/testimonies/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminTestimony)
   );
   app.post(
     '/testimonies/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminTestimony)
   );
   app.post(
     '/testimonies/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminTestimony)
   );
 
   // Prayer Requests
   app.get(
     '/prayer-requests',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminPrayerRequests)
   );
   app.post(
     '/prayer-requests',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminPrayerRequest)
   );
   app.get(
     '/prayer-requests/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminReadRoute, schema: idParamSchema },
     catchAsync(getAdminPrayerRequest)
   );
   app.patch(
     '/prayer-requests/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminPrayerRequest)
   );
   app.delete(
     '/prayer-requests/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminPrayerRequest)
   );
   app.post(
     '/prayer-requests/:id/answer',
-    { ...opts, schema: { ...idParamSchema, ...answerPrayerRequestBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...answerPrayerRequestBodySchema } },
     catchAsync(answerAdminPrayerRequest)
   );
 
   // Ask a Pastor questions
   app.get(
     '/ask-a-pastor/questions',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminAskPastor)
   );
   app.get(
     '/ask-a-pastor/questions/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminReadRoute, schema: idParamSchema },
     catchAsync(getAdminAskPastor)
   );
   app.patch(
     '/ask-a-pastor/questions/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminAskPastor)
   );
   app.delete(
     '/ask-a-pastor/questions/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminAskPastor)
   );
   app.post(
     '/ask-a-pastor/questions/:id/assign-pastor',
-    { ...opts, schema: { ...idParamSchema, ...assignPastorBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...assignPastorBodySchema } },
     catchAsync(assignPastorAdminAskPastor)
   );
   app.post(
     '/ask-a-pastor/questions/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminAskPastor)
   );
 
   // Polls
-  app.get('/polls', { ...opts, schema: listAdminQuerystringSchema }, catchAsync(listAdminPolls));
-  app.post('/polls', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminPoll));
-  app.get('/polls/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminPoll));
+  app.get(
+    '/polls',
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
+    catchAsync(listAdminPolls)
+  );
+  app.post(
+    '/polls',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminPoll)
+  );
+  app.get('/polls/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminPoll));
   app.patch(
     '/polls/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminPoll)
   );
-  app.delete('/polls/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminPoll));
-  app.post('/polls/:id/open', { ...opts, schema: idParamSchema }, catchAsync(openAdminPoll));
+  app.delete(
+    '/polls/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminPoll)
+  );
+  app.post(
+    '/polls/:id/open',
+    { ...adminModerateRoute, schema: idParamSchema },
+    catchAsync(openAdminPoll)
+  );
   app.post(
     '/polls/:id/close',
-    { ...opts, schema: { ...idParamSchema, ...closePollBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...closePollBodySchema } },
     catchAsync(closeAdminPoll)
   );
-  app.post('/polls/:id/approve', { ...opts, schema: idParamSchema }, catchAsync(approveAdminPoll));
+  app.post(
+    '/polls/:id/approve',
+    { ...adminModerateRoute, schema: idParamSchema },
+    catchAsync(approveAdminPoll)
+  );
   app.post(
     '/polls/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminPoll)
   );
 
   // Artists
   app.get(
     '/artists',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminArtists)
   );
-  app.post('/artists', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminArtist));
+  app.post(
+    '/artists',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminArtist)
+  );
   app.get(
     '/artists/:id/dashboard-stats',
-    { ...opts, schema: idParamSchema },
+    { ...adminReadRoute, schema: idParamSchema },
     catchAsync(getAdminArtistDashboardStats)
   );
-  app.get('/artists/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminArtist));
+  app.get('/artists/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminArtist));
   app.patch(
     '/artists/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminArtist)
   );
-  app.delete('/artists/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminArtist));
+  app.delete(
+    '/artists/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminArtist)
+  );
   app.post(
     '/artists/:id/suspend',
-    { ...opts, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
     catchAsync(suspendAdminArtist)
   );
   app.post(
     '/artists/:id/unsuspend',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(unsuspendAdminArtist)
   );
 
   // Resources
   app.get(
     '/resources',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminResources)
   );
   app.post(
     '/resources',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminResource)
   );
-  app.get('/resources/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminResource));
+  app.get(
+    '/resources/:id',
+    { ...adminReadRoute, schema: idParamSchema },
+    catchAsync(getAdminResource)
+  );
   app.patch(
     '/resources/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminResource)
   );
-  app.delete('/resources/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminResource));
+  app.delete(
+    '/resources/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminResource)
+  );
   app.post(
     '/resources/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminResource)
   );
   app.post(
     '/resources/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminResource)
   );
 
   // Pastors
   app.get(
     '/pastors',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminPastors)
   );
-  app.post('/pastors', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminPastor));
-  app.get('/pastors/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminPastor));
+  app.post(
+    '/pastors',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminPastor)
+  );
+  app.get('/pastors/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminPastor));
   app.patch(
     '/pastors/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminPastor)
   );
-  app.delete('/pastors/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminPastor));
+  app.delete(
+    '/pastors/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminPastor)
+  );
   app.post(
     '/pastors/:id/suspend',
-    { ...opts, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
     catchAsync(suspendAdminPastor)
   );
   app.post(
     '/pastors/:id/unsuspend',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(unsuspendAdminPastor)
   );
 
   // Pastor applications
   app.get(
     '/pastor-applications',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminPastorApplications)
   );
   app.get(
     '/pastor-applications/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminReadRoute, schema: idParamSchema },
     catchAsync(getAdminPastorApplication)
   );
   app.post(
     '/pastor-applications/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminPastorApplication)
   );
   app.post(
     '/pastor-applications/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminPastorApplication)
   );
 
   // Vendors
   app.get(
     '/vendors',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminVendors)
   );
-  app.post('/vendors', { ...opts, schema: createUpdateBodySchema }, catchAsync(createAdminVendor));
-  app.get('/vendors/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminVendor));
+  app.post(
+    '/vendors',
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
+    catchAsync(createAdminVendor)
+  );
+  app.get('/vendors/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminVendor));
   app.patch(
     '/vendors/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminVendor)
   );
   app.post(
     '/vendors/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminVendor)
   );
   app.post(
     '/vendors/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminVendor)
   );
   app.post(
     '/vendors/:id/suspend',
-    { ...opts, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
     catchAsync(suspendAdminVendor)
   );
   app.post(
     '/vendors/:id/unsuspend',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(unsuspendAdminVendor)
   );
 
   // Products
   app.get(
     '/products',
-    { ...opts, schema: listAdminQuerystringWithVendorSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringWithVendorSchema },
     catchAsync(listAdminProducts)
   );
   app.post(
     '/products',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminProduct)
   );
-  app.get('/products/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminProduct));
+  app.get(
+    '/products/:id',
+    { ...adminReadRoute, schema: idParamSchema },
+    catchAsync(getAdminProduct)
+  );
   app.patch(
     '/products/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminProduct)
   );
-  app.delete('/products/:id', { ...opts, schema: idParamSchema }, catchAsync(deleteAdminProduct));
+  app.delete(
+    '/products/:id',
+    { ...adminDeleteRoute, schema: idParamSchema },
+    catchAsync(deleteAdminProduct)
+  );
   app.post(
     '/products/:id/approve',
-    { ...opts, schema: idParamSchema },
+    { ...adminModerateRoute, schema: idParamSchema },
     catchAsync(approveAdminProduct)
   );
   app.post(
     '/products/:id/reject',
-    { ...opts, schema: { ...idParamSchema, ...rejectBodySchema } },
+    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
     catchAsync(rejectAdminProduct)
   );
 
   // Content categories (editorial taxonomy)
   app.get(
     '/content-categories',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminContentCategories)
   );
   app.post(
     '/content-categories',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminContentCategory)
   );
   app.patch(
     '/content-categories/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminContentCategory)
   );
   app.delete(
     '/content-categories/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminContentCategory)
   );
 
   // Home page banner adverts
   app.get(
     '/home-adverts',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminHomeAdverts)
   );
   app.post(
     '/home-adverts',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminHomeAdvert)
   );
   app.patch(
     '/home-adverts/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminHomeAdvert)
   );
   app.delete(
     '/home-adverts/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminHomeAdvert)
   );
 
   // Gospel verses (daily verse schedule)
   app.get(
     '/gospel-verses',
-    { ...opts, schema: listAdminQuerystringSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringSchema },
     catchAsync(listAdminGospelVerses)
   );
   app.post(
     '/gospel-verses',
-    { ...opts, schema: createUpdateBodySchema },
+    { ...adminWriteRoute, schema: createUpdateBodySchema },
     catchAsync(createAdminGospelVerse)
   );
   app.get(
     '/gospel-verses/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminReadRoute, schema: idParamSchema },
     catchAsync(getAdminGospelVerse)
   );
   app.patch(
     '/gospel-verses/:id',
-    { ...opts, schema: { ...idParamSchema, ...createUpdateBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
     catchAsync(updateAdminGospelVerse)
   );
   app.delete(
     '/gospel-verses/:id',
-    { ...opts, schema: idParamSchema },
+    { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminGospelVerse)
   );
 
   // Orders
   app.get(
     '/orders',
-    { ...opts, schema: listAdminQuerystringWithVendorSchema },
+    { ...adminReadRoute, schema: listAdminQuerystringWithVendorSchema },
     catchAsync(listAdminOrders)
   );
-  app.get('/orders/:id', { ...opts, schema: idParamSchema }, catchAsync(getAdminOrder));
+  app.get('/orders/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminOrder));
   app.patch(
     '/orders/:id',
-    { ...opts, schema: { ...idParamSchema, ...updateAdminOrderBodySchema } },
+    { ...adminWriteRoute, schema: { ...idParamSchema, ...updateAdminOrderBodySchema } },
     catchAsync(updateAdminOrder)
   );
 }

@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { adminPreHandlers, authenticatePreHandler } from '../middleware/auth.middleware';
+import { authenticatePreHandler } from '../middleware/auth.middleware';
+import { adminWriteRoute } from '../utils/adminRouteHandlers';
 import { catchAsync } from '../utils/catchAsync';
 import { presignedUrlClient, presignedUrlAdmin } from '../controllers/upload/upload.controller';
 import type { PresignedBody } from '../controllers/upload/upload.controller';
@@ -20,7 +21,7 @@ export function registerAdminUploadRoutes(app: FastifyInstance): void {
   app.post<{ Body: PresignedBody }>(
     '/presigned-url',
     {
-      preHandler: adminPreHandlers,
+      preHandler: adminWriteRoute.preHandler,
       schema: presignedUrlBodySchema,
     },
     catchAsync(presignedUrlAdmin)

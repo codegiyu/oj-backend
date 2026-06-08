@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { adminPreHandlers } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import { listEmailLogs } from '../controllers/emailLog/listEmailLogs';
 import { getEmailLogDetails } from '../controllers/emailLog/getEmailLogDetails';
 import { resendEmail } from '../controllers/emailLog/resendEmail';
+import { adminSystemReadRoute, adminWriteRoute } from '../utils/adminRouteHandlers';
 
 export function registerAdminEmailLogRoutes(app: FastifyInstance): void {
   app.get<{
@@ -17,15 +17,15 @@ export function registerAdminEmailLogRoutes(app: FastifyInstance): void {
       endDate?: string;
       sort?: string;
     };
-  }>('/', { preHandler: adminPreHandlers }, catchAsync(listEmailLogs));
+  }>('/', adminSystemReadRoute, catchAsync(listEmailLogs));
   app.post<{ Params: { emailLogId: string } }>(
     '/resend/:emailLogId',
-    { preHandler: adminPreHandlers },
+    adminWriteRoute,
     catchAsync(resendEmail)
   );
   app.get<{ Params: { emailLogId: string } }>(
     '/:emailLogId',
-    { preHandler: adminPreHandlers },
+    adminSystemReadRoute,
     catchAsync(getEmailLogDetails)
   );
 }
