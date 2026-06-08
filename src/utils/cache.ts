@@ -38,32 +38,50 @@ export const removeFromCache = async (key: CacheKey): Promise<number | null> => 
 
 export const getFromCacheOrDB = async <T>(
   key: CacheKey,
-  dbQuery: () => Promise<T>,
+  dbQuery: () => Promise<T | null>,
   cacheDuration?: number
-): Promise<T> => {
+): Promise<T | null> => {
   const cached = await getFromCache<T>(key);
   if (cached !== null) return cached;
+
   const data = await dbQuery();
-  if (data === undefined || data === null) throw new Error('Data not found');
-  await addToCache(key, data as object, cacheDuration ?? ENVIRONMENT.redis.cacheExpiry);
+  if (data != null) {
+    await addToCache(key, data as object, cacheDuration ?? ENVIRONMENT.redis.cacheExpiry);
+  }
+
   return data;
 };
 
 export const clearNamespace = async (namespace: string): Promise<void> => {
   const redis = getRedisClient();
   const stream = redis.scanStream({ match: `${namespace}*`, count: 100 });
+  const errors: Error[] = [];
+
   return new Promise((resolve, reject) => {
     stream.on('data', (keys: string[]) => {
-      if (keys.length === 0) {
-        return;
+      if (keys.length === 0) return;
+
+      stream.pause();
+      redis
+        .unlink(...keys)
+        .then(() => {
+          logger.debug(`Deleted ${keys.length} keys in ${namespace}`);
+          stream.resume();
+        })
+        .catch(err => {
+          errors.push(err instanceof Error ? err : new Error(String(err)));
+          stream.resume();
+        });
+    });
+
+    stream.on('end', () => {
+      if (errors.length > 0) {
+        logger.error(`clearNamespace ${namespace}: ${errors.length} unlink errors`, errors[0]);
       }
 
-      void (async () => {
-        await redis.unlink(...keys);
-        logger.debug(`Deleted ${keys.length} keys in ${namespace}`);
-      })();
+      resolve();
     });
-    stream.on('end', () => resolve());
+
     stream.on('error', err => reject(err));
   });
 };
