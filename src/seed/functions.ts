@@ -16,6 +16,8 @@ import { ContentCategory } from '../models/contentCategory';
 import { GospelVerse } from '../models/gospelVerse';
 import { authService } from '../services/auth.service';
 import { ICategory, IRole, ISubCategory, type ContentCategoryScope } from '../lib/types/constants';
+import { ADMIN_PERMISSIONS, DEFAULT_ADMIN_ROLE_PERMISSIONS } from '../constants/adminPermissions';
+import { permissionsForRoleSlug } from '../services/adminPermission.service';
 
 /** Seed email used for both ContactMethod and admins */
 const SEED_EMAIL = 'ohemultimedia@gmail.com';
@@ -294,15 +296,34 @@ export const seedPromotionContent = async (): Promise<void> => {
  */
 export const seedRoles = async (): Promise<void> => {
   const roles = [
-    { slug: 'super-admin' as const, name: 'Super Admin', description: 'Full platform access' },
-    { slug: 'admin' as const, name: 'Admin', description: 'Administrator access' },
-    { slug: 'customer' as const, name: 'Customer', description: 'Customer/user access' },
+    {
+      slug: 'super-admin' as const,
+      name: 'Super Admin',
+      description: 'Full platform access',
+      permissions: ADMIN_PERMISSIONS,
+    },
+    {
+      slug: 'admin' as const,
+      name: 'Admin',
+      description: 'Administrator access',
+      permissions: DEFAULT_ADMIN_ROLE_PERMISSIONS.map(slug =>
+        ADMIN_PERMISSIONS.find(permission => permission.slug === slug)
+      ).filter((permission): permission is (typeof ADMIN_PERMISSIONS)[number] =>
+        Boolean(permission)
+      ),
+    },
+    {
+      slug: 'customer' as const,
+      name: 'Customer',
+      description: 'Customer/user access',
+      permissions: [],
+    },
   ];
 
   for (const r of roles) {
     await Role.findOneAndUpdate(
       { slug: r.slug },
-      { $set: { name: r.name, description: r.description } },
+      { $set: { name: r.name, description: r.description, permissions: r.permissions } },
       { upsert: true, runValidators: true }
     );
   }
@@ -499,6 +520,11 @@ export const seedAdmins = async (): Promise<void> => {
           accountStatus: 'active',
           'auth.password.value': hashedPassword,
           'auth.roles': [{ slug: superAdminRole.slug, roleId: superAdminRole._id }],
+          'auth.permissions': permissionsForRoleSlug(superAdminRole.slug)
+            .map(slug => ADMIN_PERMISSIONS.find(permission => permission.slug === slug))
+            .filter((permission): permission is (typeof ADMIN_PERMISSIONS)[number] =>
+              Boolean(permission)
+            ),
         },
       },
       { upsert: true, runValidators: true }

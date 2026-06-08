@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { adminPreHandlers, authenticatePreHandler } from '../middleware/auth.middleware';
+import { authenticatePreHandler } from '../middleware/auth.middleware';
+import { adminWriteRoute } from '../utils/adminRouteHandlers';
 import { catchAsync } from '../utils/catchAsync';
 import {
   list,
@@ -48,7 +49,7 @@ export function registerNotificationRoutes(app: FastifyInstance): void {
   }>(
     '/create',
     {
-      preHandler: adminPreHandlers,
+      preHandler: adminWriteRoute.preHandler,
       schema: createNotificationBodySchema,
     },
     catchAsync(create)
