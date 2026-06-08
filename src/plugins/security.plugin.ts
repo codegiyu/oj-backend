@@ -26,7 +26,7 @@ async function securityPlugin(app: FastifyInstance): Promise<void> {
   const allowlist = tokenHeaderAllowlist();
 
   await app.register(cors, {
-    origin: ENVIRONMENT.cors.origin.split(',').map(s => s.trim()),
+    origin: [...ENVIRONMENT.cors.origins],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', ...allowlist],
