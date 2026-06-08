@@ -35,7 +35,8 @@ export function frontendPathsForContent(
 
 export async function requestFrontendRevalidation(paths: string[]): Promise<void> {
   const url = process.env.FRONTEND_REVALIDATION_URL?.trim();
-  const secret = process.env.FRONTEND_REVALIDATION_SECRET?.trim();
+  const secret =
+    process.env.REVALIDATION_SECRET?.trim() || process.env.FRONTEND_REVALIDATION_SECRET?.trim();
   const uniquePaths = [...new Set(paths.map(path => path.trim()).filter(Boolean))];
 
   if (!url || !secret || uniquePaths.length === 0) {
