@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-misused-promises -- Fastify preHandler async hooks */
 import { FastifyInstance } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { catchAsync } from '../utils/catchAsync';
 import { login, session, logout } from '../controllers/auth/auth.controller';
@@ -18,13 +18,30 @@ import {
   resetPasswordBodySchema,
   changePasswordBodySchema,
 } from '../controllers/auth/auth.validation';
+import { AUTH_SENSITIVE_RATE_LIMIT } from '../constants/authRateLimit';
 
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
-  app.post<{ Body: { email: string; password: string } }>(
-    '/login',
-    { schema: loginBodySchema },
-    catchAsync(login)
-  );
+  await app.register(async sensitiveAuthApp => {
+    await sensitiveAuthApp.register(rateLimit, AUTH_SENSITIVE_RATE_LIMIT);
+
+    sensitiveAuthApp.post<{ Body: { email: string; password: string } }>(
+      '/login',
+      { schema: loginBodySchema },
+      catchAsync(login)
+    );
+
+    sensitiveAuthApp.post<{ Body: { email: string; scope: string } }>(
+      '/request-otp',
+      { schema: requestOTPBodySchema },
+      catchAsync(requestOTP)
+    );
+
+    sensitiveAuthApp.post(
+      '/request-password-reset',
+      { schema: requestPasswordResetBodySchema },
+      catchAsync(requestPasswordReset)
+    );
+  });
 
   /** Google OAuth for users only. Admins use POST /auth/login (email/password). */
   app.post<{ Body: { googleCode: string } }>(
@@ -39,22 +56,10 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     catchAsync(googleAuth)
   );
 
-  app.post<{ Body: { email: string; scope: string } }>(
-    '/request-otp',
-    { schema: requestOTPBodySchema },
-    catchAsync(requestOTP)
-  );
-
   app.post<{ Body: { code: string; email: string; scope: string } }>(
     '/verify-otp',
     { schema: verifyOTPBodySchema },
     catchAsync(verifyOTP)
-  );
-
-  app.post(
-    '/request-password-reset',
-    { schema: requestPasswordResetBodySchema },
-    catchAsync(requestPasswordReset)
   );
 
   app.post<{
