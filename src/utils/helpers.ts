@@ -1,18 +1,31 @@
-import { customAlphabet } from 'nanoid';
+import crypto from 'crypto';
 import mongoose from 'mongoose';
+
+const DEFAULT_RANDOM_ALPHABET = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
+
+/** Cryptographically secure string from a given alphabet (CommonJS-safe; no ESM-only nanoid). */
+export function randomFromAlphabet(alphabet: string, length: number): string {
+  const bytes = crypto.randomBytes(length);
+  let result = '';
+
+  for (let i = 0; i < length; i++) {
+    result += alphabet[bytes[i] % alphabet.length];
+  }
+
+  return result;
+}
 
 /** Generate a numeric OTP string (e.g. 6 digits). */
 export function generateRandomNumber(digits: number = 6): string {
-  const nums = customAlphabet('0123456789', digits);
-  return nums();
+  const max = 10 ** digits;
+
+  return String(crypto.randomInt(0, max)).padStart(digits, '0');
 }
 
 export function generateRandomString(length: number, prefix?: string): string {
-  const nanoid = customAlphabet(
-    '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ',
-    length
-  );
-  return prefix ? `${prefix}-${nanoid()}` : nanoid();
+  const body = randomFromAlphabet(DEFAULT_RANDOM_ALPHABET, length);
+
+  return prefix ? `${prefix}-${body}` : body;
 }
 
 /** Create a URL-safe slug from a string (e.g. "Store Name" -> "store-name"). */

@@ -5,11 +5,11 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { customAlphabet } from 'nanoid';
+import { randomFromAlphabet } from '../utils/helpers';
 import { r2Client, r2Config } from '../config/r2';
 import type { EntityType, UploadIntent } from '../lib/types/constants';
 
-const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 12);
+const R2_FILENAME_ALPHABET = '1234567890abcdefghijklmnopqrstuvwxyz';
 
 export interface GeneratePresignedUrlParams {
   entityType: EntityType;
@@ -70,7 +70,7 @@ export async function generatePresignedUrl({
   expiresIn = 3600,
 }: GeneratePresignedUrlParams): Promise<GeneratePresignedUrlResult> {
   const ext = fileExtension.replace(/^\./, '');
-  const filename = `${nanoid()}${ext ? `.${ext}` : ''}`;
+  const filename = `${randomFromAlphabet(R2_FILENAME_ALPHABET, 12)}${ext ? `.${ext}` : ''}`;
   const key = `${r2Config.folderPrefix}/${entityType}/${entityId}/${intent}/${filename}`;
 
   const putParams: ConstructorParameters<typeof PutObjectCommand>[0] = {
