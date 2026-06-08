@@ -21,7 +21,6 @@ const ALLOWED_CLIENT_INTENTS: UploadIntent[] = [
   'image',
   'other',
 ];
-const ALLOWED_CLIENT_INTENTS_SET = new Set(ALLOWED_CLIENT_INTENTS);
 
 async function assertClientEntityUploadAllowed(
   userId: string,
@@ -78,27 +77,33 @@ export type PresignedBody = {
   files?: Array<{ fileExtension: string; contentType?: string }>;
 };
 
-export async function presignedUrlClient(
-  request: FastifyRequest<{ Body: PresignedBody }>,
+type PresignedContext = {
+  uploadedByModel: 'User' | 'Admin';
+  userId: string;
+  allowedIntents?: UploadIntent[];
+  assertEntityOwnership?: (entityType: string, entityId: string) => Promise<void>;
+};
+
+async function handlePresignedUrlRequest(
+  body: PresignedBody,
+  ctx: PresignedContext,
   reply: FastifyReply
 ): Promise<void> {
-  const user = getAuthUser(request);
-  if (!user || user.scope !== 'client-access') {
-    throw new AppError('Unauthorized', 401);
-  }
+  const { entityType, entityId, intent, fileExtension, contentType, files } = body;
 
-  const { entityType, entityId, intent, fileExtension, contentType, files } = request.body;
   if (!entityType || !entityId || !intent) {
     throw new AppError('entityType, entityId, and intent are required', 400);
   }
   if (!ENTITY_TYPES_SET.has(entityType)) {
     throw new AppError(`Invalid entityType: ${entityType}`, 400);
   }
-  await assertClientEntityUploadAllowed(user.userId, entityType, entityId);
+  if (ctx.assertEntityOwnership) {
+    await ctx.assertEntityOwnership(entityType, entityId);
+  }
   if (!UPLOAD_INTENTS_SET.has(intent)) {
     throw new AppError(`Invalid intent: ${intent}`, 400);
   }
-  if (!ALLOWED_CLIENT_INTENTS_SET.has(intent as UploadIntent)) {
+  if (ctx.allowedIntents && !ctx.allowedIntents.includes(intent as UploadIntent)) {
     throw new AppError('This intent is not allowed for client uploads', 403);
   }
   if (!mongoose.Types.ObjectId.isValid(entityId)) {
@@ -151,8 +156,8 @@ export async function presignedUrlClient(
           contentType: ct,
           status: 'pending',
           expiresAt,
-          uploadedBy: user.userId,
-          uploadedByModel: 'User',
+          uploadedBy: ctx.userId,
+          uploadedByModel: ctx.uploadedByModel,
         });
         return {
           intent,
@@ -195,8 +200,8 @@ export async function presignedUrlClient(
     contentType: ct,
     status: 'pending',
     expiresAt,
-    uploadedBy: user.userId,
-    uploadedByModel: 'User',
+    uploadedBy: ctx.userId,
+    uploadedByModel: ctx.uploadedByModel,
   });
 
   sendResponse(
@@ -212,6 +217,28 @@ export async function presignedUrlClient(
       expiresAt: expiresAt.toISOString(),
     },
     'Presigned URL generated.'
+  );
+}
+
+export async function presignedUrlClient(
+  request: FastifyRequest<{ Body: PresignedBody }>,
+  reply: FastifyReply
+): Promise<void> {
+  const user = getAuthUser(request);
+  if (!user || user.scope !== 'client-access') {
+    throw new AppError('Unauthorized', 401);
+  }
+
+  await handlePresignedUrlRequest(
+    request.body,
+    {
+      uploadedByModel: 'User',
+      userId: user.userId,
+      allowedIntents: ALLOWED_CLIENT_INTENTS,
+      assertEntityOwnership: (entityType, entityId) =>
+        assertClientEntityUploadAllowed(user.userId, entityType, entityId),
+    },
+    reply
   );
 }
 
@@ -222,126 +249,14 @@ export async function presignedUrlAdmin(
   const user = getAuthUser(request);
   if (!user) throw new AppError('Unauthorized', 401);
 
-  const { entityType, entityId, intent, fileExtension, contentType, files } = request.body;
-  if (!entityType || !entityId || !intent) {
-    throw new AppError('entityType, entityId, and intent are required', 400);
-  }
-  if (!ENTITY_TYPES_SET.has(entityType)) {
-    throw new AppError(`Invalid entityType: ${entityType}`, 400);
-  }
-  if (!UPLOAD_INTENTS_SET.has(intent)) {
-    throw new AppError(`Invalid intent: ${intent}`, 400);
-  }
-  if (!mongoose.Types.ObjectId.isValid(entityId)) {
-    throw new AppError('Invalid entityId', 400);
-  }
-
-  const narrowedEntityTypeAdmin = entityType as EntityType;
-  const narrowedIntentAdmin = intent as UploadIntent;
-
-  const filesArray = Array.isArray(files) ? files : [];
-  const hasSingle = fileExtension !== undefined;
-  const hasBatch = filesArray.length > 0;
-  if (!hasSingle && !hasBatch) {
-    throw new AppError('Provide fileExtension (and optionally contentType) or files array', 400);
-  }
-  if (hasSingle && hasBatch) {
-    throw new AppError('Provide either single file or files array, not both', 400);
-  }
-
-  const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
-
-  if (hasBatch) {
-    if (filesArray.length > 20) {
-      throw new AppError('Maximum 20 files per request', 400);
-    }
-    const uploads = await Promise.all(
-      filesArray.map(async (entry, index) => {
-        const ext = (entry?.fileExtension ?? '').trim();
-        if (!ext) {
-          throw new AppError(`files[${index}].fileExtension is required`, 400);
-        }
-        const ct = resolveContentType(ext, entry.contentType, narrowedIntentAdmin);
-        const { filename, url, key, publicUrl } = await generatePresignedUrl({
-          entityType: narrowedEntityTypeAdmin,
-          entityId,
-          intent: narrowedIntentAdmin,
-          fileExtension: ext,
-          contentType: ct,
-          expiresIn: expiresInSeconds,
-        });
-        const doc = await Document.create({
-          entityType: narrowedEntityTypeAdmin,
-          entityId: new mongoose.Types.ObjectId(entityId),
-          intent: narrowedIntentAdmin,
-          filename,
-          key,
-          publicUrl,
-          uploadUrl: url,
-          fileExtension: ext,
-          contentType: ct,
-          status: 'pending',
-          expiresAt,
-          uploadedBy: user.userId,
-          uploadedByModel: 'Admin',
-        });
-        return {
-          intent,
-          uploadUrl: url,
-          key,
-          filename,
-          publicUrl,
-          documentId: doc._id.toString(),
-          expiresIn: expiresInSeconds,
-          expiresAt: expiresAt.toISOString(),
-        };
-      })
-    );
-    sendResponse(reply, 200, { uploads, count: uploads.length }, 'Presigned URLs generated.');
-    return;
-  }
-
-  const ext = (fileExtension ?? '').trim();
-  if (!ext) {
-    throw new AppError('fileExtension is required', 400);
-  }
-  const ct = resolveContentType(ext, contentType, narrowedIntentAdmin);
-  const { filename, url, key, publicUrl } = await generatePresignedUrl({
-    entityType: narrowedEntityTypeAdmin,
-    entityId,
-    intent: narrowedIntentAdmin,
-    fileExtension: ext,
-    contentType: ct,
-    expiresIn: expiresInSeconds,
-  });
-  const doc = await Document.create({
-    entityType: narrowedEntityTypeAdmin,
-    entityId: new mongoose.Types.ObjectId(entityId),
-    intent: narrowedIntentAdmin,
-    filename,
-    key,
-    publicUrl,
-    uploadUrl: url,
-    fileExtension: ext,
-    contentType: ct,
-    status: 'pending',
-    expiresAt,
-    uploadedBy: user.userId,
-    uploadedByModel: 'Admin',
-  });
-
-  sendResponse(
-    reply,
-    200,
+  await handlePresignedUrlRequest(
+    request.body,
     {
-      uploadUrl: url,
-      key,
-      filename,
-      publicUrl,
-      documentId: doc._id.toString(),
-      expiresIn: expiresInSeconds,
-      expiresAt: expiresAt.toISOString(),
+      uploadedByModel: 'Admin',
+      userId: user.userId,
     },
-    'Presigned URL generated.'
+    reply
   );
 }
+
+export { handlePresignedUrlRequest, assertClientEntityUploadAllowed, resolveContentType };
