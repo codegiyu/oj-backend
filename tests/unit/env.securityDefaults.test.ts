@@ -64,6 +64,30 @@ describe('parseCorsOrigins', () => {
   });
 });
 
+describe('loadEnvironment mongo and port defaults', () => {
+  it('defaults API port to 4400 and mongo pool settings', () => {
+    const env = loadEnvironment({ NODE_ENV: 'development' } as NodeJS.ProcessEnv);
+
+    expect(env.port).toBe(4400);
+    expect(env.mongo.maxPoolSize).toBe(10);
+    expect(env.mongo.serverSelectionTimeoutMS).toBe(5000);
+    expect(env.mongo.retryWrites).toBe(true);
+  });
+
+  it('honours mongo pool env overrides', () => {
+    const env = loadEnvironment({
+      NODE_ENV: 'development',
+      MONGO_MAX_POOL_SIZE: '25',
+      MONGO_SERVER_SELECTION_TIMEOUT_MS: '8000',
+      MONGO_RETRY_WRITES: 'false',
+    } as NodeJS.ProcessEnv);
+
+    expect(env.mongo.maxPoolSize).toBe(25);
+    expect(env.mongo.serverSelectionTimeoutMS).toBe(8000);
+    expect(env.mongo.retryWrites).toBe(false);
+  });
+});
+
 describe('loadEnvironment cors origins', () => {
   it('exposes parsed origins on the environment object', () => {
     const env = loadEnvironment({

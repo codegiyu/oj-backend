@@ -4,7 +4,11 @@ import { logger } from '../utils/logger';
 
 export const connectDb = async (): Promise<void> => {
   try {
-    await mongoose.connect(ENVIRONMENT.databaseUrl);
+    await mongoose.connect(ENVIRONMENT.databaseUrl, {
+      maxPoolSize: ENVIRONMENT.mongo.maxPoolSize,
+      serverSelectionTimeoutMS: ENVIRONMENT.mongo.serverSelectionTimeoutMS,
+      retryWrites: ENVIRONMENT.mongo.retryWrites,
+    });
     logger.info('MongoDB connected');
   } catch (error) {
     logger.error('MongoDB connection error:', error);
