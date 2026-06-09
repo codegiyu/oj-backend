@@ -39,12 +39,20 @@ cp .env.example .env
 ## Development
 
 ```bash
-# Run in development mode with hot reload
+# API (HTTP + Socket.io)
 npm run dev
 
-# Or use nodemon
-npm run start:dev
+# BullMQ worker (separate terminal)
+npm run dev:worker
+
+# One-process local setup (colocated worker)
+RUN_WORKER=true npm run dev
+
+# Database seed (explicit — not run on API boot)
+npm run seed
 ```
+
+Production deploys should run API and worker as **separate processes** — see [docs/runbooks/deploy-topology.md](docs/runbooks/deploy-topology.md).
 
 ## API versioning
 

@@ -7,6 +7,7 @@ Quick response guides for common production failures. Pair with `/health` (liven
 | Redis unavailable | `/ready` 503, `checks.redis: false`, cache/session errors | [redis-down.md](./redis-down.md) |
 | MongoDB unavailable | `/ready` 503, `checks.mongodb: false`, 5xx on data routes | [mongodb-down.md](./mongodb-down.md) |
 | BullMQ backlog | Slow async work, growing queue depth, worker logs stalled | [queue-backlog.md](./queue-backlog.md) |
+| API vs worker | Jobs never complete, schedulers missing, wrong process count | [deploy-topology.md](./deploy-topology.md) |
 
 ## Observability
 
