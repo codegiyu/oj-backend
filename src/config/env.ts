@@ -216,7 +216,7 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
 
   return {
     nodeEnv,
-    port: parseInt(raw.PORT || '3000', 10),
+    port: parseInt(raw.PORT || '4400', 10),
     host: raw.HOST || '0.0.0.0',
     databaseUrl,
     jwt: {
