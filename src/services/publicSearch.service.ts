@@ -20,7 +20,25 @@ import {
   publishedVideoCompletenessFilter,
 } from '../utils/contentCompleteness';
 import { leanIdToString } from '../utils/leanId';
-import { mergeSearchIntoFilter } from '../utils/searchQuery';
+import { mergeSearchIntoFilter, shouldUseTextSearch } from '../utils/searchQuery';
+
+export type PublicSearchOptions = {
+  q: string;
+  typeFilter?: string;
+  page: number;
+  limit: number;
+  /** Skip regex fallback — used when USE_ATLAS_SEARCH routes through text indexes only. */
+  forceTextSearch?: boolean;
+};
+
+function buildSearchFilter(
+  baseFilter: Record<string, unknown>,
+  q: string,
+  fields: string[],
+  forceTextSearch?: boolean
+): Record<string, unknown> {
+  return mergeSearchIntoFilter(baseFilter, q, fields, { forceTextSearch });
+}
 
 export const SEARCH_DEFAULT_LIMIT = 24;
 export const SEARCH_MAX_LIMIT = 50;
@@ -76,12 +94,16 @@ export function buildSearchPagination(
   };
 }
 
-async function fetchMusicResults(q: string): Promise<SearchResultItem[]> {
+async function fetchMusicResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchMusicDocuments(
-    mergeSearchIntoFilter(
+    buildSearchFilter(
       mergePublicFilter({ status: 'published' }, publishedMusicCompletenessFilter()),
       q,
-      ['title', 'description', 'category']
+      ['title', 'description', 'category'],
+      forceTextSearch
     ),
     SEARCH_PER_TYPE_LIMIT
   );
@@ -104,9 +126,17 @@ async function fetchMusicResults(q: string): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchAlbumResults(q: string): Promise<SearchResultItem[]> {
+async function fetchAlbumResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchAlbumDocuments(
-    mergeSearchIntoFilter({ status: 'published' }, q, ['title', 'description', 'excerpt']),
+    buildSearchFilter(
+      { status: 'published' },
+      q,
+      ['title', 'description', 'excerpt'],
+      forceTextSearch
+    ),
     SEARCH_PER_TYPE_LIMIT
   );
 
@@ -124,12 +154,13 @@ async function fetchAlbumResults(q: string): Promise<SearchResultItem[]> {
   });
 }
 
-async function fetchNewsResults(q: string): Promise<SearchResultItem[]> {
+async function fetchNewsResults(q: string, forceTextSearch?: boolean): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchNewsDocuments(
-    mergeSearchIntoFilter(
+    buildSearchFilter(
       mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
       q,
-      ['title', 'category', 'content']
+      ['title', 'category', 'content'],
+      forceTextSearch
     ),
     SEARCH_PER_TYPE_LIMIT
   );
@@ -151,12 +182,16 @@ async function fetchNewsResults(q: string): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchVideoResults(q: string): Promise<SearchResultItem[]> {
+async function fetchVideoResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchVideoDocuments(
-    mergeSearchIntoFilter(
+    buildSearchFilter(
       mergePublicFilter({ status: 'published' }, publishedVideoCompletenessFilter()),
       q,
-      ['title', 'description', 'category']
+      ['title', 'description', 'category'],
+      forceTextSearch
     ),
     SEARCH_PER_TYPE_LIMIT
   );
@@ -179,12 +214,16 @@ async function fetchVideoResults(q: string): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchDevotionalResults(q: string): Promise<SearchResultItem[]> {
+async function fetchDevotionalResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchDevotionalDocuments(
-    mergeSearchIntoFilter(
+    buildSearchFilter(
       mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
       q,
-      ['title', 'excerpt', 'content', 'category', 'author']
+      ['title', 'excerpt', 'content', 'category', 'author'],
+      forceTextSearch
     ),
     SEARCH_PER_TYPE_LIMIT
   );
@@ -205,12 +244,16 @@ async function fetchDevotionalResults(q: string): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchTestimonyResults(q: string): Promise<SearchResultItem[]> {
+async function fetchTestimonyResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchTestimonyDocuments(
-    mergeSearchIntoFilter(
+    buildSearchFilter(
       mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
       q,
-      ['content', 'author', 'category']
+      ['content', 'author', 'category'],
+      forceTextSearch
     ),
     SEARCH_PER_TYPE_LIMIT
   );
@@ -234,14 +277,17 @@ async function fetchTestimonyResults(q: string): Promise<SearchResultItem[]> {
   return results;
 }
 
-async function fetchPrayerRequestResults(q: string): Promise<SearchResultItem[]> {
+async function fetchPrayerRequestResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchPrayerRequestDocuments(
-    mergeSearchIntoFilter(mergePublicFilter({}, publishedTextContentCompletenessFilter()), q, [
-      'title',
-      'content',
-      'author',
-      'category',
-    ]),
+    buildSearchFilter(
+      mergePublicFilter({}, publishedTextContentCompletenessFilter()),
+      q,
+      ['title', 'content', 'author', 'category'],
+      forceTextSearch
+    ),
     SEARCH_PER_TYPE_LIMIT
   );
 
@@ -261,9 +307,17 @@ async function fetchPrayerRequestResults(q: string): Promise<SearchResultItem[]>
   return results;
 }
 
-async function fetchQuestionResults(q: string): Promise<SearchResultItem[]> {
+async function fetchQuestionResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchQuestionDocuments(
-    mergeSearchIntoFilter({ isPrivate: { $ne: true } }, q, ['question', 'author', 'category']),
+    buildSearchFilter(
+      { isPrivate: { $ne: true } },
+      q,
+      ['question', 'author', 'category'],
+      forceTextSearch
+    ),
     SEARCH_PER_TYPE_LIMIT
   );
 
@@ -276,9 +330,14 @@ async function fetchQuestionResults(q: string): Promise<SearchResultItem[]> {
   }));
 }
 
-async function fetchPollResults(q: string): Promise<SearchResultItem[]> {
+async function fetchPollResults(q: string, forceTextSearch?: boolean): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchPollDocuments(
-    mergeSearchIntoFilter({ status: 'active' }, q, ['question', 'description', 'category']),
+    buildSearchFilter(
+      { status: 'active' },
+      q,
+      ['question', 'description', 'category'],
+      forceTextSearch
+    ),
     SEARCH_PER_TYPE_LIMIT
   );
 
@@ -296,9 +355,17 @@ async function fetchPollResults(q: string): Promise<SearchResultItem[]> {
   });
 }
 
-async function fetchArtistResults(q: string): Promise<SearchResultItem[]> {
+async function fetchArtistResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchArtistDocuments(
-    mergeSearchIntoFilter({ profileStatus: 'active', isActive: true }, q, ['name', 'genre', 'bio']),
+    buildSearchFilter(
+      { profileStatus: 'active', isActive: true },
+      q,
+      ['name', 'genre', 'bio'],
+      forceTextSearch
+    ),
     SEARCH_PER_TYPE_LIMIT
   );
 
@@ -312,12 +379,16 @@ async function fetchArtistResults(q: string): Promise<SearchResultItem[]> {
   }));
 }
 
-async function fetchResourceResults(q: string): Promise<SearchResultItem[]> {
+async function fetchResourceResults(
+  q: string,
+  forceTextSearch?: boolean
+): Promise<SearchResultItem[]> {
   const docs = await searchRepo.searchResourceDocuments(
-    mergeSearchIntoFilter(
+    buildSearchFilter(
       mergePublicFilter({ status: 'published' }, publishedResourceCompletenessFilter()),
       q,
-      ['title', 'description', 'type', 'category']
+      ['title', 'description', 'type', 'category'],
+      forceTextSearch
     ),
     SEARCH_PER_TYPE_LIMIT
   );
@@ -361,13 +432,10 @@ function resolveSearchTypes(typeFilter?: string): string[] {
   return [typeFilter];
 }
 
-export async function runPublicSearch(options: {
-  q: string;
-  typeFilter?: string;
-  page: number;
-  limit: number;
-}): Promise<SearchResponsePayload> {
-  const { q, typeFilter, page, limit } = options;
+export async function runPublicSearch(
+  options: PublicSearchOptions
+): Promise<SearchResponsePayload> {
+  const { q, typeFilter, page, limit, forceTextSearch } = options;
 
   if (!q) {
     return {
@@ -376,32 +444,41 @@ export async function runPublicSearch(options: {
     };
   }
 
+  if (forceTextSearch && !shouldUseTextSearch(q)) {
+    const searchTypes = resolveSearchTypes(typeFilter);
+
+    return {
+      results: [],
+      pagination: buildSearchPagination(0, page, limit, searchTypes.length),
+    };
+  }
+
   const searchTypes = resolveSearchTypes(typeFilter);
 
   const fetchTasks = searchTypes.map(type => {
     switch (type) {
       case 'music':
-        return fetchMusicResults(q);
+        return fetchMusicResults(q, forceTextSearch);
       case 'album':
-        return fetchAlbumResults(q);
+        return fetchAlbumResults(q, forceTextSearch);
       case 'news':
-        return fetchNewsResults(q);
+        return fetchNewsResults(q, forceTextSearch);
       case 'video':
-        return fetchVideoResults(q);
+        return fetchVideoResults(q, forceTextSearch);
       case 'devotional':
-        return fetchDevotionalResults(q);
+        return fetchDevotionalResults(q, forceTextSearch);
       case 'testimony':
-        return fetchTestimonyResults(q);
+        return fetchTestimonyResults(q, forceTextSearch);
       case 'prayer-request':
-        return fetchPrayerRequestResults(q);
+        return fetchPrayerRequestResults(q, forceTextSearch);
       case 'question':
-        return fetchQuestionResults(q);
+        return fetchQuestionResults(q, forceTextSearch);
       case 'poll':
-        return fetchPollResults(q);
+        return fetchPollResults(q, forceTextSearch);
       case 'artist':
-        return fetchArtistResults(q);
+        return fetchArtistResults(q, forceTextSearch);
       case 'resource':
-        return fetchResourceResults(q);
+        return fetchResourceResults(q, forceTextSearch);
       default:
         return Promise.resolve([]);
     }

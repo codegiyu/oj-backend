@@ -5,6 +5,7 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendResponse } from '../../utils/response';
+import { runAtlasBackedSearch } from '../../services/atlasSearch.service';
 import {
   runPublicSearch,
   SEARCH_DEFAULT_LIMIT,
@@ -33,7 +34,9 @@ export async function search(
     )
   );
 
-  const payload = await runPublicSearch({ q, typeFilter, page, limit });
+  const searchOptions = { q, typeFilter, page, limit };
+  const payload =
+    (await runAtlasBackedSearch(searchOptions)) ?? (await runPublicSearch(searchOptions));
 
   sendResponse(reply, 200, payload, 'Search results.');
 }

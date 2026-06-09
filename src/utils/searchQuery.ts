@@ -47,11 +47,17 @@ export function buildRegexSearchClause(
 export function mergeSearchIntoFilter(
   baseFilter: Record<string, unknown>,
   q: string,
-  fields: string[]
+  fields: string[],
+  options?: { forceTextSearch?: boolean }
 ): Record<string, unknown> {
   const textClause = buildTextSearchClause(q);
+
   if (textClause) {
     return mergePublicFilter(baseFilter, textClause);
+  }
+
+  if (options?.forceTextSearch) {
+    return baseFilter;
   }
 
   return mergePublicFilter(baseFilter, buildRegexSearchClause(q, fields));
