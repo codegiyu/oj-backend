@@ -1,136 +1,30 @@
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 
-# Install timezone data and set timezone
-# RUN apk add --no-cache tzdata \
-#   && cp /usr/share/zoneinfo/Africa/Lagos /etc/localtime \
-#   && echo "Africa/Lagos" > /etc/timezone
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund --legacy-peer-deps
 
-# Install dependencies first to maximize Docker layer caching
-COPY package.json ./
-RUN npm install --no-audit --no-fund --legacy-peer-deps --include=dev
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
 
-COPY . .
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json tsconfig.json ./
+COPY src ./src
 
 RUN npm run build
 
-# # Remove dev dependencies after building
-# RUN npm prune --omit=dev
+FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
 
-# FROM node:22-bookworm-slim AS runtime
-# WORKDIR /app
-
-# Expose the port the app runs on in the container
-EXPOSE 4400
-
-# Define the environment variables (for Coolify / build args)
-ARG NODE_ENV
-ARG HOST
-ARG PORT
-ARG DATABASE_URL
-
-ARG JWT_SECRET
-ARG JWT_EXPIRES_IN
-ARG REFRESH_TOKEN_SECRET
-ARG REFRESH_TOKEN_EXPIRES_IN
-ARG ACCESS_COOKIE_MAX_AGE
-ARG REFRESH_COOKIE_MAX_AGE
-ARG TOKEN_COOKIE_ACCESS
-ARG TOKEN_COOKIE_REFRESH
-
-ARG GOOGLE_CLIENT_ID
-ARG GOOGLE_CLIENT_SECRET
-ARG YOUTUBE_API_KEY
-
-ARG REDIS_URL
-ARG CACHE_EXPIRY
-
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_SECRET_ACCESS_KEY
-ARG AWS_REGION
-ARG S3_BUCKET_NAME
-
-ARG R2_ACCOUNT_ID
-ARG R2_ACCESS_KEY_ID
-ARG R2_SECRET_ACCESS_KEY
-ARG R2_BUCKET_NAME
-ARG R2_FOLDER_PREFIX
-ARG R2_CDN_URL
-ARG R2_PUBLIC_URL
-
-ARG SMTP_HOST
-ARG SMTP_PORT
-ARG SMTP_SECURE
-ARG SMTP_USER
-ARG SMTP_PASS
-ARG EMAIL_FROM
-ARG EMAIL_FROM_NAME
-
-ARG APP_NAME
-ARG PRIMARY_COLOR
-ARG SECONDARY_COLOR
-ARG FONT_FAMILY
-ARG SUPPORT_EMAIL
-ARG LOGO_URL
-
-ARG CORS_ORIGIN
-ARG RATE_LIMIT_MAX
-ARG RATE_LIMIT_TIME_WINDOW
-
-ARG ADMIN_APP_URL
-ARG CLIENT_APP_URL
-
-ARG DOMAIN
-
-# Set environment variables
 ENV NODE_ENV=production \
-  HOST=$HOST \
-  PORT=$PORT \
-  DATABASE_URL=$DATABASE_URL \
-  JWT_SECRET=$JWT_SECRET \
-  JWT_EXPIRES_IN=$JWT_EXPIRES_IN \
-  REFRESH_TOKEN_SECRET=$REFRESH_TOKEN_SECRET \
-  REFRESH_TOKEN_EXPIRES_IN=$REFRESH_TOKEN_EXPIRES_IN \
-  ACCESS_COOKIE_MAX_AGE=$ACCESS_COOKIE_MAX_AGE \
-  REFRESH_COOKIE_MAX_AGE=$REFRESH_COOKIE_MAX_AGE \
-  TOKEN_COOKIE_ACCESS=$TOKEN_COOKIE_ACCESS \
-  TOKEN_COOKIE_REFRESH=$TOKEN_COOKIE_REFRESH \
-  GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
-  GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET \
-  YOUTUBE_API_KEY=$YOUTUBE_API_KEY \
-  REDIS_URL=$REDIS_URL \
-  CACHE_EXPIRY=$CACHE_EXPIRY \
-  AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-  AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-  AWS_REGION=$AWS_REGION \
-  S3_BUCKET_NAME=$S3_BUCKET_NAME \
-  R2_ACCOUNT_ID=$R2_ACCOUNT_ID \
-  R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
-  R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
-  R2_BUCKET_NAME=$R2_BUCKET_NAME \
-  R2_FOLDER_PREFIX=$R2_FOLDER_PREFIX \
-  R2_CDN_URL=$R2_CDN_URL \
-  R2_PUBLIC_URL=$R2_PUBLIC_URL \
-  SMTP_HOST=$SMTP_HOST \
-  SMTP_PORT=$SMTP_PORT \
-  SMTP_SECURE=$SMTP_SECURE \
-  SMTP_USER=$SMTP_USER \
-  SMTP_PASS=$SMTP_PASS \
-  EMAIL_FROM=$EMAIL_FROM \
-  EMAIL_FROM_NAME=$EMAIL_FROM_NAME \
-  APP_NAME=$APP_NAME \
-  PRIMARY_COLOR=$PRIMARY_COLOR \
-  SECONDARY_COLOR=$SECONDARY_COLOR \
-  FONT_FAMILY=$FONT_FAMILY \
-  SUPPORT_EMAIL=$SUPPORT_EMAIL \
-  LOGO_URL=$LOGO_URL \
-  CORS_ORIGIN=$CORS_ORIGIN \
-  RATE_LIMIT_MAX=$RATE_LIMIT_MAX \
-  RATE_LIMIT_TIME_WINDOW=$RATE_LIMIT_TIME_WINDOW \
-  ADMIN_APP_URL=$ADMIN_APP_URL \
-  CLIENT_APP_URL=$CLIENT_APP_URL \
-  DOMAIN=$DOMAIN \
   TZ=Africa/Lagos
 
-#  Run the app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund --legacy-peer-deps
+
+COPY --from=build /app/dist ./dist
+
+EXPOSE 4400
+
+# Default: API process. Override CMD to ["npm", "run", "start:worker"] for worker service.
 CMD ["npm", "start"]
