@@ -1,17 +1,30 @@
 import { buildApp } from './app';
 import { ENVIRONMENT } from './config/env';
+import { RUN_COLLOCATED_WORKER } from './config/runtime';
 import { logger } from './utils/logger';
 import { connectDb, disconnectDb } from './config/db';
 import { getRedisClient, closeRedisConnection } from './config/redis';
 import { attachSocketServer, closeSocketServer } from './socket';
-import { seedDb } from './seed';
-import './queues/main.queue'; // register QueueEvents listeners
-import { registerChartJobSchedulers } from './queues/chartSchedulers';
-import { mainWorker } from './queues/main.worker';
+import './queues/main.queue';
+import type { Worker } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
 
 let app: FastifyInstance | null = null;
+let colocatedWorker: Worker | null = null;
 let isShuttingDown = false;
+
+async function maybeStartColocatedWorker(): Promise<void> {
+  if (!RUN_COLLOCATED_WORKER) {
+    return;
+  }
+
+  const { registerChartJobSchedulers } = await import('./queues/chartSchedulers');
+  const { mainWorker } = await import('./queues/main.worker');
+
+  await registerChartJobSchedulers();
+  colocatedWorker = mainWorker;
+  logger.info('Colocated BullMQ worker started (RUN_WORKER=true)');
+}
 
 const start = async (): Promise<void> => {
   try {
@@ -21,10 +34,7 @@ const start = async (): Promise<void> => {
     getRedisClient();
     logger.info('Redis client initialized');
 
-    await seedDb();
-    logger.info('Seed completed');
-
-    await registerChartJobSchedulers();
+    await maybeStartColocatedWorker();
 
     app = await buildApp();
 
@@ -76,12 +86,16 @@ const shutdown = async (signal: string): Promise<void> => {
     exitCode = 1;
   }
 
-  try {
-    await mainWorker.close();
-    logger.info('BullMQ worker closed');
-  } catch (err) {
-    logger.error('Error closing worker', err);
-    exitCode = 1;
+  if (colocatedWorker) {
+    try {
+      await colocatedWorker.close();
+      logger.info('BullMQ worker closed');
+    } catch (err) {
+      logger.error('Error closing worker', err);
+      exitCode = 1;
+    } finally {
+      colocatedWorker = null;
+    }
   }
 
   try {
