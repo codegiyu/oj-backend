@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { withSuccessEnvelope } from '../schemas/response.envelope';
 import { catchAsync } from '../utils/catchAsync';
 import { authenticatePreHandler, optionalAuthenticate } from '../middleware/auth.middleware';
 import {
@@ -134,7 +135,11 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
       type?: string;
       period?: string;
     };
-  }>('/music', { schema: listPublicMusicQuerystringSchema }, catchAsync(listPublicMusic));
+  }>(
+    '/music',
+    { schema: withSuccessEnvelope(listPublicMusicQuerystringSchema) },
+    catchAsync(listPublicMusic)
+  );
 
   app.get<{ Params: { idOrSlug: string } }>(
     '/music/:idOrSlug/download',
@@ -329,7 +334,7 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
 
   app.get<{ Querystring: { q?: string; type?: string; page?: string; limit?: string } }>(
     '/search',
-    { schema: searchQuerystringSchema },
+    { schema: withSuccessEnvelope(searchQuerystringSchema) },
     catchAsync(search)
   );
 

@@ -245,7 +245,7 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
     logger.info('auth: authenticate rejected (invalid session)', { snapshot });
   }
 
-  throw new AppError('NAT: Unauthorized', 401);
+  throw new AppError('Unauthorized', 401);
 };
 
 /**

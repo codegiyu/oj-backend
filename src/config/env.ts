@@ -21,6 +21,9 @@ export type Environment = {
     readonly accessCookieMaxAge: number;
     readonly refreshCookieMaxAge: number;
   };
+  readonly cookie: {
+    readonly secret: string;
+  };
   readonly tokenNames: {
     readonly cookies: {
       readonly access: string;
@@ -115,6 +118,7 @@ const MIN_SECRET_LENGTH = 16;
 
 const DEV_JWT_SECRET = 'dev-only-jwt-secret-32chars-minimum!';
 const DEV_REFRESH_SECRET = 'dev-only-refresh-secret-32chars-min!';
+const DEV_COOKIE_SECRET = 'dev-only-cookie-secret-32chars-min!';
 
 const LEGACY_INSECURE_SECRETS = new Set([
   'your-secret-key',
@@ -123,6 +127,7 @@ const LEGACY_INSECURE_SECRETS = new Set([
   'your-super-secret-refresh-token-key-change-in-production',
   DEV_JWT_SECRET,
   DEV_REFRESH_SECRET,
+  DEV_COOKIE_SECRET,
 ]);
 
 const ALLOWED_NODE_ENVS = new Set(['development', 'test', 'production', 'staging']);
@@ -173,6 +178,24 @@ function assertProductionSecret(name: string, value: string): void {
   }
 }
 
+function resolveCookieSecret(raw: NodeJS.ProcessEnv, nodeEnv: string): string {
+  const cookieSecretInput = raw.COOKIE_SECRET?.trim() ?? '';
+
+  if (nodeEnv === 'production' || nodeEnv === 'staging') {
+    assertProductionSecret('COOKIE_SECRET', cookieSecretInput);
+
+    return cookieSecretInput;
+  }
+
+  if (usesDevDefaults(nodeEnv)) {
+    return cookieSecretInput || DEV_COOKIE_SECRET;
+  }
+
+  assertProductionSecret('COOKIE_SECRET', cookieSecretInput);
+
+  return cookieSecretInput;
+}
+
 function resolveSecrets(
   raw: NodeJS.ProcessEnv,
   nodeEnv: string
@@ -221,6 +244,7 @@ function resolveSecrets(
 export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environment {
   const nodeEnv = resolveNodeEnv(raw);
   const { jwtSecret, refreshSecret, databaseUrl } = resolveSecrets(raw, nodeEnv);
+  const cookieSecret = resolveCookieSecret(raw, nodeEnv);
   const redisUrl = raw.REDIS_URL?.trim() || 'redis://localhost:6379/0';
 
   return {
@@ -240,6 +264,9 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
       refreshExpiresIn: raw.REFRESH_TOKEN_EXPIRES_IN || '30d',
       accessCookieMaxAge: parseInt(raw.ACCESS_COOKIE_MAX_AGE || String(60 * 60), 10),
       refreshCookieMaxAge: parseInt(raw.REFRESH_COOKIE_MAX_AGE || String(30 * 24 * 60 * 60), 10),
+    },
+    cookie: {
+      secret: cookieSecret,
     },
     tokenNames: {
       cookies: {

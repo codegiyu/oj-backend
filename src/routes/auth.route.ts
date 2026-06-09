@@ -50,13 +50,6 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     { schema: googleLoginBodySchema },
     catchAsync(googleAuth)
   );
-  /** @deprecated Use POST /auth/google. Kept for backward compatibility. */
-  app.post<{ Body: { googleCode: string } }>(
-    '/google-login',
-    { schema: googleLoginBodySchema },
-    catchAsync(googleAuth)
-  );
-
   app.post<{ Body: { code: string; email: string; scope: string } }>(
     '/verify-otp',
     { schema: verifyOTPBodySchema },

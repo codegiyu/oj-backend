@@ -2,5 +2,6 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-32chars-min!!';
 process.env.REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || 'test-refresh-secret-32chars-min!';
+process.env.COOKIE_SECRET = process.env.COOKIE_SECRET || 'test-cookie-secret-32chars-min!';
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'mongodb://localhost:27017/oj-test';
 process.env.REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379/1';

@@ -6,6 +6,7 @@ const productionBase = {
   DATABASE_URL: 'mongodb://db.example.com/oj',
   JWT_SECRET: 'production-jwt-secret-32chars',
   REFRESH_TOKEN_SECRET: 'production-refresh-secret-32chars',
+  COOKIE_SECRET: 'production-cookie-secret-32chars',
 };
 
 describe('loadEnvironment (production)', () => {

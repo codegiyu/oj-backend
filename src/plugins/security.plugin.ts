@@ -38,10 +38,10 @@ async function securityPlugin(app: FastifyInstance): Promise<void> {
   });
 
   await app.register(cookie, {
-    secret: ENVIRONMENT.jwt.secret,
+    secret: ENVIRONMENT.cookie.secret,
   });
 
-  const useRedisStore = ENVIRONMENT.nodeEnv === 'production';
+  const useRedisStore = ENVIRONMENT.nodeEnv === 'production' || ENVIRONMENT.nodeEnv === 'staging';
 
   await app.register(rateLimit, {
     max: ENVIRONMENT.rateLimit.max,

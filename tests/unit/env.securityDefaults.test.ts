@@ -10,6 +10,7 @@ const productionBase = {
   DATABASE_URL: 'mongodb://db.example.com/oj',
   JWT_SECRET: 'production-jwt-secret-32chars',
   REFRESH_TOKEN_SECRET: 'production-refresh-secret-32chars',
+  COOKIE_SECRET: 'production-cookie-secret-32chars',
 };
 
 describe('resolveRequireRefreshToken', () => {
@@ -61,6 +62,24 @@ describe('parseCorsOrigins', () => {
 
   it('falls back to localhost in development', () => {
     expect(parseCorsOrigins({} as NodeJS.ProcessEnv)).toEqual(['http://localhost:3000']);
+  });
+});
+
+describe('loadEnvironment cookie secret', () => {
+  it('uses a dedicated cookie secret separate from JWT in development', () => {
+    const env = loadEnvironment({ NODE_ENV: 'development' } as NodeJS.ProcessEnv);
+
+    expect(env.cookie.secret).toBeTruthy();
+    expect(env.cookie.secret).not.toBe(env.jwt.secret);
+  });
+
+  it('requires COOKIE_SECRET in production', () => {
+    expect(() =>
+      loadEnvironment({
+        ...productionBase,
+        COOKIE_SECRET: '',
+      } as NodeJS.ProcessEnv)
+    ).toThrow(/COOKIE_SECRET/);
   });
 });
 
