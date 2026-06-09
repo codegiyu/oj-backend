@@ -58,6 +58,51 @@ describe('GET /public/search', () => {
     });
   });
 
+  it('returns typed search results from the service layer', async () => {
+    vi.mocked(publicSearchService.runPublicSearch).mockResolvedValueOnce({
+      results: [
+        {
+          _id: '507f1f77bcf86cd799439011',
+          title: 'Gospel Song',
+          subtitle: 'Test Artist',
+          type: 'music',
+          meta: '120',
+        },
+        {
+          _id: '507f1f77bcf86cd799439012',
+          title: 'Worship Album',
+          subtitle: 'Test Artist',
+          type: 'album',
+          image: 'https://cdn.example/cover.jpg',
+          meta: '',
+        },
+      ],
+      pagination: buildSearchPagination(2, 1, 24, 2),
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `${API_V1_PREFIX}/public/search?q=gospel&type=music`,
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const body = response.json() as {
+      data?: {
+        results: Array<{ type: string; title: string }>;
+        pagination: { loaded: number; isCapped: boolean };
+      };
+    };
+
+    expect(body.data?.results).toHaveLength(2);
+    expect(body.data?.results[0]?.type).toBe('music');
+    expect(body.data?.results[1]?.type).toBe('album');
+    expect(body.data?.pagination).toMatchObject({ loaded: 2, isCapped: false });
+    expect(publicSearchService.runPublicSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ q: 'gospel', typeFilter: 'music', page: 1, limit: 24 })
+    );
+  });
+
   it('returns capped pagination metadata for full-type search', async () => {
     const loaded = 11 * SEARCH_PER_TYPE_LIMIT;
     vi.mocked(publicSearchService.runPublicSearch).mockResolvedValueOnce({
