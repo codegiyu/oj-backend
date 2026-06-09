@@ -8,6 +8,11 @@ export type Environment = {
   readonly port: number;
   readonly host: string;
   readonly databaseUrl: string;
+  readonly mongo: {
+    readonly maxPoolSize: number;
+    readonly serverSelectionTimeoutMS: number;
+    readonly retryWrites: boolean;
+  };
   readonly jwt: {
     readonly secret: string;
     readonly expiresIn: string;
@@ -219,6 +224,11 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
     port: parseInt(raw.PORT || '4400', 10),
     host: raw.HOST || '0.0.0.0',
     databaseUrl,
+    mongo: {
+      maxPoolSize: parseInt(raw.MONGO_MAX_POOL_SIZE || '10', 10),
+      serverSelectionTimeoutMS: parseInt(raw.MONGO_SERVER_SELECTION_TIMEOUT_MS || '5000', 10),
+      retryWrites: raw.MONGO_RETRY_WRITES !== 'false',
+    },
     jwt: {
       secret: jwtSecret,
       expiresIn: raw.JWT_EXPIRES_IN || '1h',

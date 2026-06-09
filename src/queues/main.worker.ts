@@ -55,7 +55,8 @@ export const mainWorker = new Worker<JobData>(
     if (type === 'reconcileArtistFollowerCounts') {
       return await reconcileArtistFollowerCounts(job as Job<ReconcileArtistFollowerCountsJobData>);
     }
-    logger.warn(`Unknown job type: ${type}`);
+
+    throw new Error(`Unknown job type: ${type}`);
   },
   {
     connection: redisConnection,
@@ -66,4 +67,13 @@ export const mainWorker = new Worker<JobData>(
 
 mainWorker.on('error', err => {
   logger.error('Main worker error', err);
+});
+
+mainWorker.on('failed', (job, err) => {
+  logger.error('BullMQ job failed', {
+    jobId: job?.id,
+    jobType: job?.data?.type,
+    attemptsMade: job?.attemptsMade,
+    error: err.message,
+  });
 });
