@@ -17,7 +17,7 @@ Fastify TypeScript backend for OJ Multimedia.
 
 ## Prerequisites
 
-- Node.js 18+ 
+- Node.js 22+ 
 - Redis server
 - AWS S3 account (for file storage)
 - SMTP server (for email)
