@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { AskPastorQuestion } from '../models/askPastorQuestion';
 import type { IAskPastorAnswer, IAskPastorQuestion } from '../lib/types/constants';
+import * as pastorRepo from '../repositories/pastor/pastor.repository';
 
 /** Count answers from the answers[] subdoc, falling back to legacy single-answer fields. */
 export function countQuestionAnswers(
@@ -75,8 +75,7 @@ export function submitterQuestionFilter(userId: mongoose.Types.ObjectId): Record
 export async function incrementPastorQuestionsAnswered(
   pastorId: mongoose.Types.ObjectId
 ): Promise<void> {
-  const { Pastor } = await import('../models/pastor');
-  await Pastor.updateOne({ _id: pastorId }, { $inc: { questionsAnswered: 1 } });
+  await pastorRepo.incrementPastorQuestionsAnsweredCount(pastorId);
 }
 
 export async function buildPastorDashboardStats(pastorId: mongoose.Types.ObjectId): Promise<{
@@ -85,30 +84,18 @@ export async function buildPastorDashboardStats(pastorId: mongoose.Types.ObjectI
   assignedQuestions: number;
   totalUpvotes: number;
 }> {
-  const [pastor, pendingQuestions, assignedQuestions, voteAgg] = await Promise.all([
-    import('../models/pastor').then(({ Pastor }) =>
-      Pastor.findById(pastorId).select('questionsAnswered').lean()
-    ),
-    AskPastorQuestion.countDocuments({
-      status: 'active',
-      ...pastorQuestionAccessFilter(pastorId),
-    }),
-    AskPastorQuestion.countDocuments({
-      requestedPastor: pastorId,
-      status: { $in: ['active', 'answered'] },
-    }),
-    AskPastorQuestion.aggregate<{ totalUpvotes: number }>([
-      { $match: { 'answers.pastor': pastorId } },
-      { $unwind: '$answers' },
-      { $match: { 'answers.pastor': pastorId } },
-      { $group: { _id: null, totalUpvotes: { $sum: { $ifNull: ['$upvotes', 0] } } } },
-    ]),
+  const accessFilter = pastorQuestionAccessFilter(pastorId);
+  const [questionsAnswered, pendingQuestions, assignedQuestions, totalUpvotes] = await Promise.all([
+    pastorRepo.findPastorQuestionsAnsweredCount(pastorId),
+    pastorRepo.countActivePastorAccessibleQuestions(accessFilter),
+    pastorRepo.countAssignedPastorQuestions(pastorId),
+    pastorRepo.aggregatePastorAnswerUpvotes(pastorId),
   ]);
 
   return {
-    questionsAnswered: pastor?.questionsAnswered ?? 0,
+    questionsAnswered: questionsAnswered ?? 0,
     pendingQuestions,
     assignedQuestions,
-    totalUpvotes: voteAgg[0]?.totalUpvotes ?? 0,
+    totalUpvotes,
   };
 }

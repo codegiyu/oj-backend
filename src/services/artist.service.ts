@@ -1,5 +1,5 @@
 /* Mongoose lean docs are typed loosely; match artist.controller eslint baseline. */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+
 import mongoose from 'mongoose';
 import type { IArtist } from '../lib/types/constants';
 import { AppError } from '../utils/AppError';
