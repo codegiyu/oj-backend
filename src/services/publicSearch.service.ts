@@ -2,15 +2,9 @@
  * Unified public search — parallel collection queries with capped in-memory pagination.
  */
 
-import { Music } from '../models/music';
-import { Video } from '../models/video';
-import { Album } from '../models/album';
-import { NewsArticle } from '../models/newsArticle';
-import { Devotional, Testimony, PrayerRequest, AskPastorQuestion, Poll, Resource } from '../models';
-import { Artist } from '../models/artist';
+import * as searchRepo from '../repositories/public/search.repository';
 import { toArtistSummary } from '../controllers/artist/artist.helpers';
 import type { PopulatedArtistDoc } from '../controllers/artist/artist.helpers';
-import { ARTIST_POPULATE_SELECT } from '../controllers/artist/artist.helpers';
 import {
   isCompleteDevotional,
   isCompleteMusic,
@@ -83,16 +77,14 @@ export function buildSearchPagination(
 }
 
 async function fetchMusicResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Music.find(
+  const docs = await searchRepo.searchMusicDocuments(
     mergeSearchIntoFilter(
       mergePublicFilter({ status: 'published' }, publishedMusicCompletenessFilter()),
       q,
       ['title', 'description', 'category']
-    )
-  )
-    .populate('artist', ARTIST_POPULATE_SELECT)
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
@@ -113,12 +105,10 @@ async function fetchMusicResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchAlbumResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Album.find(
-    mergeSearchIntoFilter({ status: 'published' }, q, ['title', 'description', 'excerpt'])
-  )
-    .populate('artist', ARTIST_POPULATE_SELECT)
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+  const docs = await searchRepo.searchAlbumDocuments(
+    mergeSearchIntoFilter({ status: 'published' }, q, ['title', 'description', 'excerpt']),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   return (docs as unknown as Record<string, unknown>[]).map(doc => {
     const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
@@ -135,15 +125,14 @@ async function fetchAlbumResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchNewsResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await NewsArticle.find(
+  const docs = await searchRepo.searchNewsDocuments(
     mergeSearchIntoFilter(
       mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
       q,
       ['title', 'category', 'content']
-    )
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
@@ -163,16 +152,14 @@ async function fetchNewsResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchVideoResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Video.find(
+  const docs = await searchRepo.searchVideoDocuments(
     mergeSearchIntoFilter(
       mergePublicFilter({ status: 'published' }, publishedVideoCompletenessFilter()),
       q,
       ['title', 'description', 'category']
-    )
-  )
-    .populate('artist', ARTIST_POPULATE_SELECT)
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
@@ -193,15 +180,14 @@ async function fetchVideoResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchDevotionalResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Devotional.find(
+  const docs = await searchRepo.searchDevotionalDocuments(
     mergeSearchIntoFilter(
       mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
       q,
       ['title', 'excerpt', 'content', 'category', 'author']
-    )
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
@@ -220,15 +206,14 @@ async function fetchDevotionalResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchTestimonyResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Testimony.find(
+  const docs = await searchRepo.searchTestimonyDocuments(
     mergeSearchIntoFilter(
       mergePublicFilter({ status: 'published' }, publishedTextContentCompletenessFilter()),
       q,
       ['content', 'author', 'category']
-    )
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
@@ -250,16 +235,15 @@ async function fetchTestimonyResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchPrayerRequestResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await PrayerRequest.find(
+  const docs = await searchRepo.searchPrayerRequestDocuments(
     mergeSearchIntoFilter(mergePublicFilter({}, publishedTextContentCompletenessFilter()), q, [
       'title',
       'content',
       'author',
       'category',
-    ])
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ]),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
@@ -278,11 +262,10 @@ async function fetchPrayerRequestResults(q: string): Promise<SearchResultItem[]>
 }
 
 async function fetchQuestionResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await AskPastorQuestion.find(
-    mergeSearchIntoFilter({ isPrivate: { $ne: true } }, q, ['question', 'author', 'category'])
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+  const docs = await searchRepo.searchQuestionDocuments(
+    mergeSearchIntoFilter({ isPrivate: { $ne: true } }, q, ['question', 'author', 'category']),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   return (docs as unknown as Record<string, unknown>[]).map(doc => ({
     _id: leanIdToString(doc._id),
@@ -294,11 +277,10 @@ async function fetchQuestionResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchPollResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Poll.find(
-    mergeSearchIntoFilter({ status: 'active' }, q, ['question', 'description', 'category'])
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+  const docs = await searchRepo.searchPollDocuments(
+    mergeSearchIntoFilter({ status: 'active' }, q, ['question', 'description', 'category']),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   return (docs as unknown as Record<string, unknown>[]).map(doc => {
     const totalVotesRaw = Number(doc.totalVotes);
@@ -315,11 +297,10 @@ async function fetchPollResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchArtistResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Artist.find(
-    mergeSearchIntoFilter({ profileStatus: 'active', isActive: true }, q, ['name', 'genre', 'bio'])
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+  const docs = await searchRepo.searchArtistDocuments(
+    mergeSearchIntoFilter({ profileStatus: 'active', isActive: true }, q, ['name', 'genre', 'bio']),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   return (docs as unknown as Record<string, unknown>[]).map(doc => ({
     _id: leanIdToString(doc._id),
@@ -332,15 +313,14 @@ async function fetchArtistResults(q: string): Promise<SearchResultItem[]> {
 }
 
 async function fetchResourceResults(q: string): Promise<SearchResultItem[]> {
-  const docs = await Resource.find(
+  const docs = await searchRepo.searchResourceDocuments(
     mergeSearchIntoFilter(
       mergePublicFilter({ status: 'published' }, publishedResourceCompletenessFilter()),
       q,
       ['title', 'description', 'type', 'category']
-    )
-  )
-    .limit(SEARCH_PER_TYPE_LIMIT)
-    .lean();
+    ),
+    SEARCH_PER_TYPE_LIMIT
+  );
 
   const results: SearchResultItem[] = [];
 
