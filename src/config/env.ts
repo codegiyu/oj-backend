@@ -94,6 +94,10 @@ export type Environment = {
   readonly observability: {
     readonly enableMetricsRoute: boolean;
   };
+  readonly search: {
+    /** When true, prefer MongoDB text indexes (Atlas Search migration path). */
+    readonly useAtlasSearch: boolean;
+  };
   readonly logging: {
     readonly pretty: boolean;
     readonly level: string;
@@ -309,6 +313,9 @@ export function loadEnvironment(raw: NodeJS.ProcessEnv = process.env): Environme
     domain: raw.DOMAIN || 'localhost',
     observability: {
       enableMetricsRoute: raw.ENABLE_METRICS_ROUTE === '1' || raw.ENABLE_METRICS_ROUTE === 'true',
+    },
+    search: {
+      useAtlasSearch: raw.USE_ATLAS_SEARCH === 'true' || raw.USE_ATLAS_SEARCH === '1',
     },
     logging: {
       pretty: shouldUsePrettyLogs(nodeEnv, raw),
