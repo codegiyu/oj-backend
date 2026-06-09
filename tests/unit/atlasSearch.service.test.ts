@@ -4,6 +4,10 @@ vi.mock('../../src/config/env', () => ({
   ENVIRONMENT: { search: { useAtlasSearch: false } },
 }));
 
+vi.mock('../../src/services/publicSearch.service', () => ({
+  runPublicSearch: vi.fn(),
+}));
+
 describe('atlasSearch.service', () => {
   afterEach(() => {
     vi.resetModules();
