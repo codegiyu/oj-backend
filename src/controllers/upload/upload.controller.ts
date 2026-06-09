@@ -4,6 +4,10 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generatePresignedUrl, getContentTypeFromExtension } from '../../services/r2.service';
 import { Document } from '../../models/document';
+import {
+  isAllowedUploadExtension,
+  normalizeUploadExtension,
+} from '../../constants/uploadAllowlist';
 import { ENTITY_TYPES, UPLOAD_INTENTS } from '../../lib/types/constants';
 import type { EntityType, UploadIntent } from '../../lib/types/constants';
 import { getAuthUser } from '../../utils/getAuthUser';
@@ -131,9 +135,15 @@ async function handlePresignedUrlRequest(
     }
     const uploads = await Promise.all(
       filesArray.map(async (entry, index) => {
-        const ext = (entry?.fileExtension ?? '').trim();
+        const ext = normalizeUploadExtension(entry?.fileExtension ?? '');
         if (!ext) {
           throw new AppError(`files[${index}].fileExtension is required`, 400);
+        }
+        if (!isAllowedUploadExtension(narrowedIntent, ext)) {
+          throw new AppError(
+            `files[${index}].fileExtension is not allowed for intent ${intent}`,
+            400
+          );
         }
         const ct = resolveContentType(ext, entry.contentType, narrowedIntent);
         const { filename, url, key, publicUrl } = await generatePresignedUrl({
@@ -175,9 +185,12 @@ async function handlePresignedUrlRequest(
     return;
   }
 
-  const ext = (fileExtension ?? '').trim();
+  const ext = normalizeUploadExtension(fileExtension ?? '');
   if (!ext) {
     throw new AppError('fileExtension is required', 400);
+  }
+  if (!isAllowedUploadExtension(narrowedIntent, ext)) {
+    throw new AppError(`fileExtension is not allowed for intent ${intent}`, 400);
   }
   const ct = resolveContentType(ext, contentType, narrowedIntent);
   const { filename, url, key, publicUrl } = await generatePresignedUrl({

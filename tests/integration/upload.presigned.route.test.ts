@@ -129,6 +129,20 @@ describe('upload presigned URL routes', () => {
     expect(body.data?.expiresIn).toBe(3600);
   });
 
+  it('returns 400 when file extension is not allowed for intent', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: CLIENT_UPLOAD,
+      headers: buildClientAccessAuthHeader({ userId: USER_ID }),
+      payload: {
+        ...presignedPayload,
+        fileExtension: 'exe',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
   it('returns 403 when client uploads for another user entity', async () => {
     const response = await app.inject({
       method: 'POST',
