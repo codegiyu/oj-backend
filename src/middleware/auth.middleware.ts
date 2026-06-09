@@ -103,7 +103,7 @@ function authRequestSnapshot(request: FastifyRequest): Record<string, unknown> {
  * write auth response headers, refresh cookies when tokens rotate) — same responsibilities
  * as an Express `protectRoutes` middleware in one preHandler.
  */
-async function resolveSession(
+export async function resolveSession(
   request: FastifyRequest,
   reply: FastifyReply,
   snapshot: Record<string, unknown>
