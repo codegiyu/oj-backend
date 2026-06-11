@@ -1,11 +1,8 @@
 import mongoose from 'mongoose';
 import { Music } from '../models/music';
 import { Video } from '../models/video';
-import {
-  mergePublicFilter,
-  publishedMusicCompletenessFilter,
-  publishedVideoCompletenessFilter,
-} from '../utils/contentCompleteness';
+import { mergePublicFilter, publishedVideoCompletenessFilter } from '../utils/contentCompleteness';
+import { buildPublishedMusicFilterForArtists } from '../utils/artistMusicFilter';
 import { leanIdToString } from '../utils/leanId';
 
 export interface ArtistPublishedContentCounts {
@@ -17,11 +14,10 @@ function emptyCountsMap(): Map<string, ArtistPublishedContentCounts> {
   return new Map();
 }
 
-function publishedMusicFilter(artistIds: mongoose.Types.ObjectId[]): Record<string, unknown> {
-  return mergePublicFilter(
-    { status: 'published', artist: { $in: artistIds } },
-    publishedMusicCompletenessFilter()
-  );
+async function publishedMusicFilter(
+  artistIds: mongoose.Types.ObjectId[]
+): Promise<Record<string, unknown>> {
+  return buildPublishedMusicFilterForArtists(artistIds, { status: 'published' });
 }
 
 function publishedVideoFilter(artistIds: mongoose.Types.ObjectId[]): Record<string, unknown> {
@@ -37,10 +33,28 @@ export async function getPublishedContentCountsByArtistIds(
   const counts = emptyCountsMap();
   if (artistIds.length === 0) return counts;
 
+  const musicMatch = await publishedMusicFilter(artistIds);
+
   const [songRows, videoRows] = await Promise.all([
     Music.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
-      { $match: publishedMusicFilter(artistIds) },
-      { $group: { _id: '$artist', count: { $sum: 1 } } },
+      { $match: musicMatch },
+      {
+        $lookup: {
+          from: 'albums',
+          localField: 'album',
+          foreignField: '_id',
+          as: 'albumDoc',
+        },
+      },
+      {
+        $addFields: {
+          attributedArtist: {
+            $ifNull: ['$artist', { $arrayElemAt: ['$albumDoc.artist', 0] }],
+          },
+        },
+      },
+      { $match: { attributedArtist: { $in: artistIds } } },
+      { $group: { _id: '$attributedArtist', count: { $sum: 1 } } },
     ]),
     Video.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
       { $match: publishedVideoFilter(artistIds) },

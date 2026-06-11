@@ -50,3 +50,13 @@ export async function resolveAlbumForMusicAssignment(input: {
 export async function clearMusicAlbumReferences(albumId: mongoose.Types.ObjectId): Promise<void> {
   await Music.updateMany({ album: albumId }, { $set: { album: null } });
 }
+
+/** When a track has no artist, inherit the album owner on assignment. */
+export async function resolveMusicArtistFromAlbum(
+  albumId: mongoose.Types.ObjectId
+): Promise<mongoose.Types.ObjectId | null> {
+  const album = await Album.findById(albumId).select('artist').lean<AlbumArtistLean>();
+  const albumArtist = album?.artist;
+
+  return albumArtist ?? null;
+}

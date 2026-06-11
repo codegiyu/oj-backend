@@ -29,6 +29,7 @@ import {
   parseAlbumAssignmentInput,
   resolveAlbumForMusicAssignment,
   clearMusicAlbumReferences,
+  resolveMusicArtistFromAlbum,
 } from '../../src/services/albumMusic.service';
 
 function mockAlbumFindByIdLean(album: Record<string, unknown> | null) {
@@ -108,6 +109,23 @@ describe('albumMusic.service', () => {
       slug: mockAlbumSummary.slug,
       artist: artistId,
     });
+  });
+
+  it('resolveMusicArtistFromAlbum returns album owner when present', async () => {
+    const artistId = toObjectId(MOCK_ARTIST_IDS.primary);
+    mockAlbumFindByIdLean(mockAlbumAssignmentLean({ artistId }));
+
+    const result = await resolveMusicArtistFromAlbum(toObjectId(MOCK_ALBUM_IDS.primary));
+
+    expect(result?.toString()).toBe(artistId.toString());
+  });
+
+  it('resolveMusicArtistFromAlbum returns null when album is missing', async () => {
+    mockAlbumFindByIdLean(null);
+
+    const result = await resolveMusicArtistFromAlbum(toObjectId(MOCK_ALBUM_IDS.primary));
+
+    expect(result).toBeNull();
   });
 
   it('clearMusicAlbumReferences unsets album on related music rows', async () => {

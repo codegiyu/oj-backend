@@ -18,6 +18,7 @@ import {
 import {
   parseAlbumAssignmentInput,
   resolveAlbumForMusicAssignment,
+  resolveMusicArtistFromAlbum,
 } from '../../services/albumMusic.service';
 import {
   assertMonetizationPrice,
@@ -104,17 +105,22 @@ export async function createAdminMusic(
     ownerUserId: body.ownerUserId,
     artistId: body.artistId,
   });
-  const slugFilter = resolvedArtistId ? { artist: resolvedArtistId } : { artist: null };
-
   let albumRef: mongoose.Types.ObjectId | null = null;
   const albumAssignment = parseAlbumAssignmentInput(body.albumId);
+  let effectiveArtistId = resolvedArtistId ?? null;
 
   if (albumAssignment.action === 'set') {
     albumRef = await resolveAlbumForMusicAssignment({
       albumId: albumAssignment.albumId,
-      musicArtistId: resolvedArtistId ?? null,
+      musicArtistId: effectiveArtistId,
     });
+
+    if (!effectiveArtistId) {
+      effectiveArtistId = await resolveMusicArtistFromAlbum(albumAssignment.albumId);
+    }
   }
+
+  const slugFilter = effectiveArtistId ? { artist: effectiveArtistId } : { artist: null };
 
   const music = await withDuplicateKeyRetry(async () => {
     const slug = await generateUniqueSlug(Music, body.title, slugFilter);
@@ -122,7 +128,7 @@ export async function createAdminMusic(
     return Music.create({
       title: body.title,
       slug,
-      artist: resolvedArtistId ?? null,
+      artist: effectiveArtistId,
       album: albumRef,
       description: body.description ?? '',
       lyrics: body.lyrics ?? '',
@@ -226,6 +232,12 @@ export async function updateAdminMusic(
       albumId: albumAssignment.albumId,
       musicArtistId: music.artist ?? null,
     });
+
+    if (!music.artist) {
+      const albumArtist = await resolveMusicArtistFromAlbum(albumAssignment.albumId);
+
+      if (albumArtist) music.artist = albumArtist;
+    }
   }
 
   if (body.title !== undefined) music.title = body.title;
