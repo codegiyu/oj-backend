@@ -14,6 +14,7 @@ export {
 } from './functions';
 
 export { backfillMediaMetadataOnce } from './backfillMediaMetadata';
+export { backfillMusicArtistFromAlbum } from './backfillMusicArtistFromAlbum';
 export { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
 export { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
 export { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
@@ -25,6 +26,7 @@ import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 import { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
 import { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
 import { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
+import { backfillMusicArtistFromAlbum } from './backfillMusicArtistFromAlbum';
 
 /**
  * Main seed entry: run any enabled seed/migration steps.
@@ -43,6 +45,8 @@ export const seedDb = async (): Promise<void> => {
     // await seedGospelVerses();
     // await wipePastorAskDataOnce();
     // await backfillMediaMetadataOnce();
+    // Idempotent backfill: inherit music.artist from album.artist for ownerless tracks
+    await backfillMusicArtistFromAlbum();
     await migrateVideoMovieCategoryOnce();
     await reconcileVendorUserLinksOnce();
     await migrateArtistSpotlightFieldsOnce();
