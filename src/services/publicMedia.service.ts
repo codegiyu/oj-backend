@@ -39,6 +39,7 @@ import { buildVideoDurationBucketFilter } from '../constants/videoSections';
 import { resolveDownloadRedirectUrl } from './r2.service';
 import { getChartList } from './musicCharts.service';
 import { getTrendingNewsList, getTrendingVideosList } from './mediaTrending.service';
+import { applyArtistMusicScopeToFilter } from '../utils/artistMusicFilter';
 
 function isHttpFileUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
@@ -128,7 +129,7 @@ export async function listPublicMusic(
   if (category && category !== 'all') filter.category = category;
   else if (excludeCategory && excludeCategory !== 'all') filter.category = { $ne: excludeCategory };
   if (artistId && mongoose.Types.ObjectId.isValid(artistId)) {
-    filter.artist = new mongoose.Types.ObjectId(artistId);
+    filter = await applyArtistMusicScopeToFilter(filter, new mongoose.Types.ObjectId(artistId));
   }
 
   filter = applyTextSearch(filter, q, ['title', 'excerpt']);
