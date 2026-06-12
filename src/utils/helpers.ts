@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { AppError } from './AppError';
+import { Vendor } from '../models/vendor';
 
 const DEFAULT_RANDOM_ALPHABET = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
 
@@ -98,9 +99,17 @@ export async function generateUniqueSlug<T extends WithSlug>(
 export async function generateVendorProductSlug<T extends WithSlug>(
   model: mongoose.Model<T>,
   vendorId: mongoose.Types.ObjectId,
-  name: string
+  name: string,
+  vendorSlug?: string
 ): Promise<string> {
-  return generateUniqueSlug(model, name, { vendor: vendorId });
+  let storeSlug = vendorSlug?.trim();
+  if (!storeSlug) {
+    const vendor = await Vendor.findById(vendorId).select('slug').lean<{ slug?: string }>();
+    storeSlug = vendor?.slug ?? 'store';
+  }
+
+  const base = `${slugify(name)}-${slugify(storeSlug)}`;
+  return generateUniqueSlug(model, base, { vendor: vendorId });
 }
 
 export async function generateCategorySlug<T extends WithSlug>(

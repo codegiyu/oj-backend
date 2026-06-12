@@ -3,9 +3,10 @@
 import mongoose from 'mongoose';
 import type { HydratedDocument } from 'mongoose';
 import type { ModelVendor, PopulatedOrder } from '../lib/types/constants';
+import { Product } from '../models/product';
 import { AppError } from '../utils/AppError';
 import {
-  slugify,
+  generateVendorProductSlug,
   parsePositiveInteger,
   parseSearch,
   parseString,
@@ -216,13 +217,7 @@ export async function createVendorProduct(
     }
   }
 
-  const baseSlug = slugify(body.name);
-  let slug = baseSlug;
-  let n = 0;
-  while (await vendorRepo.findProductByVendorAndSlug(vendor._id, slug)) {
-    n += 1;
-    slug = `${baseSlug}-${n}`;
-  }
+  const slug = await generateVendorProductSlug(Product, vendor._id, body.name, vendor.slug);
 
   const hasVariations =
     Array.isArray(body.variationOptions) &&

@@ -38,6 +38,7 @@ export const listVendorsQuerystringSchema: FastifySchema = {
       page: { type: 'string', pattern: '^[0-9]+$' },
       search: { type: 'string' },
       q: { type: 'string' },
+      featured: { type: 'string', enum: ['true', 'false'] },
     },
   },
 };

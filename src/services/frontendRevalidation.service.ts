@@ -15,6 +15,10 @@ export function frontendPathsForMarketplaceProduct(slug: string): string[] {
   return ['/marketplace', '/marketplace/products', `/marketplace/products/${encoded}`];
 }
 
+export function frontendPathsForMarketplaceVendor(): string[] {
+  return ['/marketplace', '/marketplace/vendors'];
+}
+
 export function frontendPathsForContent(
   type: FrontendRevalidationContentType,
   value: string

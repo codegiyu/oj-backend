@@ -955,6 +955,7 @@ export interface IVendor {
   statusChangedAt?: Date | null;
   statusChangedBy?: mongoose.Types.ObjectId | null;
   isVerified: boolean;
+  isFeatured: boolean;
   whatsapp?: string;
   address?: string;
   bankAccountName?: string;
