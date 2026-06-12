@@ -1,6 +1,7 @@
 import { Schema, model } from 'mongoose';
 import type { IProductVariant, IVariationOption } from '../lib/types/constants';
 import { ModelProduct } from '../lib/types/constants';
+import { defaultSimpleProductSku } from '../utils/marketplaceProductSku';
 
 const variationOptionSchema = new Schema<IVariationOption>(
   {
@@ -34,6 +35,12 @@ const productSchema = new Schema<ModelProduct>(
     price: { type: Number, required: true },
     images: { type: [String], default: [] },
     inStock: { type: Boolean, default: true },
+    sku: { type: String, default: '' },
+    inventoryMode: {
+      type: String,
+      enum: ['unlimited'],
+      default: 'unlimited',
+    },
     variationOptions: { type: [variationOptionSchema], default: undefined },
     variants: { type: [productVariantSchema], default: undefined },
     status: {
@@ -90,6 +97,12 @@ productSchema.pre('save', function (this: ModelProduct) {
   const vars = doc.variants;
 
   if (!opts?.length || !vars?.length) {
+    if (doc.sku == null || String(doc.sku).trim() === '') {
+      doc.sku = defaultSimpleProductSku(doc.slug);
+    } else {
+      doc.sku = String(doc.sku).toUpperCase();
+    }
+
     return;
   }
 
