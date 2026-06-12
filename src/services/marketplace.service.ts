@@ -61,6 +61,22 @@ function buildWhatsappMessage(order: PopulatedOrder): { message: string; link?: 
   return { message, link };
 }
 
+function buildCustomerOrderConfirmationMessage(
+  orderNumber: string,
+  customerName: string,
+  totalAmount: number
+): string {
+  return [
+    `Hi ${customerName},`,
+    '',
+    `Thank you for your marketplace order (${orderNumber}).`,
+    `Order total: ${totalAmount}`,
+    '',
+    'Your order status is pending. The vendor will contact you to arrange offline payment.',
+    'If WhatsApp opened after checkout, you can also message the vendor directly.',
+  ].join('\n');
+}
+
 async function setBooleanInventoryAfterOrder(
   orderItems: Array<{ product: mongoose.Types.ObjectId; sku?: string }>
 ): Promise<void> {
@@ -561,6 +577,21 @@ export async function placeMarketplaceOrder(
           userModel: 'User',
           title: 'New marketplace order',
           message,
+        });
+      } catch {
+        // ignore notification errors
+      }
+    }
+
+    const customerEmail = String(customer.email ?? '').trim();
+    if (customerEmail.includes('@')) {
+      try {
+        await addJobToQueue({
+          type: 'notificationEmail',
+          to: customerEmail,
+          userModel: 'User',
+          title: 'Your marketplace order confirmation',
+          message: buildCustomerOrderConfirmationMessage(orderNumber, customer.name, totalAmount),
         });
       } catch {
         // ignore notification errors
