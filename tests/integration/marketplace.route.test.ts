@@ -116,6 +116,29 @@ describe('marketplace routes', () => {
     expect(body.data?.pagination?.page).toBe(1);
   });
 
+  it('returns 400 for POST /marketplace/orders when customer address is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `${MARKETPLACE_BASE}/orders`,
+      payload: {
+        customer: {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          phone: '+2348012345678',
+        },
+        items: [
+          {
+            productId: '507f1f77bcf86cd799439011',
+            quantity: 1,
+            price: 1000,
+          },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
   it('returns 404 when vendor slug is not found', async () => {
     vi.mocked(marketplaceService.loadVendorBySlug).mockRejectedValueOnce(
       new AppError('Vendor not found', 404)
