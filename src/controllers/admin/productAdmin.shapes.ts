@@ -30,6 +30,8 @@ export function shapeProductItem(raw: Record<string, unknown>): Record<string, u
     price: raw.price,
     images: raw.images ?? [],
     inStock: raw.inStock,
+    sku: raw.sku,
+    inventoryMode: raw.inventoryMode,
     status: raw.status,
     isFeatured: raw.isFeatured,
     displayOrder: raw.displayOrder ?? 0,

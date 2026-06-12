@@ -18,6 +18,7 @@ export { backfillMusicArtistFromAlbum } from './backfillMusicArtistFromAlbum';
 export { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
 export { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
 export { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
+export { backfillProductUnlimitedInventoryOnce } from './backfillProductUnlimitedInventoryOnce';
 export { wipePastorAskDataOnce } from './wipePastorAskData';
 export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 export { ensureSearchTextIndexes } from './ensureSearchTextIndexes';
@@ -25,6 +26,7 @@ export { ensureSearchTextIndexes } from './ensureSearchTextIndexes';
 import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
 import { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
 import { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
+import { backfillProductUnlimitedInventoryOnce } from './backfillProductUnlimitedInventoryOnce';
 import { migrateVideoMovieCategoryOnce } from './migrateVideoMovieCategory';
 import { backfillMusicArtistFromAlbum } from './backfillMusicArtistFromAlbum';
 
@@ -51,6 +53,7 @@ export const seedDb = async (): Promise<void> => {
     await reconcileVendorUserLinksOnce();
     await migrateArtistSpotlightFieldsOnce();
     await bootstrapMediaDailyMetricsOnce();
+    await backfillProductUnlimitedInventoryOnce();
     // await ensureSearchTextIndexes();
   } catch (error) {
     logger.error('seedDb failed', { error });

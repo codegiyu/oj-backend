@@ -1021,6 +1021,9 @@ export interface IProduct {
   price: number;
   images: string[];
   inStock: boolean;
+  /** Simple products only; variants carry their own sku */
+  sku?: string;
+  inventoryMode?: 'unlimited';
   variationOptions?: IVariationOption[];
   variants?: IProductVariant[];
   status: 'draft' | 'published' | 'archived';

@@ -16,8 +16,10 @@ import {
 import { shapeMarketplaceProductRow } from '../utils/marketplaceProductShape';
 import { serializeDocIds } from '../controllers/artist/artist.helpers';
 import { findVariantBySku } from '../utils/marketplaceProduct';
+import { setBooleanInventoryAfterOrder } from '../utils/marketplaceInventory';
 import * as marketplaceRepo from '../repositories/marketplace/marketplace.repository';
 import { buildMarketplaceWhatsappLink } from '../utils/marketplaceWhatsappMessage';
+import { loadRelatedProductsForProduct } from './relatedProductsLoader.service';
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder'];
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
@@ -36,27 +38,6 @@ function buildCustomerOrderConfirmationMessage(
     'Your order status is pending. The vendor will contact you to arrange offline payment.',
     'If WhatsApp opened after checkout, you can also message the vendor directly.',
   ].join('\n');
-}
-
-async function setBooleanInventoryAfterOrder(
-  orderItems: Array<{ product: mongoose.Types.ObjectId; sku?: string }>
-): Promise<void> {
-  for (const { product: productId, sku } of orderItems) {
-    const doc = await marketplaceRepo.findProductDocumentById(productId);
-    if (!doc) continue;
-
-    if (doc.variants?.length && sku) {
-      const skuUpper = String(sku).toUpperCase();
-      const idx = doc.variants.findIndex(v => (v.sku ?? '').toUpperCase() === skuUpper);
-      if (idx < 0) continue;
-
-      doc.variants[idx].inStock = false;
-      await doc.save();
-    } else if (!doc.variants?.length) {
-      doc.inStock = false;
-      await doc.save();
-    }
-  }
 }
 
 export async function loadCategories(includeInactive: boolean) {
@@ -291,7 +272,10 @@ export async function loadProductBySlug(slug: string) {
   const product = await marketplaceRepo.findPublishedProductBySlug(slug);
   if (!product) throw new AppError('Product not found', 404);
 
-  return shapeMarketplaceProductRow(product as unknown as Record<string, unknown>);
+  const shaped = shapeMarketplaceProductRow(product as unknown as Record<string, unknown>);
+  const relatedProducts = await loadRelatedProductsForProduct(shaped);
+
+  return { product: shaped, relatedProducts };
 }
 
 export async function becomeVendor(
