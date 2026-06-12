@@ -149,8 +149,38 @@ export async function findPublishedProductsByIds(
     _id: { $in: productIds },
     status: 'published',
   })
-    .populate('vendor', 'name storeName slug phone whatsapp email')
+    .populate('vendor', 'storeName slug whatsapp')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug category')
     .lean<ModelProduct[]>();
+}
+
+export async function findPublishedProductsForRelatedScoring(options: {
+  excludeProductId: mongoose.Types.ObjectId;
+  categoryId?: mongoose.Types.ObjectId;
+  subCategoryId?: mongoose.Types.ObjectId;
+  vendorId?: mongoose.Types.ObjectId;
+  limit: number;
+}) {
+  const orFilters: Record<string, unknown>[] = [];
+
+  if (options.categoryId) orFilters.push({ category: options.categoryId });
+  if (options.subCategoryId) orFilters.push({ subCategory: options.subCategoryId });
+  if (options.vendorId) orFilters.push({ vendor: options.vendorId });
+
+  const filter: Record<string, unknown> = {
+    status: 'published',
+    _id: { $ne: options.excludeProductId },
+  };
+
+  if (orFilters.length > 0) {
+    filter.$or = orFilters;
+  }
+
+  return Product.find(filter)
+    .select('_id name slug price vendor category subCategory tags')
+    .limit(options.limit)
+    .lean();
 }
 
 export async function findProductDocumentById(
