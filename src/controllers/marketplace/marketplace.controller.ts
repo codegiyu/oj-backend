@@ -40,6 +40,7 @@ export async function getVendors(
       limit?: string;
       search?: string;
       q?: string;
+      featured?: string;
     };
   }>,
   reply: FastifyReply

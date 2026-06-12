@@ -26,6 +26,7 @@ const vendorSchema = new Schema<ModelVendor>(
     statusChangedAt: { type: Date, default: null },
     statusChangedBy: { type: Schema.Types.ObjectId, default: null },
     isVerified: { type: Boolean, default: false },
+    isFeatured: { type: Boolean, default: false, index: true },
     rejectionReason: { type: String, default: '' },
     rejectedAt: { type: Date, default: null },
     rejectedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
@@ -36,5 +37,6 @@ const vendorSchema = new Schema<ModelVendor>(
 );
 
 vendorSchema.index({ status: 1 });
+vendorSchema.index({ status: 1, isFeatured: 1 });
 
 export const Vendor = model<ModelVendor>('Vendor', vendorSchema);

@@ -118,7 +118,7 @@ export async function createAdminProduct(
     if (sub) subCategoryId = sub._id;
   }
 
-  const slug = await generateVendorProductSlug(Product, vendorId, body.name.trim());
+  const slug = await generateVendorProductSlug(Product, vendorId, body.name.trim(), vendor.slug);
 
   const product = await Product.create({
     name: body.name.trim(),

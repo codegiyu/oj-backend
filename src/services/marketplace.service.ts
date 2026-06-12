@@ -100,13 +100,18 @@ export async function listMarketplaceVendors(query: {
   limit?: string;
   search?: string;
   q?: string;
+  featured?: string;
 }) {
   const limit = parsePositiveInteger(query.limit, 20, 50);
   const page = parsePositiveInteger(query.page, 1, 1000);
   const skip = (page - 1) * limit;
   const search = parseSearch(query.search ?? query.q);
+  const featuredOnly = query.featured === 'true';
 
   const filter: Record<string, unknown> = { status: 'active' };
+  if (featuredOnly) {
+    filter.isFeatured = true;
+  }
   if (search) {
     filter.$or = [
       { storeName: { $regex: search, $options: 'i' } },
@@ -116,8 +121,12 @@ export async function listMarketplaceVendors(query: {
     ];
   }
 
+  const sort = featuredOnly
+    ? ({ updatedAt: -1, storeName: 1 } as Record<string, 1 | -1>)
+    : ({ storeName: 1, name: 1 } as Record<string, 1 | -1>);
+
   const [vendors, total] = await Promise.all([
-    marketplaceRepo.listActiveVendors({ filter, skip, limit }),
+    marketplaceRepo.listActiveVendors({ filter, skip, limit, sort }),
     marketplaceRepo.countVendors(filter),
   ]);
 

@@ -9,6 +9,10 @@ import { leanIdToString, requireAdmin, parseObjectId } from './admin.helpers';
 import { runAdminList } from '../../services/admin/runAdminListGet';
 import { listAdminVendorRows } from '../../repositories/admin/vendor.repository';
 import { applyAdminUnlinkedProfileFilter } from './adminListFilters';
+import {
+  frontendPathsForMarketplaceVendor,
+  scheduleFrontendRevalidation,
+} from '../../services/frontendRevalidation.service';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
 
@@ -45,6 +49,7 @@ function shapeVendorItem(raw: Record<string, unknown>): Record<string, unknown> 
     address: raw.address,
     status: raw.status,
     isVerified: raw.isVerified,
+    isFeatured: raw.isFeatured ?? false,
     rejectionReason: raw.rejectionReason,
     rejectedAt: raw.rejectedAt,
     approvedAt: raw.approvedAt,
@@ -119,6 +124,7 @@ export async function createAdminVendor(
       bankAccountNumber?: string;
       bankName?: string;
       status?: 'pending' | 'active' | 'suspended' | 'inactive';
+      isFeatured?: boolean;
     };
   }>,
   reply: FastifyReply
@@ -146,6 +152,7 @@ export async function createAdminVendor(
     bankAccountNumber: body.bankAccountNumber ?? '',
     bankName: body.bankName ?? '',
     status: body.status ?? 'pending',
+    isFeatured: body.isFeatured ?? false,
   });
 
   const populated = await Vendor.findById(vendor._id).lean();
@@ -175,6 +182,7 @@ export async function updateAdminVendor(
       bankName?: string;
       status?: 'pending' | 'active' | 'suspended' | 'inactive';
       isVerified?: boolean;
+      isFeatured?: boolean;
     };
   }>,
   reply: FastifyReply
@@ -184,6 +192,7 @@ export async function updateAdminVendor(
   if (!vendor) throw new AppError('Vendor not found', 404);
 
   const body = request.body ?? {};
+  const previousFeatured = vendor.isFeatured ?? false;
   if (body.name !== undefined) vendor.name = body.name;
   if (body.email !== undefined) vendor.email = body.email;
   if (body.phone !== undefined) vendor.phone = body.phone;
@@ -198,8 +207,17 @@ export async function updateAdminVendor(
   if (body.bankName !== undefined) vendor.bankName = body.bankName;
   if (body.status !== undefined) vendor.status = body.status;
   if (body.isVerified !== undefined) vendor.isVerified = body.isVerified;
+  if (body.isFeatured !== undefined) vendor.isFeatured = body.isFeatured;
 
   await vendor.save();
+
+  if (
+    body.isFeatured !== undefined &&
+    body.isFeatured !== previousFeatured &&
+    vendor.status === 'active'
+  ) {
+    scheduleFrontendRevalidation(frontendPathsForMarketplaceVendor());
+  }
 
   const populated = await Vendor.findById(vendor._id).lean();
   sendResponse(

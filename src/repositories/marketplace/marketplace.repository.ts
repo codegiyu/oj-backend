@@ -39,9 +39,10 @@ export async function listActiveVendors(options: {
   filter: Record<string, unknown>;
   skip: number;
   limit: number;
+  sort?: Record<string, 1 | -1>;
 }) {
   return Vendor.find(options.filter)
-    .sort({ storeName: 1, name: 1 })
+    .sort(options.sort ?? { storeName: 1, name: 1 })
     .skip(options.skip)
     .limit(options.limit)
     .lean();
