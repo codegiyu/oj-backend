@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { API_V1_PREFIX } from '../../src/constants/apiVersion';
-import { buildApp } from '../../src/app';
+import { API_V1_PREFIX } from '../../../src/constants/apiVersion';
+import { buildApp } from '../../../src/app';
 
 const VENDOR_SUSPEND = `${API_V1_PREFIX}/admin/vendors/507f1f77bcf86cd799439011/suspend`;
 const APPEALS = `${API_V1_PREFIX}/admin/role-profile-appeals`;

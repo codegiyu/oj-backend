@@ -15,6 +15,12 @@ export type EnvelopeBodySchema = {
 /** Status-keyed JSON Schema map used for documented API response envelopes. */
 export type StatusKeyedResponseSchema = Record<number, EnvelopeBodySchema>;
 
+/** Default payload schema: allow arbitrary handler fields (music, pagination, etc.). */
+export const defaultEnvelopeDataSchema = {
+  type: ['object', 'array', 'null'],
+  additionalProperties: true,
+} as const;
+
 const errorEnvelopeBody = {
   type: 'object',
   required: ['success', 'responseCode', 'message'],
@@ -28,7 +34,7 @@ const errorEnvelopeBody = {
 
 export function successEnvelopeResponseSchema<S extends 200 | 201>(
   statusCode: S,
-  dataSchema: Record<string, unknown> = { type: ['object', 'array', 'null'] }
+  dataSchema: Record<string, unknown> = { ...defaultEnvelopeDataSchema }
 ): Record<S, EnvelopeBodySchema> {
   const body: EnvelopeBodySchema = {
     type: 'object',
