@@ -18,6 +18,7 @@ import {
   schedulePublishedContentRevalidation,
   scheduleFrontendRevalidation,
 } from '../../services/frontendRevalidation.service';
+import { invalidateRelatedProductsCache } from '../../services/relatedProductsLoader.service';
 import {
   applyMarketplaceCategoryFilter,
   applyVendorFilter,
@@ -213,6 +214,8 @@ export async function updateAdminProduct(
 
   await product.save();
 
+  await invalidateRelatedProductsCache(String(product._id));
+
   const populated = await Product.findById(product._id)
     .populate('vendor', 'name slug storeName')
     .populate('category', 'name slug')
@@ -268,6 +271,8 @@ export async function approveAdminProduct(
   product.rejectedBy = null;
   await product.save();
 
+  await invalidateRelatedProductsCache(String(product._id));
+
   const populated = await Product.findById(product._id)
     .populate('vendor', 'name slug storeName')
     .populate('category', 'name slug')
@@ -303,6 +308,8 @@ export async function rejectAdminProduct(
   product.approvedAt = null;
   product.approvedBy = null;
   await product.save();
+
+  await invalidateRelatedProductsCache(String(product._id));
 
   const populated = await Product.findById(product._id)
     .populate('vendor', 'name slug storeName')
