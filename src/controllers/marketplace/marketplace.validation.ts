@@ -67,12 +67,12 @@ export const placeOrderBodySchema: FastifySchema = {
     properties: {
       customer: {
         type: 'object',
-        required: ['name', 'email', 'phone'],
+        required: ['name', 'email', 'phone', 'address'],
         properties: {
           name: { type: 'string' },
           email: { type: 'string' },
           phone: { type: 'string' },
-          address: { type: 'string' },
+          address: { type: 'string', minLength: 1 },
         },
       },
       notes: { type: 'string' },
