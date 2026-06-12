@@ -3,7 +3,7 @@
 import mongoose from 'mongoose';
 import { Vendor } from '../models/vendor';
 import { addJobToQueue } from '../queues/main.queue';
-import type { ModelProduct, PopulatedOrder } from '../lib/types/constants';
+import type { ModelProduct } from '../lib/types/constants';
 import { AppError } from '../utils/AppError';
 import { mapPopulatedOrderToApi } from '../utils/mapPopulatedOrder';
 import {
@@ -17,49 +17,10 @@ import { shapeMarketplaceProductRow } from '../utils/marketplaceProductShape';
 import { serializeDocIds } from '../controllers/artist/artist.helpers';
 import { findVariantBySku } from '../utils/marketplaceProduct';
 import * as marketplaceRepo from '../repositories/marketplace/marketplace.repository';
+import { buildMarketplaceWhatsappLink } from '../utils/marketplaceWhatsappMessage';
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder'];
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
-
-function buildWhatsappMessage(order: PopulatedOrder): { message: string; link?: string } {
-  const customer = order.customer;
-  const items = order.items ?? [];
-  const vendor = order.vendor as { whatsapp?: string } | undefined;
-
-  const lines: string[] = [];
-  lines.push(`New order ${order.orderNumber ?? ''}`);
-  if (customer?.name) lines.push(`Customer: ${customer.name}`);
-  if (customer?.phone) lines.push(`Phone: ${customer.phone}`);
-  if (customer?.email) lines.push(`Email: ${customer.email}`);
-  if (customer?.address) lines.push(`Address: ${customer.address}`);
-  lines.push('');
-  lines.push('Items:');
-
-  let total = 0;
-  for (const item of items) {
-    const name = (item.productName as string) ?? '';
-    const qty = Number(item.quantity) || 0;
-    const price = Number(item.price) || 0;
-    const lineTotal = Number(item.totalPrice) || qty * price;
-    total += lineTotal;
-    lines.push(`- ${name} x${qty} @ ${price} = ${lineTotal}`);
-  }
-
-  lines.push('');
-  lines.push(`Total: ${order.totalAmount ?? total}`);
-
-  const message = lines.join('\n');
-
-  if (!vendor?.whatsapp) {
-    return { message };
-  }
-
-  const digits = String(vendor.whatsapp).replace(/[^\d+]/g, '');
-  const encoded = encodeURIComponent(message);
-  const link = `https://wa.me/${digits}?text=${encoded}`;
-
-  return { message, link };
-}
 
 function buildCustomerOrderConfirmationMessage(
   orderNumber: string,
@@ -558,7 +519,7 @@ export async function placeMarketplaceOrder(
       continue;
     }
 
-    const { message, link } = buildWhatsappMessage(created);
+    const { message, link } = buildMarketplaceWhatsappLink(created);
     const v = created?.vendor as
       | { email?: string; whatsapp?: string }
       | mongoose.Types.ObjectId
@@ -649,7 +610,7 @@ export async function listMyMarketplaceOrders(
 
   const list = orders.map(o => {
     const shaped = mapPopulatedOrderToApi(o);
-    const { link } = buildWhatsappMessage(o);
+    const { link } = buildMarketplaceWhatsappLink(o);
 
     return {
       ...shaped,
@@ -681,7 +642,7 @@ export async function loadOrderWhatsappLink(userId: string, orderId: string) {
   if (!order) throw new AppError('Order not found', 404);
 
   const shaped = mapPopulatedOrderToApi(order);
-  const { message, link } = buildWhatsappMessage({
+  const { message, link } = buildMarketplaceWhatsappLink({
     ...order,
     ...shaped,
   });
