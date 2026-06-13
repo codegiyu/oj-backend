@@ -50,7 +50,7 @@ async function securityPlugin(app: FastifyInstance): Promise<void> {
       ? {
           redis: getRedisClient(),
           nameSpace: 'oj-api-rate-limit:',
-          skipOnError: true,
+          skipOnError: false,
         }
       : {}),
   });

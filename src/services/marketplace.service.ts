@@ -111,12 +111,13 @@ export async function listMarketplaceVendors(query: {
     marketplaceRepo.countVendors(filter),
   ]);
 
-  const list = await Promise.all(
-    vendors.map(async v => {
-      const productCount = await marketplaceRepo.countPublishedProductsForVendor(v._id);
-      return { ...v, productCount };
-    })
-  );
+  const vendorIds = vendors.map(v => v._id);
+  const productCounts = await marketplaceRepo.countPublishedProductsByVendorIds(vendorIds);
+
+  const list = vendors.map(v => ({
+    ...v,
+    productCount: productCounts.get(String(v._id)) ?? 0,
+  }));
 
   return {
     vendors: list,
