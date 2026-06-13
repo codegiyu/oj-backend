@@ -1023,7 +1023,8 @@ export interface IProduct {
   inStock: boolean;
   /** Simple products only; variants carry their own sku */
   sku?: string;
-  inventoryMode?: 'unlimited';
+  inventoryMode?: 'unlimited' | 'tracked';
+  stockQuantity?: number | null;
   variationOptions?: IVariationOption[];
   variants?: IProductVariant[];
   status: 'draft' | 'published' | 'archived';

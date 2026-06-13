@@ -209,8 +209,12 @@ export async function findProductDocumentById(
   return Product.findById(productId);
 }
 
-export async function createOrderRecord(data: Record<string, unknown>) {
-  return Order.create(data);
+export async function createOrderRecord(
+  data: Record<string, unknown>,
+  session?: mongoose.ClientSession
+) {
+  const [order] = await Order.create([data], session ? { session } : undefined);
+  return order;
 }
 
 export async function findOrderPopulatedById(
