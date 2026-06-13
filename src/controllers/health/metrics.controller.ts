@@ -5,14 +5,14 @@ import {
 } from '../../observability/latencyHistogram';
 import { sendResponse } from '../../utils/response';
 
-export function metrics(request: FastifyRequest, reply: FastifyReply): void {
+export async function metrics(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const wantsPrometheus =
     request.headers.accept?.includes('text/plain') ||
     (request.query as { format?: string })?.format === 'prometheus';
 
   if (wantsPrometheus) {
     reply.header('content-type', 'text/plain; version=0.0.4');
-    reply.send(formatLatencyHistogramPrometheus());
+    await reply.send(formatLatencyHistogramPrometheus());
     return;
   }
 
