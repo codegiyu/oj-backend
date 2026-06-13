@@ -477,37 +477,61 @@ export async function placeMarketplaceOrder(
   if (itemsByVendor.size === 0) throw new AppError('Invalid items', 400);
 
   const createdOrders: Array<Record<string, unknown>> = [];
+  const pendingOrders: Array<{
+    orderNumber: string;
+    totalAmount: number;
+    orderId: mongoose.Types.ObjectId;
+  }> = [];
 
-  for (const { vendorId, items: vendorItems, totalAmount } of itemsByVendor.values()) {
-    const orderNumber =
-      'ORD-' +
-      new Date().toISOString().slice(0, 10).replace(/-/g, '') +
-      '-' +
-      Math.random().toString(36).slice(2, 8).toUpperCase();
+  const dbSession = await mongoose.startSession();
 
-    const order = await marketplaceRepo.createOrderRecord({
-      orderNumber,
-      customer: {
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address ?? '',
-      },
-      customerId:
-        authUser?.scope === 'client-access'
-          ? new mongoose.Types.ObjectId(authUser.userId)
-          : undefined,
-      vendor: vendorId,
-      items: vendorItems,
-      totalAmount,
-      notes: notes?.trim() ? notes.trim() : '',
-      status: 'pending',
-      paymentStatus: 'pending',
+  try {
+    await dbSession.withTransaction(async () => {
+      for (const { vendorId, items: vendorItems, totalAmount } of itemsByVendor.values()) {
+        const orderNumber =
+          'ORD-' +
+          new Date().toISOString().slice(0, 10).replace(/-/g, '') +
+          '-' +
+          Math.random().toString(36).slice(2, 8).toUpperCase();
+
+        const order = await marketplaceRepo.createOrderRecord(
+          {
+            orderNumber,
+            customer: {
+              name: customer.name,
+              email: customer.email,
+              phone: customer.phone,
+              address: customer.address ?? '',
+            },
+            customerId:
+              authUser?.scope === 'client-access'
+                ? new mongoose.Types.ObjectId(authUser.userId)
+                : undefined,
+            vendor: vendorId,
+            items: vendorItems,
+            totalAmount,
+            notes: notes?.trim() ? notes.trim() : '',
+            status: 'pending',
+            paymentStatus: 'pending',
+          },
+          dbSession
+        );
+
+        await setBooleanInventoryAfterOrder(vendorItems, dbSession);
+
+        pendingOrders.push({
+          orderNumber,
+          totalAmount,
+          orderId: order._id,
+        });
+      }
     });
+  } finally {
+    await dbSession.endSession();
+  }
 
-    await setBooleanInventoryAfterOrder(vendorItems);
-
-    const created = await marketplaceRepo.findOrderPopulatedById(order._id);
+  for (const { orderId, orderNumber, totalAmount } of pendingOrders) {
+    const created = await marketplaceRepo.findOrderPopulatedById(orderId);
 
     if (!created) {
       continue;

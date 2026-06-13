@@ -38,9 +38,10 @@ const productSchema = new Schema<ModelProduct>(
     sku: { type: String, default: '' },
     inventoryMode: {
       type: String,
-      enum: ['unlimited'],
+      enum: ['unlimited', 'tracked'],
       default: 'unlimited',
     },
+    stockQuantity: { type: Number, default: null },
     variationOptions: { type: [variationOptionSchema], default: undefined },
     variants: { type: [productVariantSchema], default: undefined },
     status: {

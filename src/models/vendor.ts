@@ -38,5 +38,6 @@ const vendorSchema = new Schema<ModelVendor>(
 
 vendorSchema.index({ status: 1 });
 vendorSchema.index({ status: 1, isFeatured: 1 });
+vendorSchema.index({ storeName: 'text', name: 'text', slug: 'text' });
 
 export const Vendor = model<ModelVendor>('Vendor', vendorSchema);

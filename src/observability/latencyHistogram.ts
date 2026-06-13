@@ -70,3 +70,19 @@ export function getLatencyHistogramSnapshot(): LatencyHistogramSnapshot {
 export function resetLatencyHistogramForTests(): void {
   samplesByRoute.clear();
 }
+
+/** Prometheus text exposition for scrape-friendly metrics export. */
+export function formatLatencyHistogramPrometheus(): string {
+  const snapshot = getLatencyHistogramSnapshot();
+  const lines: string[] = [
+    '# HELP oj_api_request_latency_p95_ms P95 request latency in milliseconds',
+    '# TYPE oj_api_request_latency_p95_ms gauge',
+  ];
+
+  for (const route of snapshot.routes) {
+    const label = route.route.replace(/"/g, '\\"');
+    lines.push(`oj_api_request_latency_p95_ms{route="${label}"} ${route.p95Ms}`);
+  }
+
+  return `${lines.join('\n')}\n`;
+}

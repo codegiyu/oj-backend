@@ -1,9 +1,21 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getLatencyHistogramSnapshot } from '../../observability/latencyHistogram';
+import {
+  formatLatencyHistogramPrometheus,
+  getLatencyHistogramSnapshot,
+} from '../../observability/latencyHistogram';
 import { sendResponse } from '../../utils/response';
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function metrics(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export function metrics(request: FastifyRequest, reply: FastifyReply): void {
+  const wantsPrometheus =
+    request.headers.accept?.includes('text/plain') ||
+    (request.query as { format?: string })?.format === 'prometheus';
+
+  if (wantsPrometheus) {
+    reply.header('content-type', 'text/plain; version=0.0.4');
+    reply.send(formatLatencyHistogramPrometheus());
+    return;
+  }
+
   sendResponse(
     reply,
     200,
