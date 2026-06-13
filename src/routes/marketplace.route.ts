@@ -1,5 +1,7 @@
 import { FastifyInstance } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { authenticatePreHandler } from '../middleware/auth.middleware';
+import { MARKETPLACE_ORDER_RATE_LIMIT } from '../constants/marketplaceRateLimit';
 import { catchAsync } from '../utils/catchAsync';
 import {
   getCategories,
@@ -21,7 +23,7 @@ import {
   placeOrderBodySchema,
 } from '../controllers/marketplace/marketplace.validation';
 
-export function registerMarketplaceRoutes(app: FastifyInstance): void {
+export async function registerMarketplaceRoutes(app: FastifyInstance): Promise<void> {
   app.get('/categories', catchAsync(getCategories));
   app.get('/subcategories', catchAsync(getSubCategories));
   app.get<{
@@ -64,18 +66,22 @@ export function registerMarketplaceRoutes(app: FastifyInstance): void {
     { preHandler: [authenticatePreHandler], schema: becomeVendorBodySchema },
     catchAsync(becomeVendor)
   );
-  app.post<{
-    Body: {
-      customer: { name: string; email: string; phone: string; address?: string };
-      items: Array<{
-        productId: string;
-        productName?: string;
-        quantity: number;
-        price: number;
-        sku?: string;
-      }>;
-    };
-  }>('/orders', { schema: placeOrderBodySchema }, catchAsync(placeOrder));
+  await app.register(async orderApp => {
+    await orderApp.register(rateLimit, MARKETPLACE_ORDER_RATE_LIMIT);
+
+    orderApp.post<{
+      Body: {
+        customer: { name: string; email: string; phone: string; address?: string };
+        items: Array<{
+          productId: string;
+          productName?: string;
+          quantity: number;
+          price: number;
+          sku?: string;
+        }>;
+      };
+    }>('/orders', { schema: placeOrderBodySchema }, catchAsync(placeOrder));
+  });
   app.get<{
     Querystring: {
       page?: string;

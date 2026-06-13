@@ -58,6 +58,26 @@ export async function countPublishedProductsForVendor(
   return Product.countDocuments({ vendor: vendorId, status: 'published' });
 }
 
+/** Single aggregation for vendor list pages — avoids N+1 countDocuments per vendor. */
+export async function countPublishedProductsByVendorIds(
+  vendorIds: mongoose.Types.ObjectId[]
+): Promise<Map<string, number>> {
+  if (vendorIds.length === 0) return new Map();
+
+  const rows = await Product.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+    { $match: { vendor: { $in: vendorIds }, status: 'published' } },
+    { $group: { _id: '$vendor', count: { $sum: 1 } } },
+  ]);
+
+  const counts = new Map<string, number>();
+
+  for (const row of rows) {
+    counts.set(String(row._id), row.count);
+  }
+
+  return counts;
+}
+
 export async function findActiveVendorBySlug(slug: string) {
   return Vendor.findOne({ slug, status: 'active' }).lean();
 }
