@@ -15,48 +15,10 @@ import {
   createUpdateBodySchema,
   idParamSchema,
   listAdminQuerystringSchema,
-  listAdminQuerystringWithVendorSchema,
   rejectBodySchema,
   adminUsersQuerystringSchema,
   adminUserPatchBodySchema,
-  updateAdminOrderBodySchema,
 } from '../controllers/admin/adminContent.validation';
-
-import {
-  listAdminMusic,
-  getAdminMusic,
-  createAdminMusic,
-  updateAdminMusic,
-  deleteAdminMusic,
-  approveAdminMusic,
-  rejectAdminMusic,
-} from '../controllers/admin/musicAdmin.controller';
-
-import {
-  listAdminAlbums,
-  getAdminAlbum,
-  createAdminAlbum,
-  updateAdminAlbum,
-  deleteAdminAlbum,
-} from '../controllers/admin/albumAdmin.controller';
-
-import {
-  listAdminVideos,
-  getAdminVideo,
-  createAdminVideo,
-  updateAdminVideo,
-  deleteAdminVideo,
-  approveAdminVideo,
-  rejectAdminVideo,
-} from '../controllers/admin/videoAdmin.controller';
-
-import {
-  listAdminNews,
-  getAdminNews,
-  createAdminNews,
-  updateAdminNews,
-  deleteAdminNews,
-} from '../controllers/admin/newsAdmin.controller';
 
 import {
   listAdminDevotionals,
@@ -151,31 +113,6 @@ import {
 } from '../controllers/admin/pastorApplicationAdmin.controller';
 
 import {
-  listAdminVendors,
-  getAdminVendor,
-  createAdminVendor,
-  updateAdminVendor,
-  approveAdminVendor,
-  rejectAdminVendor,
-} from '../controllers/admin/vendorAdmin.controller';
-
-import {
-  listAdminProducts,
-  getAdminProduct,
-  createAdminProduct,
-  updateAdminProduct,
-  deleteAdminProduct,
-  approveAdminProduct,
-  rejectAdminProduct,
-} from '../controllers/admin/productAdmin.controller';
-
-import {
-  listAdminOrders,
-  getAdminOrder,
-  updateAdminOrder,
-} from '../controllers/admin/orderAdmin.controller';
-
-import {
   listAdminContentCategories,
   createAdminContentCategory,
   updateAdminContentCategory,
@@ -198,8 +135,6 @@ import {
 } from '../controllers/admin/gospelVerseAdmin.controller';
 import { registerPrivilegedAuditHook } from '../hooks/privilegedAudit.hook';
 import {
-  suspendAdminVendor,
-  unsuspendAdminVendor,
   suspendAdminArtist,
   unsuspendAdminArtist,
   suspendAdminPastor,
@@ -212,6 +147,8 @@ import {
   suspendRoleProfileBodySchema,
   rejectAppealBodySchema,
 } from '../controllers/admin/roleProfile.validation';
+import { registerAdminMediaRoutes } from './adminContent/registerAdminMediaRoutes';
+import { registerAdminMarketplaceRoutes } from './adminContent/registerAdminMarketplaceRoutes';
 
 export async function registerAdminContentRoutes(app: FastifyInstance): Promise<void> {
   registerPrivilegedAuditHook(app);
@@ -249,117 +186,7 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     catchAsync(rejectAdminRoleProfileAppeal)
   );
 
-  // Music
-  app.get(
-    '/music',
-    { ...adminReadRoute, schema: listAdminQuerystringSchema },
-    catchAsync(listAdminMusic)
-  );
-  app.post(
-    '/music',
-    { ...adminWriteRoute, schema: createUpdateBodySchema },
-    catchAsync(createAdminMusic)
-  );
-  app.get('/music/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminMusic));
-  app.patch(
-    '/music/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
-    catchAsync(updateAdminMusic)
-  );
-  app.delete(
-    '/music/:id',
-    { ...adminDeleteRoute, schema: idParamSchema },
-    catchAsync(deleteAdminMusic)
-  );
-  app.post(
-    '/music/:id/approve',
-    { ...adminModerateRoute, schema: idParamSchema },
-    catchAsync(approveAdminMusic)
-  );
-  app.post(
-    '/music/:id/reject',
-    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
-    catchAsync(rejectAdminMusic)
-  );
-
-  // Albums
-  app.get(
-    '/albums',
-    { ...adminReadRoute, schema: listAdminQuerystringSchema },
-    catchAsync(listAdminAlbums)
-  );
-  app.post(
-    '/albums',
-    { ...adminWriteRoute, schema: createUpdateBodySchema },
-    catchAsync(createAdminAlbum)
-  );
-  app.get('/albums/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminAlbum));
-  app.patch(
-    '/albums/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
-    catchAsync(updateAdminAlbum)
-  );
-  app.delete(
-    '/albums/:id',
-    { ...adminDeleteRoute, schema: idParamSchema },
-    catchAsync(deleteAdminAlbum)
-  );
-
-  // Videos
-  app.get(
-    '/videos',
-    { ...adminReadRoute, schema: listAdminQuerystringSchema },
-    catchAsync(listAdminVideos)
-  );
-  app.post(
-    '/videos',
-    { ...adminWriteRoute, schema: createUpdateBodySchema },
-    catchAsync(createAdminVideo)
-  );
-  app.get('/videos/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminVideo));
-  app.patch(
-    '/videos/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
-    catchAsync(updateAdminVideo)
-  );
-  app.delete(
-    '/videos/:id',
-    { ...adminDeleteRoute, schema: idParamSchema },
-    catchAsync(deleteAdminVideo)
-  );
-  app.post(
-    '/videos/:id/approve',
-    { ...adminModerateRoute, schema: idParamSchema },
-    catchAsync(approveAdminVideo)
-  );
-  app.post(
-    '/videos/:id/reject',
-    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
-    catchAsync(rejectAdminVideo)
-  );
-
-  // News
-  app.get(
-    '/news',
-    { ...adminReadRoute, schema: listAdminQuerystringSchema },
-    catchAsync(listAdminNews)
-  );
-  app.post(
-    '/news',
-    { ...adminWriteRoute, schema: createUpdateBodySchema },
-    catchAsync(createAdminNews)
-  );
-  app.get('/news/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminNews));
-  app.patch(
-    '/news/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
-    catchAsync(updateAdminNews)
-  );
-  app.delete(
-    '/news/:id',
-    { ...adminDeleteRoute, schema: idParamSchema },
-    catchAsync(deleteAdminNews)
-  );
+  registerAdminMediaRoutes(app);
 
   // Devotionals
   app.get(
@@ -672,80 +499,7 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     catchAsync(rejectAdminPastorApplication)
   );
 
-  // Vendors
-  app.get(
-    '/vendors',
-    { ...adminReadRoute, schema: listAdminQuerystringSchema },
-    catchAsync(listAdminVendors)
-  );
-  app.post(
-    '/vendors',
-    { ...adminWriteRoute, schema: createUpdateBodySchema },
-    catchAsync(createAdminVendor)
-  );
-  app.get('/vendors/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminVendor));
-  app.patch(
-    '/vendors/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
-    catchAsync(updateAdminVendor)
-  );
-  app.post(
-    '/vendors/:id/approve',
-    { ...adminModerateRoute, schema: idParamSchema },
-    catchAsync(approveAdminVendor)
-  );
-  app.post(
-    '/vendors/:id/reject',
-    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
-    catchAsync(rejectAdminVendor)
-  );
-  app.post(
-    '/vendors/:id/suspend',
-    { ...adminModerateRoute, schema: { ...idParamSchema, ...suspendRoleProfileBodySchema } },
-    catchAsync(suspendAdminVendor)
-  );
-  app.post(
-    '/vendors/:id/unsuspend',
-    { ...adminModerateRoute, schema: idParamSchema },
-    catchAsync(unsuspendAdminVendor)
-  );
-
-  // Products
-  app.get(
-    '/products',
-    { ...adminReadRoute, schema: listAdminQuerystringWithVendorSchema },
-    catchAsync(listAdminProducts)
-  );
-  app.post(
-    '/products',
-    { ...adminWriteRoute, schema: createUpdateBodySchema },
-    catchAsync(createAdminProduct)
-  );
-  app.get(
-    '/products/:id',
-    { ...adminReadRoute, schema: idParamSchema },
-    catchAsync(getAdminProduct)
-  );
-  app.patch(
-    '/products/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...createUpdateBodySchema } },
-    catchAsync(updateAdminProduct)
-  );
-  app.delete(
-    '/products/:id',
-    { ...adminDeleteRoute, schema: idParamSchema },
-    catchAsync(deleteAdminProduct)
-  );
-  app.post(
-    '/products/:id/approve',
-    { ...adminModerateRoute, schema: idParamSchema },
-    catchAsync(approveAdminProduct)
-  );
-  app.post(
-    '/products/:id/reject',
-    { ...adminModerateRoute, schema: { ...idParamSchema, ...rejectBodySchema } },
-    catchAsync(rejectAdminProduct)
-  );
+  registerAdminMarketplaceRoutes(app);
 
   // Content categories (editorial taxonomy)
   app.get(
@@ -816,18 +570,5 @@ export async function registerAdminContentRoutes(app: FastifyInstance): Promise<
     '/gospel-verses/:id',
     { ...adminDeleteRoute, schema: idParamSchema },
     catchAsync(deleteAdminGospelVerse)
-  );
-
-  // Orders
-  app.get(
-    '/orders',
-    { ...adminReadRoute, schema: listAdminQuerystringWithVendorSchema },
-    catchAsync(listAdminOrders)
-  );
-  app.get('/orders/:id', { ...adminReadRoute, schema: idParamSchema }, catchAsync(getAdminOrder));
-  app.patch(
-    '/orders/:id',
-    { ...adminWriteRoute, schema: { ...idParamSchema, ...updateAdminOrderBodySchema } },
-    catchAsync(updateAdminOrder)
   );
 }
