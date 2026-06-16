@@ -82,7 +82,7 @@
     "@types/nodemailer": "^7.0.5",
     "@types/react": "^18.3.12",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
-    "@typescript-eslint/parser": "^8.53.1",
+    "@typescript-eslint/parser": "^8.61.1",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
