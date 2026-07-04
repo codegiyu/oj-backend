@@ -62,11 +62,21 @@ function resolveContentType(
   intent: UploadIntent
 ): string {
   const ext = (fileExtension ?? '').trim().replace(/^\./, '');
-  if (contentType?.trim()) return contentType.trim();
+  const clientType = contentType?.trim();
+
+  if (ext) {
+    const fromExtension = getContentTypeFromExtension(ext);
+    if (fromExtension !== 'application/octet-stream') return fromExtension;
+  }
+
+  if (clientType && clientType !== 'application/octet-stream') return clientType;
+
   if (ext) return getContentTypeFromExtension(ext);
+
   if (['avatar', 'logo', 'card-image', 'banner-image', 'image'].includes(intent)) {
     return 'image/jpeg';
   }
+
   return 'application/octet-stream';
 }
 
@@ -225,6 +235,7 @@ async function handlePresignedUrlRequest(
       key,
       filename,
       publicUrl,
+      contentType: ct,
       documentId: doc._id.toString(),
       expiresIn: expiresInSeconds,
       expiresAt: expiresAt.toISOString(),
