@@ -12,7 +12,16 @@ vi.mock('../../src/services/r2.service', () => ({
     key: 'media/test.jpg',
     publicUrl: 'https://cdn.example/test.jpg',
   })),
-  getContentTypeFromExtension: vi.fn((ext: string) => `image/${ext}`),
+  getContentTypeFromExtension: vi.fn((ext: string) => {
+    const types: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      webp: 'image/webp',
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+    };
+    return types[ext] ?? 'application/octet-stream';
+  }),
 }));
 
 vi.mock('../../src/models/document', () => ({
@@ -26,8 +35,16 @@ vi.mock('../../src/models/document', () => ({
 
 describe('upload.controller shared helpers', () => {
   describe('resolveContentType', () => {
-    it('prefers explicit contentType', () => {
-      expect(resolveContentType('jpg', 'image/png', 'image')).toBe('image/png');
+    it('prefers extension-derived type over generic browser MIME', () => {
+      expect(resolveContentType('mp3', 'application/octet-stream', 'other')).toBe('audio/mpeg');
+    });
+
+    it('uses audio/mpeg for mp3 when contentType is empty', () => {
+      expect(resolveContentType('mp3', '', 'other')).toBe('audio/mpeg');
+    });
+
+    it('prefers explicit non-generic contentType when extension is unknown', () => {
+      expect(resolveContentType('xyz', 'image/png', 'image')).toBe('image/png');
     });
 
     it('derives from extension when contentType is absent', () => {
