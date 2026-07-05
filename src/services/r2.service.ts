@@ -79,11 +79,6 @@ export async function generatePresignedUrl({
     ContentType: contentType,
   };
 
-  if (shouldSetUploadContentDisposition(ext, contentType)) {
-    const uploadName = filename || `download.${ext || 'bin'}`;
-    putParams.ContentDisposition = `attachment; filename="${sanitizeDownloadFilename(uploadName)}"`;
-  }
-
   const command = new PutObjectCommand(putParams);
 
   const url = await getSignedUrl(r2Client, command, { expiresIn });
