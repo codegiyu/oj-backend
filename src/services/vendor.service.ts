@@ -25,6 +25,7 @@ import {
 } from './roleProfileLifecycle.service';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import * as vendorRepo from '../repositories/vendor/vendor.repository';
+import { healVendorIdForUser } from './roleProfileLink.service';
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
@@ -32,11 +33,21 @@ const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount
 const PENDING_ORDER_STATUSES = ['pending', 'confirmed', 'processing'];
 
 async function getVendorForUser(userId: string): Promise<HydratedDocument<ModelVendor>> {
-  const user = await vendorRepo.findUserVendorFields(new mongoose.Types.ObjectId(userId));
-  if (!user?.vendorId) throw new AppError('You do not have an associated vendor profile', 403);
-  const vendor = await vendorRepo.findVendorDocumentById(
-    (user as { vendorId: mongoose.Types.ObjectId }).vendorId
-  );
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  let user = await vendorRepo.findUserVendorFields(userObjectId);
+  let vendorId = user?.vendorId ?? null;
+
+  if (!vendorId) {
+    vendorId = await healVendorIdForUser(userObjectId);
+    if (vendorId) {
+      user = await vendorRepo.findUserVendorFields(userObjectId);
+      vendorId = user?.vendorId ?? vendorId;
+    }
+  }
+
+  if (!vendorId) throw new AppError('You do not have an associated vendor profile', 403);
+
+  const vendor = await vendorRepo.findVendorDocumentById(vendorId);
   if (!vendor) throw new AppError('Vendor not found', 404);
   return vendor;
 }

@@ -34,6 +34,7 @@ import { isArtistOrPastorRoleActive } from './profileVisibility';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { assertMediaMetadata } from '../utils/contentTaxonomyValidation';
 import * as artistRepo from '../repositories/artist/artist.repository';
+import { healArtistIdForUser } from './roleProfileLink.service';
 
 const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 const VIDEO_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
@@ -141,13 +142,22 @@ async function getArtistForUser(userId: string): Promise<IArtist> {
   }
 
   const userObjectId = new mongoose.Types.ObjectId(userId);
-  const user = await artistRepo.findUserArtistId(userObjectId);
+  let user = await artistRepo.findUserArtistId(userObjectId);
+  let artistId = user?.artistId ?? null;
 
-  if (!user?.artistId) {
+  if (!artistId) {
+    artistId = await healArtistIdForUser(userObjectId);
+    if (artistId) {
+      user = await artistRepo.findUserArtistId(userObjectId);
+      artistId = user?.artistId ?? artistId;
+    }
+  }
+
+  if (!artistId) {
     throw new AppError('You do not have an associated artist profile', 403);
   }
 
-  const artist = await artistRepo.findArtistLeanById(user.artistId);
+  const artist = await artistRepo.findArtistLeanById(artistId);
 
   if (!artist) {
     throw new AppError('Artist profile not found', 404);

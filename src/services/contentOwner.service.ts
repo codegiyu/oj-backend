@@ -30,6 +30,16 @@ export async function resolveArtistIdForAdminContent(input: {
       return user.artistId;
     }
 
+    // Prefer an artist that already claims this user over creating a duplicate.
+    const existingByUser = await Artist.findOne({ user: uid }).select('_id').lean();
+    if (existingByUser?._id) {
+      await User.updateOne(
+        { _id: uid, artistId: null },
+        { $set: { artistId: existingByUser._id } }
+      );
+      return existingByUser._id;
+    }
+
     const name =
       [user.firstName, user.lastName].filter(Boolean).join(' ').trim() ||
       (typeof user.email === 'string' ? user.email.split('@')[0] : '') ||
