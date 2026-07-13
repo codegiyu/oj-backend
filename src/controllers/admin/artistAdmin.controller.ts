@@ -1,5 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { Artist } from '../../models/artist';
+import { User } from '../../models/user';
+import type { IUser } from '../../lib/types/constants';
+import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generateUniqueSlug, parseString } from '../../utils/helpers';
@@ -117,6 +120,7 @@ export async function createAdminArtist(
       risingArtistDisplayOrder?: number;
       musicFeaturedDisplayOrder?: number;
       creatorSpotlightDisplayOrder?: number;
+      ownerUserId?: string;
     };
   }>,
   reply: FastifyReply
@@ -128,8 +132,25 @@ export async function createAdminArtist(
 
   const slug = await generateUniqueSlug(Artist, body.name.trim());
   const isMusicFeatured = body.isMusicFeatured ?? body.isFeatured ?? false;
+  let linkedUserId: mongoose.Types.ObjectId | null = null;
+
+  if (body.ownerUserId) {
+    if (!mongoose.Types.ObjectId.isValid(body.ownerUserId)) {
+      throw new AppError('Invalid ownerUserId', 400);
+    }
+
+    const ownerId = new mongoose.Types.ObjectId(body.ownerUserId);
+    const owner = await User.findById(ownerId)
+      .select('artistId')
+      .lean<Pick<IUser, 'artistId'> | null>();
+    if (!owner) throw new AppError('Owner user not found', 404);
+    if (owner.artistId) throw new AppError('User already has an artist profile', 409);
+
+    linkedUserId = ownerId;
+  }
 
   const artist = await Artist.create({
+    ...(linkedUserId ? { user: linkedUserId } : {}),
     name: body.name.trim(),
     slug,
     bio: body.bio ?? '',
@@ -147,6 +168,19 @@ export async function createAdminArtist(
     musicFeaturedDisplayOrder: body.musicFeaturedDisplayOrder ?? body.displayOrder ?? 0,
     creatorSpotlightDisplayOrder: body.creatorSpotlightDisplayOrder ?? 0,
   });
+
+  if (linkedUserId) {
+    const linked = await User.findOneAndUpdate(
+      { _id: linkedUserId, artistId: null },
+      { $set: { artistId: artist._id } },
+      { new: true }
+    );
+
+    if (!linked) {
+      await Artist.deleteOne({ _id: artist._id });
+      throw new AppError('User already has an artist profile', 409);
+    }
+  }
 
   const populated = await Artist.findById(artist._id).lean();
   sendResponse(
