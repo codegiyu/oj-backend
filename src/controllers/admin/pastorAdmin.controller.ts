@@ -14,6 +14,7 @@ import {
   findAdminPastorById,
 } from '../../repositories/admin/pastor.repository';
 import { applyAdminUnlinkedProfileFilter } from './adminListFilters';
+import { clearUserPastorLinks } from '../../services/roleProfileLink.service';
 
 function shapePastorItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -218,5 +219,6 @@ export async function deleteAdminPastor(
   const id = parseObjectId(request.params.id);
   const result = await Pastor.findByIdAndDelete(id);
   if (!result) throw new AppError('Pastor not found', 404);
+  await clearUserPastorLinks(id);
   sendResponse(reply, 200, { success: true }, 'Pastor deleted.');
 }

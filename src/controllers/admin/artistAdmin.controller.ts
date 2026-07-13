@@ -11,6 +11,7 @@ import {
 } from '../../repositories/admin/artist.repository';
 import { buildArtistDashboardStats } from '../../services/artistDashboardStats.service';
 import { applyAdminUnlinkedProfileFilter } from './adminListFilters';
+import { clearUserArtistLinks } from '../../services/roleProfileLink.service';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'name'];
 
@@ -239,6 +240,7 @@ export async function deleteAdminArtist(
   const id = parseObjectId(request.params.id);
   const result = await Artist.findByIdAndDelete(id);
   if (!result) throw new AppError('Artist not found', 404);
+  await clearUserArtistLinks(id);
   sendResponse(reply, 200, { success: true }, 'Artist deleted.');
 }
 

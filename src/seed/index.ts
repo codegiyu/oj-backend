@@ -21,9 +21,13 @@ export { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce
 export { backfillProductUnlimitedInventoryOnce } from './backfillProductUnlimitedInventoryOnce';
 export { wipePastorAskDataOnce } from './wipePastorAskData';
 export { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
+export { reconcileArtistUserLinksOnce } from './reconcileArtistUserLinks';
+export { reconcilePastorUserLinksOnce } from './reconcilePastorUserLinks';
 export { ensureSearchTextIndexes } from './ensureSearchTextIndexes';
 
 import { reconcileVendorUserLinksOnce } from './reconcileVendorUserLinks';
+import { reconcileArtistUserLinksOnce } from './reconcileArtistUserLinks';
+import { reconcilePastorUserLinksOnce } from './reconcilePastorUserLinks';
 import { migrateArtistSpotlightFieldsOnce } from './migrateArtistSpotlightFields';
 import { bootstrapMediaDailyMetricsOnce } from './bootstrapMediaDailyMetricsOnce';
 import { backfillProductUnlimitedInventoryOnce } from './backfillProductUnlimitedInventoryOnce';
@@ -51,6 +55,8 @@ export const seedDb = async (): Promise<void> => {
     await backfillMusicArtistFromAlbum();
     await migrateVideoMovieCategoryOnce();
     await reconcileVendorUserLinksOnce();
+    await reconcileArtistUserLinksOnce();
+    await reconcilePastorUserLinksOnce();
     await migrateArtistSpotlightFieldsOnce();
     await bootstrapMediaDailyMetricsOnce();
     await backfillProductUnlimitedInventoryOnce();

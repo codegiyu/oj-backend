@@ -27,6 +27,7 @@ import {
 import { isArtistOrPastorRoleActive } from './profileVisibility';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import * as pastorRepo from '../repositories/pastor/pastor.repository';
+import { healPastorIdForUser } from './roleProfileLink.service';
 
 const QUESTION_SORT_FIELDS = ['createdAt', 'updatedAt', 'status'];
 
@@ -61,13 +62,23 @@ function shapeApplicationResponse(application: Record<string, unknown>): Record<
 
 /** Returns pastor or throws 403 (no pastor link) / 404 (pastor record missing). */
 export async function getPastorForUser(userId: string): Promise<IPastor> {
-  const user = await pastorRepo.findUserPastorId(userId);
+  const userObjectId = parseObjectId(userId, 'userId');
+  let user = await pastorRepo.findUserPastorId(userObjectId);
+  let pastorId = user?.pastorId ?? null;
 
-  if (!user?.pastorId) {
+  if (!pastorId) {
+    pastorId = await healPastorIdForUser(userObjectId);
+    if (pastorId) {
+      user = await pastorRepo.findUserPastorId(userObjectId);
+      pastorId = user?.pastorId ?? pastorId;
+    }
+  }
+
+  if (!pastorId) {
     throw new AppError('You do not have an associated pastor profile', 403);
   }
 
-  const pastor = await pastorRepo.findPastorLeanById(user.pastorId);
+  const pastor = await pastorRepo.findPastorLeanById(pastorId);
 
   if (!pastor) {
     throw new AppError('Pastor profile not found', 404);
@@ -93,14 +104,25 @@ async function getPastorForUserOperational(userId: string): Promise<IPastor> {
 }
 
 export async function loadPastorMe(userId: string): Promise<Record<string, unknown>> {
-  const user = await pastorRepo.findUserPastorId(userId);
+  const userObjectId = parseObjectId(userId, 'userId');
+  let user = await pastorRepo.findUserPastorId(userObjectId);
 
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
-  if (user.pastorId) {
-    const pastor = await pastorRepo.findPastorLeanById(user.pastorId);
+  let pastorId = user.pastorId ?? null;
+
+  if (!pastorId) {
+    pastorId = await healPastorIdForUser(userObjectId);
+    if (pastorId) {
+      user = await pastorRepo.findUserPastorId(userObjectId);
+      pastorId = user?.pastorId ?? pastorId;
+    }
+  }
+
+  if (pastorId) {
+    const pastor = await pastorRepo.findPastorLeanById(pastorId);
 
     if (!pastor) {
       throw new AppError('Pastor profile not found', 404);

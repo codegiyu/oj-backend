@@ -13,26 +13,9 @@ import {
   frontendPathsForMarketplaceVendor,
   scheduleFrontendRevalidation,
 } from '../../services/frontendRevalidation.service';
+import { ensureVendorUserLink } from '../../services/roleProfileLink.service';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
-
-async function linkApprovedVendorToUser(vendor: InstanceType<typeof Vendor>): Promise<void> {
-  if (vendor.user) {
-    await User.updateOne({ _id: vendor.user }, { $set: { vendorId: vendor._id } });
-    return;
-  }
-
-  const matchingUser = await User.findOne({
-    email: vendor.email.trim().toLowerCase(),
-    $or: [{ vendorId: null }, { vendorId: { $exists: false } }],
-  }).select('_id');
-
-  if (!matchingUser) return;
-
-  vendor.user = matchingUser._id;
-  await vendor.save();
-  await User.updateOne({ _id: matchingUser._id }, { $set: { vendorId: vendor._id } });
-}
 
 function shapeVendorItem(raw: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -155,6 +138,11 @@ export async function createAdminVendor(
     isFeatured: body.isFeatured ?? false,
   });
 
+  // Active-on-create must be linked to a user the same way Approve does.
+  if (vendor.status === 'active') {
+    await ensureVendorUserLink(vendor);
+  }
+
   const populated = await Vendor.findById(vendor._id).lean();
   sendResponse(
     reply,
@@ -193,6 +181,7 @@ export async function updateAdminVendor(
 
   const body = request.body ?? {};
   const previousFeatured = vendor.isFeatured ?? false;
+  const previousStatus = vendor.status;
   if (body.name !== undefined) vendor.name = body.name;
   if (body.email !== undefined) vendor.email = body.email;
   if (body.phone !== undefined) vendor.phone = body.phone;
@@ -210,6 +199,10 @@ export async function updateAdminVendor(
   if (body.isFeatured !== undefined) vendor.isFeatured = body.isFeatured;
 
   await vendor.save();
+
+  if (vendor.status === 'active' && previousStatus !== 'active') {
+    await ensureVendorUserLink(vendor);
+  }
 
   if (
     body.isFeatured !== undefined &&
@@ -241,6 +234,9 @@ export async function approveAdminVendor(
   const vendor = await Vendor.findById(id);
   if (!vendor) throw new AppError('Vendor not found', 404);
 
+  // Link before activating so unlinkable vendors stay pending / prior status.
+  await ensureVendorUserLink(vendor);
+
   vendor.status = 'active';
   vendor.approvedAt = new Date();
   vendor.approvedBy = new mongoose.Types.ObjectId(userId);
@@ -248,7 +244,6 @@ export async function approveAdminVendor(
   vendor.rejectedAt = null;
   vendor.rejectedBy = null;
   await vendor.save();
-  await linkApprovedVendorToUser(vendor);
 
   const populated = await Vendor.findById(vendor._id).lean();
   sendResponse(
