@@ -108,6 +108,7 @@ export async function createAdminVendor(
       bankName?: string;
       status?: 'pending' | 'active' | 'suspended' | 'inactive';
       isFeatured?: boolean;
+      ownerUserId?: string;
     };
   }>,
   reply: FastifyReply
@@ -119,8 +120,23 @@ export async function createAdminVendor(
   if (!body?.storeName?.trim()) throw new AppError('Store name is required', 400);
 
   const slug = await generateUniqueSlug(Vendor, body.storeName.trim());
+  let linkedUserId: mongoose.Types.ObjectId | null = null;
+
+  if (body.ownerUserId) {
+    if (!mongoose.Types.ObjectId.isValid(body.ownerUserId)) {
+      throw new AppError('Invalid ownerUserId', 400);
+    }
+
+    const ownerId = new mongoose.Types.ObjectId(body.ownerUserId);
+    const owner = await User.findById(ownerId).select('vendorId').lean();
+    if (!owner) throw new AppError('Owner user not found', 404);
+    if (owner.vendorId) throw new AppError('User already has a vendor profile', 409);
+
+    linkedUserId = ownerId;
+  }
 
   const vendor = await Vendor.create({
+    ...(linkedUserId ? { user: linkedUserId } : {}),
     name: body.name.trim(),
     slug,
     email: body.email.trim().toLowerCase(),
@@ -138,8 +154,19 @@ export async function createAdminVendor(
     isFeatured: body.isFeatured ?? false,
   });
 
-  // Active-on-create must be linked to a user the same way Approve does.
-  if (vendor.status === 'active') {
+  if (linkedUserId) {
+    const linked = await User.findOneAndUpdate(
+      { _id: linkedUserId, vendorId: null },
+      { $set: { vendorId: vendor._id } },
+      { new: true }
+    );
+
+    if (!linked) {
+      await Vendor.deleteOne({ _id: vendor._id });
+      throw new AppError('User already has a vendor profile', 409);
+    }
+  } else if (vendor.status === 'active') {
+    // Active-on-create without explicit owner still requires a linkable user by email.
     await ensureVendorUserLink(vendor);
   }
 
