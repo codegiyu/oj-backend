@@ -24,6 +24,7 @@ import {
   shapeRolePortalMeta,
 } from './roleProfileLifecycle.service';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
+import { serializeDocIds } from '../controllers/artist/artist.helpers';
 import * as vendorRepo from '../repositories/vendor/vendor.repository';
 import { healVendorIdForUser } from './roleProfileLink.service';
 
@@ -80,7 +81,7 @@ export async function loadVendorMe(userId: string) {
   const vendor = await getVendorForUser(userId);
   const appeals = await loadAppealSummariesForProfile('vendor', vendor._id);
   const count = await vendorRepo.countProductsForVendor(vendor._id);
-  const raw = vendor.toObject() as unknown as Record<string, unknown>;
+  const raw = serializeDocIds(vendor.toObject() as unknown as Record<string, unknown>);
 
   return {
     ...raw,

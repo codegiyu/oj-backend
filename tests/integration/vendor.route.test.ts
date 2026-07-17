@@ -53,6 +53,41 @@ describe('vendor portal routes', () => {
     expect(response.statusCode).toBe(403);
   });
 
+  it('returns 200 for GET /vendor/me with stringified vendor id fields', async () => {
+    vi.mocked(vendorService.loadVendorMe).mockResolvedValueOnce({
+      _id: '507f1f77bcf86cd799439011',
+      name: 'Grace Store',
+      slug: 'grace-store',
+      storeName: 'Grace Store',
+      email: 'vendor@example.com',
+      phone: '+2348000000000',
+      status: 'active',
+      portalStatus: 'active',
+      productCount: 3,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      openAppeal: null,
+      lastRejectedAppeal: null,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `${VENDOR_BASE}/me`,
+      headers: buildClientAccessAuthHeader(),
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const body = response.json() as {
+      data?: { _id?: unknown; createdAt?: unknown; productCount?: number };
+    };
+
+    expect(typeof body.data?._id).toBe('string');
+    expect(body.data?._id).toBe('507f1f77bcf86cd799439011');
+    expect(typeof body.data?.createdAt).toBe('string');
+    expect(body.data?.productCount).toBe(3);
+  });
+
   it('returns 200 for GET /vendor/dashboard-stats when service succeeds', async () => {
     vi.mocked(vendorService.loadVendorDashboardStats).mockResolvedValueOnce({
       productsCount: 5,

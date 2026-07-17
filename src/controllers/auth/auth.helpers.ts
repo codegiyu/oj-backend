@@ -139,7 +139,7 @@ export async function buildClientUserPayload(user: ModelUser): Promise<Record<st
     const vendor = await Vendor.findById(user.vendorId).select('_id slug storeName name').lean();
     if (vendor) {
       sanitized.vendor = {
-        _id: vendor._id,
+        _id: String(vendor._id),
         slug: vendor.slug,
         storeName: vendor.storeName,
         // Optional backward-compatible name field
