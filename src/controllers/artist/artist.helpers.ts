@@ -98,8 +98,23 @@ export function serializeDocIds<T extends Record<string, unknown>>(doc: T): T {
   if (out.artist != null && typeof out.artist === 'object' && !Array.isArray(out.artist)) {
     out.artist = toArtistSummary(out.artist as PopulatedArtistDoc);
   }
-  ['createdAt', 'updatedAt'].forEach(key => {
-    if (out[key] instanceof Date) out[key] = out[key].toISOString();
-  });
+
+  for (const key of ['statusChangedBy', 'approvedBy', 'rejectedBy'] as const) {
+    if (out[key] != null && typeof out[key] !== 'string') {
+      out[key] = leanIdToString(out[key]);
+    }
+  }
+
+  for (const key of [
+    'createdAt',
+    'updatedAt',
+    'approvedAt',
+    'rejectedAt',
+    'statusChangedAt',
+  ] as const) {
+    const value = out[key];
+    if (value instanceof Date) out[key] = value.toISOString();
+  }
+
   return out as T;
 }
