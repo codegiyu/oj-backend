@@ -127,7 +127,7 @@ export async function buildClientUserPayload(user: ModelUser): Promise<Record<st
     const artist = await Artist.findById(user.artistId).select('_id name slug image').lean();
     if (artist) {
       sanitized.artist = {
-        _id: artist._id,
+        _id: String(artist._id),
         name: artist.name,
         slug: artist.slug,
         image: artist.image,
@@ -155,7 +155,7 @@ export async function buildClientUserPayload(user: ModelUser): Promise<Record<st
       .lean();
     if (pastor) {
       sanitized.pastor = {
-        _id: pastor._id,
+        _id: String(pastor._id),
         name: pastor.name,
         slug: pastor.slug,
         image: pastor.image,
