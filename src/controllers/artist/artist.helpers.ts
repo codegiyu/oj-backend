@@ -85,8 +85,8 @@ export function toArtistSummary(
 
 /**
  * Serialize a lean document for API: ensures _id and nested ids are strings.
- * Use for artist profile (me) and for single music/video where we already have
- * the doc; for list items use the specific shape with toArtistSummary(artist).
+ * Used by artist profile (me), vendor `loadVendorMe`, and marketplace vendor docs.
+ * For list items use the specific shape with toArtistSummary(artist).
  */
 export function serializeDocIds<T extends Record<string, unknown>>(doc: T): T {
   if (!doc || typeof doc !== 'object') return doc;
