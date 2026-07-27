@@ -1,4 +1,5 @@
 import type { PopulatedOrder } from '../lib/types/constants';
+import { toWhatsAppMeDigits } from './whatsappPhone';
 
 export function formatNaira(amount: number): string {
   return `₦${amount.toLocaleString('en-NG')}`;
@@ -94,14 +95,9 @@ export function buildMarketplaceWhatsappLink(order: PopulatedOrder): {
   link?: string;
 } {
   const message = formatMarketplaceOrderMessage(order);
-  const whatsapp = order.vendor?.whatsapp?.trim();
+  const digits = toWhatsAppMeDigits(order.vendor?.whatsapp);
 
-  if (!whatsapp) {
-    return { message };
-  }
-
-  const digits = whatsapp.replace(/\D/g, '');
-  if (!digits.length) {
+  if (!digits) {
     return { message };
   }
 
