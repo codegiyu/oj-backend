@@ -86,6 +86,20 @@ describe('buildMarketplaceWhatsappLink', () => {
     expect(decodeURIComponent(link!.split('?text=')[1] ?? '')).toBe(message);
   });
 
+  it('normalizes Nigerian local WhatsApp numbers with leading 0', () => {
+    const order = buildSampleOrder({
+      vendor: {
+        _id: new mongoose.Types.ObjectId(),
+        storeName: 'Local Number Vendor',
+        whatsapp: '08031234567',
+      },
+    });
+
+    const { link } = buildMarketplaceWhatsappLink(order);
+
+    expect(link).toMatch(/^https:\/\/wa\.me\/2348031234567\?text=/);
+  });
+
   it('returns message only when vendor whatsapp is missing', () => {
     const order = buildSampleOrder({
       vendor: {
@@ -97,6 +111,20 @@ describe('buildMarketplaceWhatsappLink', () => {
     const { message, link } = buildMarketplaceWhatsappLink(order);
 
     expect(message).toContain('No WhatsApp Vendor');
+    expect(link).toBeUndefined();
+  });
+
+  it('returns message only when vendor whatsapp cannot be normalized', () => {
+    const order = buildSampleOrder({
+      vendor: {
+        _id: new mongoose.Types.ObjectId(),
+        storeName: 'Bad WhatsApp Vendor',
+        whatsapp: '12',
+      },
+    });
+
+    const { link } = buildMarketplaceWhatsappLink(order);
+
     expect(link).toBeUndefined();
   });
 });
