@@ -19,6 +19,7 @@ import { findVariantBySku } from '../utils/marketplaceProduct';
 import { setBooleanInventoryAfterOrder } from '../utils/marketplaceInventory';
 import * as marketplaceRepo from '../repositories/marketplace/marketplace.repository';
 import { buildMarketplaceWhatsappLink } from '../utils/marketplaceWhatsappMessage';
+import { normalizeWhatsAppForStorage } from '../utils/whatsappPhone';
 import { loadRelatedProductsForProduct } from './relatedProductsLoader.service';
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder'];
@@ -324,6 +325,7 @@ export async function becomeVendor(
   }
 
   const slug = await generateUniqueSlug(Vendor, storeName);
+  const whatsapp = normalizeWhatsAppForStorage(body.whatsapp);
 
   const vendorDoc = await marketplaceRepo.createVendorRecord({
     user: userObjectId,
@@ -333,7 +335,7 @@ export async function becomeVendor(
     phone: body.phone,
     storeName,
     storeDescription: body.storeDescription ?? '',
-    whatsapp: body.whatsapp ?? '',
+    whatsapp,
     address: body.address ?? '',
     bankAccountName: body.bankAccountName ?? '',
     bankAccountNumber: body.bankAccountNumber ?? '',

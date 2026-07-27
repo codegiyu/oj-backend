@@ -14,6 +14,7 @@ import {
   scheduleFrontendRevalidation,
 } from '../../services/frontendRevalidation.service';
 import { ensureVendorUserLink } from '../../services/roleProfileLink.service';
+import { normalizeWhatsAppForStorage } from '../../utils/whatsappPhone';
 
 const SORT_FIELDS = ['createdAt', 'updatedAt', 'storeName', 'name', 'status'];
 
@@ -145,7 +146,7 @@ export async function createAdminVendor(
     storeDescription: body.storeDescription ?? '',
     logo: body.logo ?? '',
     coverImage: body.coverImage ?? '',
-    whatsapp: body.whatsapp ?? '',
+    whatsapp: normalizeWhatsAppForStorage(body.whatsapp),
     address: body.address ?? '',
     bankAccountName: body.bankAccountName ?? '',
     bankAccountNumber: body.bankAccountNumber ?? '',
@@ -216,7 +217,9 @@ export async function updateAdminVendor(
   if (body.storeDescription !== undefined) vendor.storeDescription = body.storeDescription;
   if (body.logo !== undefined) vendor.logo = body.logo;
   if (body.coverImage !== undefined) vendor.coverImage = body.coverImage;
-  if (body.whatsapp !== undefined) vendor.whatsapp = body.whatsapp;
+  if (body.whatsapp !== undefined) {
+    vendor.whatsapp = normalizeWhatsAppForStorage(body.whatsapp);
+  }
   if (body.address !== undefined) vendor.address = body.address;
   if (body.bankAccountName !== undefined) vendor.bankAccountName = body.bankAccountName;
   if (body.bankAccountNumber !== undefined) vendor.bankAccountNumber = body.bankAccountNumber;

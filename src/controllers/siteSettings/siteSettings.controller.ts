@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { SiteSettings } from '../../models/siteSettings';
 import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
+import { normalizeWhatsAppForStorage } from '../../utils/whatsappPhone';
 import type { SiteSettingsSlice } from './siteSettings.validation';
 
 const SLICES: SiteSettingsSlice[] = [
@@ -74,7 +75,22 @@ export async function updateSiteSettings(
 
   for (const item of settingsPayload) {
     if (item.name === 'all' || !SLICES.includes(item.name)) continue;
-    (settings as unknown as Record<string, unknown>)[item.name] = item.value;
+
+    let value = item.value;
+
+    if (item.name === 'contactInfo' && value && typeof value === 'object') {
+      const contactInfo = { ...value } as Record<string, unknown>;
+
+      if ('whatsapp' in contactInfo) {
+        contactInfo.whatsapp = normalizeWhatsAppForStorage(
+          typeof contactInfo.whatsapp === 'string' ? contactInfo.whatsapp : ''
+        );
+      }
+
+      value = contactInfo;
+    }
+
+    (settings as unknown as Record<string, unknown>)[item.name] = value;
   }
 
   await settings.save();
