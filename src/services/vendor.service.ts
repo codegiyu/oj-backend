@@ -27,6 +27,7 @@ import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { serializeDocIds } from '../controllers/artist/artist.helpers';
 import * as vendorRepo from '../repositories/vendor/vendor.repository';
 import { healVendorIdForUser } from './roleProfileLink.service';
+import { normalizeWhatsAppForStorage } from '../utils/whatsappPhone';
 
 const PRODUCT_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'displayOrder', 'status'];
 const ORDER_SORT_FIELDS = ['createdAt', 'updatedAt', 'orderNumber', 'totalAmount', 'status'];
@@ -536,7 +537,9 @@ export async function updateVendorSettings(
   if (body.phone !== undefined) vendor.phone = body.phone;
   if (body.logo !== undefined) vendor.logo = body.logo;
   if (body.coverImage !== undefined) vendor.coverImage = body.coverImage;
-  if (body.whatsapp !== undefined) vendor.whatsapp = body.whatsapp;
+  if (body.whatsapp !== undefined) {
+    vendor.whatsapp = normalizeWhatsAppForStorage(body.whatsapp);
+  }
   if (body.address !== undefined) vendor.address = body.address;
   if (body.bankAccountName !== undefined) vendor.bankAccountName = body.bankAccountName;
   if (body.bankAccountNumber !== undefined) vendor.bankAccountNumber = body.bankAccountNumber;

@@ -1,4 +1,5 @@
 import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
+import { AppError } from './AppError';
 
 /**
  * Normalize a stored phone/WhatsApp string to digits for wa.me/{digits}.
@@ -44,4 +45,35 @@ export function toWhatsAppE164(
   const digits = toWhatsAppMeDigits(raw, defaultCountry);
 
   return digits ? `+${digits}` : null;
+}
+
+/**
+ * Normalize WhatsApp for persistence. Empty allowed unless allowEmpty is false.
+ * Throws AppError when a non-empty value cannot be normalized.
+ */
+export function normalizeWhatsAppForStorage(
+  raw: string | undefined | null,
+  options: { allowEmpty?: boolean } = {}
+): string {
+  const allowEmpty = options.allowEmpty !== false;
+  const trimmed = raw?.trim() ?? '';
+
+  if (!trimmed) {
+    if (!allowEmpty) {
+      throw new AppError('WhatsApp number is required', 400);
+    }
+
+    return '';
+  }
+
+  const e164 = toWhatsAppE164(trimmed);
+
+  if (!e164) {
+    throw new AppError(
+      'Invalid WhatsApp number. Include a valid country code (for example +234…).',
+      400
+    );
+  }
+
+  return e164;
 }
