@@ -248,36 +248,14 @@ export async function updateAdminVideo(
   await video.save();
 
   const videoId = String(video._id);
+  const prevEffective = (prevVideoFileUrl || prevEmbedUrl || prevVideoUrl || '').trim();
+  const nextEffective = (video.videoFileUrl || video.embedUrl || video.videoUrl || '').trim();
 
-  if (
-    body.videoFileUrl !== undefined &&
-    shouldEnqueueMetadataProbe(prevVideoFileUrl, body.videoFileUrl)
-  ) {
+  if (mediaTouched && shouldEnqueueMetadataProbe(prevEffective, nextEffective)) {
     void enqueueMediaMetadataProbe({
       entityType: 'video',
       entityId: videoId,
-      mediaUrl: video.videoFileUrl ?? '',
-      mediaKind: 'video',
-    });
-  } else if (
-    body.videoUrl !== undefined &&
-    body.videoFileUrl === undefined &&
-    shouldEnqueueMetadataProbe(prevVideoUrl, body.videoUrl)
-  ) {
-    void enqueueMediaMetadataProbe({
-      entityType: 'video',
-      entityId: videoId,
-      mediaUrl: body.videoUrl,
-      mediaKind: 'video',
-    });
-  } else if (
-    body.embedUrl !== undefined &&
-    shouldEnqueueMetadataProbe(prevEmbedUrl, body.embedUrl)
-  ) {
-    void enqueueMediaMetadataProbe({
-      entityType: 'video',
-      entityId: videoId,
-      mediaUrl: video.embedUrl ?? '',
+      mediaUrl: nextEffective,
       mediaKind: 'video',
     });
   }
@@ -319,11 +297,16 @@ export async function approveAdminVideo(
   video.rejectedAt = null;
   video.rejectedBy = null;
 
-  assertPublishableVideoMedia(video.status, {
-    videoFileUrl: video.videoFileUrl ?? '',
-    embedUrl: video.embedUrl ?? '',
-    videoUrl: video.videoUrl ?? '',
+  const resolved = resolveVideoMediaFields({
+    videoFileUrl: video.videoFileUrl,
+    embedUrl: video.embedUrl,
+    videoUrl: video.videoUrl,
   });
+  video.videoFileUrl = resolved.videoFileUrl;
+  video.embedUrl = resolved.embedUrl;
+  video.videoUrl = resolved.videoUrl;
+
+  assertPublishableVideoMedia(video.status, resolved);
 
   await video.save();
 

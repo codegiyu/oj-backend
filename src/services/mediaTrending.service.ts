@@ -36,8 +36,8 @@ export type PeriodViewRow = {
 };
 
 /**
- * Rank docs by period views, then backfill page 1 with recent zero-view docs
- * when trending traffic is sparse.
+ * Rank docs by period views, then append recent remainder for sparse windows.
+ * Paginate the combined list so page 2+ stays continuous.
  */
 export function paginateTrendingWithRecentBackfill(options: {
   scored: PeriodViewRow[];
@@ -46,23 +46,19 @@ export function paginateTrendingWithRecentBackfill(options: {
   limit: number;
 }): { pageRows: PeriodViewRow[]; total: number } {
   const { scored, allDocs, page, limit } = options;
+  const scoredIds = new Set(scored.map(row => String(row.doc._id)));
+  const recentRemainder = allDocs
+    .filter(doc => !scoredIds.has(String(doc._id)))
+    .sort((a, b) => createdAtMs(b) - createdAtMs(a))
+    .map(doc => ({ doc, periodViews: 0 }));
+
+  const combined = [...scored, ...recentRemainder];
   const skip = (page - 1) * limit;
-  let pageRows = scored.slice(skip, skip + limit);
-
-  if (page === 1 && pageRows.length < limit) {
-    const included = new Set(pageRows.map(row => String(row.doc._id)));
-    const backfill = allDocs
-      .filter(doc => !included.has(String(doc._id)))
-      .sort((a, b) => createdAtMs(b) - createdAtMs(a))
-      .slice(0, limit - pageRows.length)
-      .map(doc => ({ doc, periodViews: 0 }));
-
-    pageRows = [...pageRows, ...backfill];
-  }
+  const pageRows = combined.slice(skip, skip + limit);
 
   return {
     pageRows,
-    total: Math.max(scored.length, page === 1 ? pageRows.length : scored.length),
+    total: combined.length,
   };
 }
 
@@ -119,11 +115,16 @@ async function rankByPeriodViews(options: {
         total: scored.length,
       };
 
-  const items = pageRows.map(row => ({
-    ...row.doc,
-    periodViews: row.periodViews,
-    views: row.periodViews,
-  }));
+  const items = pageRows.map(row => {
+    const lifetimeViews =
+      typeof row.doc.views === 'number' ? row.doc.views : Number(row.doc.views) || 0;
+
+    return {
+      ...row.doc,
+      periodViews: row.periodViews,
+      views: lifetimeViews,
+    };
+  });
 
   return { items, total };
 }

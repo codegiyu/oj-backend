@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   isCompleteDevotional,
   isCompleteMusic,
@@ -9,7 +8,9 @@ import {
   isSermonCategory,
   mergePublicFilter,
   publishedMusicCompletenessFilter,
+  publishedVideoCompletenessFilter,
 } from '../../src/utils/contentCompleteness';
+import { YOUTUBE_URL_MONGO_RE } from '../../src/utils/videoEmbed';
 
 describe('contentCompleteness', () => {
   it('detects sermon categories', () => {
@@ -37,6 +38,22 @@ describe('contentCompleteness', () => {
     );
     expect(isCompleteVideo({ embedUrl: 'https://vimeo.com/123' })).toBe(false);
     expect(isCompleteVideo({ videoUrl: '', videoFileUrl: '', embedUrl: '' })).toBe(false);
+  });
+
+  it('publishedVideoCompletenessFilter requires YouTube-shaped embeds', () => {
+    const filter = publishedVideoCompletenessFilter() as {
+      $or: Array<Record<string, unknown>>;
+    };
+
+    expect(filter.$or).toEqual(
+      expect.arrayContaining([
+        { videoFileUrl: { $regex: expect.any(RegExp) } },
+        { embedUrl: { $regex: YOUTUBE_URL_MONGO_RE } },
+        { videoUrl: { $regex: YOUTUBE_URL_MONGO_RE } },
+      ])
+    );
+    expect(YOUTUBE_URL_MONGO_RE.test('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+    expect(YOUTUBE_URL_MONGO_RE.test('https://vimeo.com/123')).toBe(false);
   });
 
   it('requires text content for devotionals and testimonies', () => {

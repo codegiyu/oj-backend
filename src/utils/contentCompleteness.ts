@@ -2,7 +2,7 @@
  * Public catalog completeness: items missing primary content must not be served.
  */
 
-import { isLikelyYoutubeUrl, resolveVideoMediaFields } from './videoEmbed';
+import { isLikelyYoutubeUrl, resolveVideoMediaFields, YOUTUBE_URL_MONGO_RE } from './videoEmbed';
 
 const NON_EMPTY = /\S/;
 
@@ -96,8 +96,8 @@ export function publishedVideoCompletenessFilter(): Record<string, unknown> {
   return {
     $or: [
       { videoFileUrl: { $regex: NON_EMPTY } },
-      { embedUrl: { $regex: NON_EMPTY } },
-      { videoUrl: { $regex: NON_EMPTY } },
+      { embedUrl: { $regex: YOUTUBE_URL_MONGO_RE } },
+      { videoUrl: { $regex: YOUTUBE_URL_MONGO_RE } },
     ],
   };
 }

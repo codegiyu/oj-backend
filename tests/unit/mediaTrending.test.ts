@@ -51,7 +51,7 @@ describe('paginateTrendingWithRecentBackfill', () => {
       { _id: 'c', createdAt: '2026-06-01' },
     ];
 
-    const { pageRows } = paginateTrendingWithRecentBackfill({
+    const { pageRows, total } = paginateTrendingWithRecentBackfill({
       scored,
       allDocs,
       page: 1,
@@ -59,6 +59,34 @@ describe('paginateTrendingWithRecentBackfill', () => {
     });
 
     expect(pageRows.map(row => String(row.doc._id))).toEqual(['a', 'b']);
+    expect(total).toBe(3);
+  });
+
+  it('continues recent remainder on page 2 with stable total', () => {
+    const scored = [{ doc: { _id: 'hot', createdAt: '2026-01-01' }, periodViews: 9 }];
+    const allDocs = [
+      { _id: 'hot', createdAt: '2026-01-01' },
+      { _id: 'new', createdAt: '2026-07-01' },
+      { _id: 'older', createdAt: '2026-06-01' },
+    ];
+
+    const page1 = paginateTrendingWithRecentBackfill({
+      scored,
+      allDocs,
+      page: 1,
+      limit: 2,
+    });
+    const page2 = paginateTrendingWithRecentBackfill({
+      scored,
+      allDocs,
+      page: 2,
+      limit: 2,
+    });
+
+    expect(page1.pageRows.map(row => String(row.doc._id))).toEqual(['hot', 'new']);
+    expect(page2.pageRows.map(row => String(row.doc._id))).toEqual(['older']);
+    expect(page1.total).toBe(3);
+    expect(page2.total).toBe(3);
   });
 });
 
