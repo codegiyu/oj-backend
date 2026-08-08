@@ -5,7 +5,8 @@ import { AppError } from '../../utils/AppError';
 import { sendResponse } from '../../utils/response';
 import { generateUniqueSlug } from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
-import { isLikelyYoutubeUrl } from '../../utils/videoEmbed';
+import { resolveVideoMediaFields } from '../../utils/videoEmbed';
+import { isCompleteVideo } from '../../utils/contentCompleteness';
 import * as adminVideoService from '../../services/adminVideo.service';
 import { shapeVideoItem } from '../../services/adminVideo.service';
 import {
@@ -25,6 +26,20 @@ import {
   enqueueMediaMetadataProbe,
   shouldEnqueueMetadataProbe,
 } from '../../utils/mediaMetadataEnqueue';
+
+function assertPublishableVideoMedia(
+  status: string,
+  fields: { videoFileUrl: string; embedUrl: string; videoUrl: string }
+): void {
+  if (status !== 'published') return;
+
+  if (!isCompleteVideo(fields)) {
+    throw new AppError(
+      'Published videos require a hosted video file or a valid YouTube embed URL',
+      400
+    );
+  }
+}
 
 const artistPopulate = {
   path: 'artist' as const,
@@ -96,11 +111,13 @@ export async function createAdminVideo(
   const slugFilter = resolvedArtistId ? { artist: resolvedArtistId } : { artist: null };
   const slug = await generateUniqueSlug(Video, body.title, slugFilter);
 
-  const vf = (body.videoFileUrl ?? '').trim();
-  const legacyVu = (body.videoUrl ?? '').trim();
-  const embIn = (body.embedUrl ?? '').trim();
-  const fileStored = vf || (legacyVu && !isLikelyYoutubeUrl(legacyVu) ? legacyVu : '');
-  const embedStored = embIn || (legacyVu && isLikelyYoutubeUrl(legacyVu) ? legacyVu : '');
+  const resolved = resolveVideoMediaFields({
+    videoFileUrl: body.videoFileUrl,
+    embedUrl: body.embedUrl,
+    videoUrl: body.videoUrl,
+  });
+
+  assertPublishableVideoMedia(status, resolved);
 
   const video = await Video.create({
     title: body.title,
@@ -108,9 +125,9 @@ export async function createAdminVideo(
     artist: resolvedArtistId ?? null,
     description: body.description ?? '',
     thumbnail: body.thumbnail ?? '',
-    videoFileUrl: fileStored,
-    embedUrl: embedStored,
-    videoUrl: fileStored || legacyVu,
+    videoFileUrl: resolved.videoFileUrl,
+    embedUrl: resolved.embedUrl,
+    videoUrl: resolved.videoUrl,
     category,
     tags,
     metadata,
@@ -126,7 +143,7 @@ export async function createAdminVideo(
 
   const populated = await Video.findById(video._id).populate(artistPopulate).lean();
   const videoId = String(video._id);
-  const probeUrl = fileStored || embedStored || legacyVu;
+  const probeUrl = resolved.videoFileUrl || resolved.embedUrl;
 
   if (shouldEnqueueMetadataProbe('', probeUrl)) {
     void enqueueMediaMetadataProbe({
@@ -190,13 +207,22 @@ export async function updateAdminVideo(
   if (body.title !== undefined) video.title = body.title;
   if (body.description !== undefined) video.description = body.description;
   if (body.thumbnail !== undefined) video.thumbnail = body.thumbnail;
-  if (body.embedUrl !== undefined) video.embedUrl = body.embedUrl;
-  if (body.videoFileUrl !== undefined) {
-    video.videoFileUrl = body.videoFileUrl;
-    video.videoUrl = (body.videoFileUrl ?? '').trim() || video.videoUrl;
+
+  const mediaTouched =
+    body.embedUrl !== undefined || body.videoFileUrl !== undefined || body.videoUrl !== undefined;
+
+  if (mediaTouched) {
+    const resolved = resolveVideoMediaFields({
+      videoFileUrl: body.videoFileUrl !== undefined ? body.videoFileUrl : video.videoFileUrl,
+      embedUrl: body.embedUrl !== undefined ? body.embedUrl : video.embedUrl,
+      videoUrl: body.videoUrl !== undefined ? body.videoUrl : video.videoUrl,
+    });
+
+    video.videoFileUrl = resolved.videoFileUrl;
+    video.embedUrl = resolved.embedUrl;
+    video.videoUrl = resolved.videoUrl;
   }
-  if (body.videoUrl !== undefined && body.videoFileUrl === undefined)
-    video.videoUrl = body.videoUrl;
+
   if (body.category !== undefined) video.category = body.category;
   if (body.tags !== undefined) video.tags = normalizeTags(body.tags) ?? [];
   if (body.metadata !== undefined) video.metadata = assertMediaMetadata(body.metadata);
@@ -211,6 +237,12 @@ export async function updateAdminVideo(
     category: video.category,
     tags: video.tags,
     status: video.status,
+  });
+
+  assertPublishableVideoMedia(video.status, {
+    videoFileUrl: video.videoFileUrl ?? '',
+    embedUrl: video.embedUrl ?? '',
+    videoUrl: video.videoUrl ?? '',
   });
 
   await video.save();
@@ -286,6 +318,13 @@ export async function approveAdminVideo(
   video.rejectionReason = '';
   video.rejectedAt = null;
   video.rejectedBy = null;
+
+  assertPublishableVideoMedia(video.status, {
+    videoFileUrl: video.videoFileUrl ?? '',
+    embedUrl: video.embedUrl ?? '',
+    videoUrl: video.videoUrl ?? '',
+  });
+
   await video.save();
 
   const populated = await Video.findById(video._id).populate(artistPopulate).lean();

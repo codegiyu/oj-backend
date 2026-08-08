@@ -116,4 +116,20 @@ describe('publicMedia.shaping taxonomy fields', () => {
 
     expect(shaped.priority).toBe(4);
   });
+
+  it('shapeVideoDetail remaps YouTube stored only in videoFileUrl to embed playback', () => {
+    const yt = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    const shaped = shapeVideoDetail({
+      _id: 'vid-yt',
+      title: 'YT Clip',
+      slug: 'yt-clip',
+      videoFileUrl: yt,
+      embedUrl: '',
+      videoUrl: yt,
+    });
+
+    expect(shaped.videoFileUrl).toBe('');
+    expect(shaped.embedUrl).toBe(yt);
+    expect(shaped.youtubeEmbedUrl).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  });
 });
