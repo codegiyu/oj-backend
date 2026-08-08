@@ -30,6 +30,42 @@ function toObjectIds(docs: Record<string, unknown>[]): mongoose.Types.ObjectId[]
     .filter((id): id is mongoose.Types.ObjectId => id != null);
 }
 
+export type PeriodViewRow = {
+  doc: Record<string, unknown>;
+  periodViews: number;
+};
+
+/**
+ * Rank docs by period views, then backfill page 1 with recent zero-view docs
+ * when trending traffic is sparse.
+ */
+export function paginateTrendingWithRecentBackfill(options: {
+  scored: PeriodViewRow[];
+  allDocs: Record<string, unknown>[];
+  page: number;
+  limit: number;
+}): { pageRows: PeriodViewRow[]; total: number } {
+  const { scored, allDocs, page, limit } = options;
+  const skip = (page - 1) * limit;
+  let pageRows = scored.slice(skip, skip + limit);
+
+  if (page === 1 && pageRows.length < limit) {
+    const included = new Set(pageRows.map(row => String(row.doc._id)));
+    const backfill = allDocs
+      .filter(doc => !included.has(String(doc._id)))
+      .sort((a, b) => createdAtMs(b) - createdAtMs(a))
+      .slice(0, limit - pageRows.length)
+      .map(doc => ({ doc, periodViews: 0 }));
+
+    pageRows = [...pageRows, ...backfill];
+  }
+
+  return {
+    pageRows,
+    total: Math.max(scored.length, page === 1 ? pageRows.length : scored.length),
+  };
+}
+
 async function rankByPeriodViews(options: {
   docs: Record<string, unknown>[];
   viewsField: string;
@@ -40,6 +76,7 @@ async function rankByPeriodViews(options: {
   page: number;
   limit: number;
   now?: Date;
+  backfillRecentWhenSparse?: boolean;
 }): Promise<{ items: Record<string, unknown>[]; total: number }> {
   const { windowStart, windowEnd } = resolveTrendingWindow(options.now);
   const ids = toObjectIds(options.docs);
@@ -67,15 +104,28 @@ async function rankByPeriodViews(options: {
       return createdAtMs(b.doc) - createdAtMs(a.doc);
     });
 
-  const skip = (options.page - 1) * options.limit;
-  const pageRows = scored.slice(skip, skip + options.limit);
+  const { pageRows, total } = options.backfillRecentWhenSparse
+    ? paginateTrendingWithRecentBackfill({
+        scored,
+        allDocs: options.docs,
+        page: options.page,
+        limit: options.limit,
+      })
+    : {
+        pageRows: scored.slice(
+          (options.page - 1) * options.limit,
+          (options.page - 1) * options.limit + options.limit
+        ),
+        total: scored.length,
+      };
+
   const items = pageRows.map(row => ({
     ...row.doc,
     periodViews: row.periodViews,
     views: row.periodViews,
   }));
 
-  return { items, total: scored.length };
+  return { items, total };
 }
 
 export async function getTrendingVideosList(options: {
@@ -93,6 +143,7 @@ export async function getTrendingVideosList(options: {
     page: options.page,
     limit: options.limit,
     now: options.now,
+    backfillRecentWhenSparse: true,
   });
 }
 
