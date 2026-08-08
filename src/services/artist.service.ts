@@ -33,27 +33,13 @@ import {
 import { isArtistOrPastorRoleActive } from './profileVisibility';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { assertMediaMetadata } from '../utils/contentTaxonomyValidation';
-import { isCompleteVideo } from '../utils/contentCompleteness';
 import { resolveVideoMediaFields, youtubeEmbedUrlFromInput } from '../utils/videoEmbed';
+import { assertPublishableVideoMedia } from '../utils/videoMediaValidation';
 import * as artistRepo from '../repositories/artist/artist.repository';
 import { healArtistIdForUser } from './roleProfileLink.service';
 
 const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 const VIDEO_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
-
-function assertPublishableVideoMedia(
-  status: string,
-  fields: { videoFileUrl: string; embedUrl: string; videoUrl: string }
-): void {
-  if (status !== 'published') return;
-
-  if (!isCompleteVideo(fields)) {
-    throw new AppError(
-      'Published videos require a hosted video file or a valid YouTube embed URL',
-      400
-    );
-  }
-}
 
 export function shapeMusicListItem(raw: artistRepo.MusicWithArtistLean): Record<string, unknown> {
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc | null | undefined);
