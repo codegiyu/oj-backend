@@ -6,7 +6,7 @@ import { sendResponse } from '../../utils/response';
 import { generateUniqueSlug } from '../../utils/helpers';
 import { requireAdmin, parseObjectId } from './admin.helpers';
 import { resolveVideoMediaFields } from '../../utils/videoEmbed';
-import { isCompleteVideo } from '../../utils/contentCompleteness';
+import { assertPublishableVideoMedia } from '../../utils/videoMediaValidation';
 import * as adminVideoService from '../../services/adminVideo.service';
 import { shapeVideoItem } from '../../services/adminVideo.service';
 import {
@@ -26,20 +26,6 @@ import {
   enqueueMediaMetadataProbe,
   shouldEnqueueMetadataProbe,
 } from '../../utils/mediaMetadataEnqueue';
-
-function assertPublishableVideoMedia(
-  status: string,
-  fields: { videoFileUrl: string; embedUrl: string; videoUrl: string }
-): void {
-  if (status !== 'published') return;
-
-  if (!isCompleteVideo(fields)) {
-    throw new AppError(
-      'Published videos require a hosted video file or a valid YouTube embed URL',
-      400
-    );
-  }
-}
 
 const artistPopulate = {
   path: 'artist' as const,
