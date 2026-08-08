@@ -34,7 +34,7 @@ import { isArtistOrPastorRoleActive } from './profileVisibility';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { assertMediaMetadata } from '../utils/contentTaxonomyValidation';
 import { isCompleteVideo } from '../utils/contentCompleteness';
-import { resolveVideoMediaFields } from '../utils/videoEmbed';
+import { resolveVideoMediaFields, youtubeEmbedUrlFromInput } from '../utils/videoEmbed';
 import * as artistRepo from '../repositories/artist/artist.repository';
 import { healArtistIdForUser } from './roleProfileLink.service';
 
@@ -132,13 +132,22 @@ export function shapeVideoListItem(raw: artistRepo.VideoWithArtistLean): Record<
 }
 
 function shapeVideoDetail(doc: artistRepo.VideoWithArtistLean): Record<string, unknown> {
+  const resolved = resolveVideoMediaFields({
+    videoFileUrl: doc.videoFileUrl,
+    embedUrl: doc.embedUrl,
+    videoUrl: doc.videoUrl,
+  });
+
   return {
     _id: leanIdToString(doc._id),
     title: doc.title,
     slug: doc.slug,
     description: doc.description,
     thumbnail: doc.thumbnail,
-    videoUrl: doc.videoUrl,
+    videoUrl: resolved.videoUrl,
+    videoFileUrl: resolved.videoFileUrl,
+    embedUrl: resolved.embedUrl,
+    youtubeEmbedUrl: youtubeEmbedUrlFromInput(resolved.embedUrl),
     category: doc.category,
     status: doc.status,
     isMonetizable: doc.isMonetizable,
