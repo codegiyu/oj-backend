@@ -15,9 +15,10 @@ describe('parseYoutubeId', () => {
     expect(parseYoutubeId(`https://www.youtube.com/shorts/${SAMPLE_ID}`)).toBe(SAMPLE_ID);
   });
 
-  it('parses live and music.youtube.com hosts', () => {
+  it('parses live, music, and youtube-nocookie hosts', () => {
     expect(parseYoutubeId(`https://www.youtube.com/live/${SAMPLE_ID}`)).toBe(SAMPLE_ID);
     expect(parseYoutubeId(`https://music.youtube.com/watch?v=${SAMPLE_ID}`)).toBe(SAMPLE_ID);
+    expect(parseYoutubeId(`https://www.youtube-nocookie.com/embed/${SAMPLE_ID}`)).toBe(SAMPLE_ID);
   });
 
   it('rejects playlists, channels, and non-YouTube URLs', () => {
@@ -90,6 +91,18 @@ describe('resolveVideoMediaFields', () => {
     expect(resolved.videoFileUrl).toBe('');
     expect(resolved.embedUrl).toBe(yt);
     expect(resolved.videoUrl).toBe(yt);
+  });
+
+  it('prefers parseable YouTube in videoFileUrl over invalid embedUrl', () => {
+    const yt = `https://www.youtube.com/watch?v=${SAMPLE_ID}`;
+    const resolved = resolveVideoMediaFields({
+      videoFileUrl: yt,
+      embedUrl: 'https://vimeo.com/123',
+      videoUrl: '',
+    });
+
+    expect(resolved.videoFileUrl).toBe('');
+    expect(resolved.embedUrl).toBe(yt);
   });
 
   it('uses legacy non-YouTube videoUrl as file when videoFileUrl empty', () => {
