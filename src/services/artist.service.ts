@@ -33,11 +33,27 @@ import {
 import { isArtistOrPastorRoleActive } from './profileVisibility';
 import { parseObjectId } from '../controllers/admin/admin.helpers';
 import { assertMediaMetadata } from '../utils/contentTaxonomyValidation';
+import { isCompleteVideo } from '../utils/contentCompleteness';
+import { resolveVideoMediaFields } from '../utils/videoEmbed';
 import * as artistRepo from '../repositories/artist/artist.repository';
 import { healArtistIdForUser } from './roleProfileLink.service';
 
 const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 const VIDEO_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
+
+function assertPublishableVideoMedia(
+  status: string,
+  fields: { videoFileUrl: string; embedUrl: string; videoUrl: string }
+): void {
+  if (status !== 'published') return;
+
+  if (!isCompleteVideo(fields)) {
+    throw new AppError(
+      'Published videos require a hosted video file or a valid YouTube embed URL',
+      400
+    );
+  }
+}
 
 export function shapeMusicListItem(raw: artistRepo.MusicWithArtistLean): Record<string, unknown> {
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc | null | undefined);
@@ -688,15 +704,21 @@ export async function createArtistVideo(
 
   const slug = await resolveUniqueVideoSlug(artist._id, body.title);
 
+  const resolved = resolveVideoMediaFields({
+    videoFileUrl: body.videoFileUrl,
+    embedUrl: body.embedUrl,
+    videoUrl: body.videoUrl,
+  });
+
   const video = await artistRepo.createVideoRecord({
     title: body.title,
     slug,
     artist: artist._id,
     description: body.description ?? '',
     thumbnail: body.thumbnail ?? '',
-    videoUrl: body.videoUrl ?? '',
-    videoFileUrl: body.videoFileUrl ?? '',
-    embedUrl: body.embedUrl ?? '',
+    videoUrl: resolved.videoUrl,
+    videoFileUrl: resolved.videoFileUrl,
+    embedUrl: resolved.embedUrl,
     category: body.category ?? '',
     metadata,
     status: 'draft',
@@ -763,9 +785,22 @@ export async function updateArtistVideo(
   if (body.title !== undefined) video.title = body.title;
   if (body.description !== undefined) video.description = body.description;
   if (body.thumbnail !== undefined) video.thumbnail = body.thumbnail;
-  if (body.videoUrl !== undefined) video.videoUrl = body.videoUrl;
-  if (body.videoFileUrl !== undefined) video.videoFileUrl = body.videoFileUrl;
-  if (body.embedUrl !== undefined) video.embedUrl = body.embedUrl;
+
+  const mediaTouched =
+    body.embedUrl !== undefined || body.videoFileUrl !== undefined || body.videoUrl !== undefined;
+
+  if (mediaTouched) {
+    const resolved = resolveVideoMediaFields({
+      videoFileUrl: body.videoFileUrl !== undefined ? body.videoFileUrl : video.videoFileUrl,
+      embedUrl: body.embedUrl !== undefined ? body.embedUrl : video.embedUrl,
+      videoUrl: body.videoUrl !== undefined ? body.videoUrl : video.videoUrl,
+    });
+
+    video.videoFileUrl = resolved.videoFileUrl;
+    video.embedUrl = resolved.embedUrl;
+    video.videoUrl = resolved.videoUrl;
+  }
+
   if (body.category !== undefined) video.category = body.category;
   if (body.metadata !== undefined) video.metadata = assertMediaMetadata(body.metadata);
   if (body.status !== undefined) video.status = body.status as 'draft' | 'published' | 'archived';
@@ -774,6 +809,12 @@ export async function updateArtistVideo(
   if (body.price !== undefined || body.isMonetizable !== undefined) {
     video.price = resolveMonetizationPrice(nextMonetizable, nextPrice ?? video.price, video.price);
   }
+
+  assertPublishableVideoMedia(video.status, {
+    videoFileUrl: video.videoFileUrl ?? '',
+    embedUrl: video.embedUrl ?? '',
+    videoUrl: video.videoUrl ?? '',
+  });
 
   await video.save();
 

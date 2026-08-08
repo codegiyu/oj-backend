@@ -2,7 +2,7 @@
  * Public catalog completeness: items missing primary content must not be served.
  */
 
-import { isLikelyYoutubeUrl } from './videoEmbed';
+import { isLikelyYoutubeUrl, resolveVideoMediaFields } from './videoEmbed';
 
 const NON_EMPTY = /\S/;
 
@@ -25,15 +25,13 @@ export function isCompleteMusic(raw: Record<string, unknown>): boolean {
 }
 
 export function isCompleteVideo(raw: Record<string, unknown>): boolean {
-  const fileFromField = typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl.trim() : '';
-  const legacyUrl = typeof raw.videoUrl === 'string' ? raw.videoUrl.trim() : '';
-  const embedField = typeof raw.embedUrl === 'string' ? raw.embedUrl.trim() : '';
+  const resolved = resolveVideoMediaFields({
+    videoFileUrl: typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl : '',
+    embedUrl: typeof raw.embedUrl === 'string' ? raw.embedUrl : '',
+    videoUrl: typeof raw.videoUrl === 'string' ? raw.videoUrl : '',
+  });
 
-  const videoFileUrl =
-    fileFromField || (legacyUrl && !isLikelyYoutubeUrl(legacyUrl) ? legacyUrl : '');
-  const embedUrl = embedField || (legacyUrl && isLikelyYoutubeUrl(legacyUrl) ? legacyUrl : '');
-
-  return Boolean(videoFileUrl || embedUrl);
+  return Boolean(resolved.videoFileUrl) || isLikelyYoutubeUrl(resolved.embedUrl);
 }
 
 export function isCompleteNewsArticle(raw: Record<string, unknown>): boolean {

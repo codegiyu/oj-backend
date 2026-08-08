@@ -32,6 +32,10 @@ describe('contentCompleteness', () => {
   it('requires playable video sources', () => {
     expect(isCompleteVideo({ videoFileUrl: 'https://cdn/v.mp4' })).toBe(true);
     expect(isCompleteVideo({ embedUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' })).toBe(true);
+    expect(isCompleteVideo({ videoFileUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' })).toBe(
+      true
+    );
+    expect(isCompleteVideo({ embedUrl: 'https://vimeo.com/123' })).toBe(false);
     expect(isCompleteVideo({ videoUrl: '', videoFileUrl: '', embedUrl: '' })).toBe(false);
   });
 

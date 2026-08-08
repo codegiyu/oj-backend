@@ -9,6 +9,9 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     clearMocks: true,
     passWithNoTests: true,
+    deps: {
+      moduleDirectories: ['node_modules'],
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],

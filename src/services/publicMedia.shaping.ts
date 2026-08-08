@@ -1,7 +1,7 @@
 import { toArtistSummary, type PopulatedArtistDoc } from '../controllers/artist/artist.helpers';
 import type { MediaMetadata } from '../lib/types/constants';
 import { leanIdToString } from '../utils/leanId';
-import { youtubeEmbedUrlFromInput, isLikelyYoutubeUrl } from '../utils/videoEmbed';
+import { youtubeEmbedUrlFromInput, resolveVideoMediaFields } from '../utils/videoEmbed';
 import { albumApiFieldsFromRaw } from '../utils/albumSummary';
 
 function tagsFromRaw(raw: Record<string, unknown>): string[] | undefined {
@@ -129,12 +129,13 @@ export function shapeVideoListItem(raw: Record<string, unknown>): Record<string,
 
 export function shapeVideoDetail(raw: Record<string, unknown>): Record<string, unknown> {
   const artist = toArtistSummary(raw.artist as PopulatedArtistDoc);
-  const legacyUrl = typeof raw.videoUrl === 'string' ? raw.videoUrl : '';
-  const fileFromField = typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl.trim() : '';
-  const videoFileUrl =
-    fileFromField || (legacyUrl && !isLikelyYoutubeUrl(legacyUrl) ? legacyUrl : '');
-  const embedField = typeof raw.embedUrl === 'string' ? raw.embedUrl.trim() : '';
-  const embedUrl = embedField || (legacyUrl && isLikelyYoutubeUrl(legacyUrl) ? legacyUrl : '');
+  const resolved = resolveVideoMediaFields({
+    videoFileUrl: typeof raw.videoFileUrl === 'string' ? raw.videoFileUrl : '',
+    embedUrl: typeof raw.embedUrl === 'string' ? raw.embedUrl : '',
+    videoUrl: typeof raw.videoUrl === 'string' ? raw.videoUrl : '',
+  });
+  const videoFileUrl = resolved.videoFileUrl;
+  const embedUrl = resolved.embedUrl;
 
   return {
     _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
