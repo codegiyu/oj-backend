@@ -7,9 +7,7 @@ export type OwnerUserSnapshot = { accountStatus?: AccountStatus } | null | undef
 export type VendorStatusSnapshot = { status?: string } | null | undefined;
 
 export type ProfileStatusSnapshot =
-  | { profileStatus?: ProfileStatus; isActive?: boolean }
-  | null
-  | undefined;
+  { profileStatus?: ProfileStatus; isActive?: boolean } | null | undefined;
 
 export function isVendorRoleActive(status: string | undefined): boolean {
   return status === 'active';

@@ -46,7 +46,7 @@ export const getFromCacheOrDB = async <T>(
 
   const data = await dbQuery();
   if (data != null) {
-    await addToCache(key, data as object, cacheDuration ?? ENVIRONMENT.redis.cacheExpiry);
+    await addToCache(key, data, cacheDuration ?? ENVIRONMENT.redis.cacheExpiry);
   }
 
   return data;

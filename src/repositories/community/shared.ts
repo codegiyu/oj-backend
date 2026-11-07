@@ -17,7 +17,7 @@ export async function findByIdOrSlug<T>(
     const byId = await model.findOne(byIdFilter).lean();
 
     if (byId) {
-      return byId as unknown as Record<string, unknown>;
+      return byId;
     }
   }
 
@@ -27,5 +27,5 @@ export async function findByIdOrSlug<T>(
   };
   const bySlug = await model.findOne(bySlugFilter).lean();
 
-  return bySlug as unknown as Record<string, unknown> | null;
+  return bySlug;
 }

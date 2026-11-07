@@ -85,11 +85,11 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
   }
 
   const templateProps: EmailTemplateProps = emailLog?.metadata?.jobData
-    ? ({
+    ? {
         ...(emailLog.metadata.jobData as Record<string, unknown>),
         ...data,
         branding,
-      } as EmailTemplateProps)
+      }
     : { ...data, branding };
 
   try {

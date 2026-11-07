@@ -145,20 +145,19 @@ export async function updateAdminProduct(
   if (body.inStock !== undefined) product.inStock = body.inStock;
   if (body.status !== undefined) product.status = body.status;
   if (body.isFeatured !== undefined) product.isFeatured = body.isFeatured;
-  if (body.variationOptions !== undefined)
-    product.variationOptions = body.variationOptions as never;
+  if (body.variationOptions !== undefined) product.variationOptions = body.variationOptions;
   if (body.variants !== undefined) product.variants = body.variants as never;
 
   if (body.category !== undefined) {
     product.category =
       body.category && mongoose.Types.ObjectId.isValid(body.category)
-        ? (new mongoose.Types.ObjectId(body.category) as never)
+        ? new mongoose.Types.ObjectId(body.category)
         : null;
   }
   if (body.subCategory !== undefined) {
     product.subCategory =
       body.subCategory && mongoose.Types.ObjectId.isValid(body.subCategory)
-        ? (new mongoose.Types.ObjectId(body.subCategory) as never)
+        ? new mongoose.Types.ObjectId(body.subCategory)
         : null;
   }
 

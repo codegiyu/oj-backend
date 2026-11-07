@@ -5,13 +5,7 @@ declare module 'react' {
    * assignability to `React.ReactNode`.
    */
   export type ReactNode =
-    | string
-    | number
-    | boolean
-    | null
-    | undefined
-    | Iterable<ReactNode>
-    | object;
+    string | number | boolean | null | undefined | Iterable<ReactNode> | object;
 
   export const Children: {
     toArray(children: ReactNode): ReactNode[];

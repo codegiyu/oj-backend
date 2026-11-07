@@ -16,10 +16,5 @@ export async function metrics(request: FastifyRequest, reply: FastifyReply): Pro
     return;
   }
 
-  sendResponse(
-    reply,
-    200,
-    getLatencyHistogramSnapshot() as unknown as Record<string, unknown>,
-    'Latency snapshot'
-  );
+  sendResponse(reply, 200, getLatencyHistogramSnapshot(), 'Latency snapshot');
 }

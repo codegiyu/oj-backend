@@ -8,9 +8,7 @@ import { parseObjectId } from '../controllers/admin/admin.helpers';
 type AlbumArtistLean = Pick<IAlbum, '_id' | 'artist'>;
 
 export type AlbumAssignmentResult =
-  | { action: 'skip' }
-  | { action: 'clear' }
-  | { action: 'set'; albumId: mongoose.Types.ObjectId };
+  { action: 'skip' } | { action: 'clear' } | { action: 'set'; albumId: mongoose.Types.ObjectId };
 
 export function parseAlbumAssignmentInput(
   albumId: string | null | undefined

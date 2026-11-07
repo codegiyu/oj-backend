@@ -67,6 +67,7 @@ async function updateByIdOrThrow(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function softDeleteByIdOrThrow(model: Model<any>, id: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const deleted = await model
     .findByIdAndUpdate(toObjectId(id), { isActive: false }, { new: true, runValidators: true })
     .select('_id')

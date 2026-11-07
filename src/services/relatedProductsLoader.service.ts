@@ -12,7 +12,7 @@ function stringifyId(value: unknown): string {
   if (typeof value === 'string') return value;
   if (value instanceof mongoose.Types.ObjectId) return value.toHexString();
   if (typeof value === 'object' && '_id' in value) {
-    return stringifyId((value as { _id: unknown })._id);
+    return stringifyId(value._id);
   }
 
   return '';
@@ -27,15 +27,9 @@ function toObjectId(value: unknown): mongoose.Types.ObjectId | undefined {
 
 function buildScoreInput(product: Record<string, unknown>): RelatedProductScoreInput {
   const category = product.category as
-    | { _id?: unknown }
-    | mongoose.Types.ObjectId
-    | null
-    | undefined;
+    { _id?: unknown } | mongoose.Types.ObjectId | null | undefined;
   const subCategory = product.subCategory as
-    | { _id?: unknown }
-    | mongoose.Types.ObjectId
-    | null
-    | undefined;
+    { _id?: unknown } | mongoose.Types.ObjectId | null | undefined;
 
   return {
     _id: toObjectId(product._id) ?? new mongoose.Types.ObjectId(),

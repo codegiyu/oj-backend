@@ -286,10 +286,5 @@ export async function getAdminArtistDashboardStats(
   const artist = await Artist.findById(id).select('_id').lean();
   if (!artist) throw new AppError('Artist not found', 404);
   const stats = await buildArtistDashboardStats(artist._id, { includeTopLists: true });
-  sendResponse(
-    reply,
-    200,
-    { ...stats } as unknown as Record<string, unknown>,
-    'Artist dashboard stats loaded.'
-  );
+  sendResponse(reply, 200, { ...stats }, 'Artist dashboard stats loaded.');
 }

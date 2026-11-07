@@ -541,10 +541,7 @@ export async function placeMarketplaceOrder(
 
     const { message, link } = buildMarketplaceWhatsappLink(created);
     const v = created?.vendor as
-      | { email?: string; whatsapp?: string }
-      | mongoose.Types.ObjectId
-      | null
-      | undefined;
+      { email?: string; whatsapp?: string } | mongoose.Types.ObjectId | null | undefined;
     const vendorEmail =
       v && typeof v === 'object' && !(v instanceof mongoose.Types.ObjectId) && v.email
         ? String(v.email).trim()

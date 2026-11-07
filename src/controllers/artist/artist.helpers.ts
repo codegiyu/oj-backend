@@ -46,7 +46,7 @@ function ownerFromPopulatedArtist(
 ): { accountStatus?: AccountStatus } | undefined {
   const user = artist.user;
   if (user && typeof user === 'object' && 'accountStatus' in user) {
-    return { accountStatus: (user as { accountStatus?: AccountStatus }).accountStatus };
+    return { accountStatus: user.accountStatus };
   }
   return undefined;
 }

@@ -243,9 +243,7 @@ export async function addToWishlist(
 
   if (!wishlistItem) throw new AppError('Failed to add to wishlist', 500);
 
-  const item = shapeWishlistItem(
-    wishlistItem as { _id: unknown; createdAt?: unknown; product?: unknown }
-  );
+  const item = shapeWishlistItem(wishlistItem);
   sendResponse(reply, 200, { item }, 'Item added to wishlist.');
 }
 
@@ -371,8 +369,8 @@ async function upsertCartItem(userId: mongoose.Types.ObjectId, input: CartItemIn
 
   const items =
     (cart.items as
-      | Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }>
-      | undefined) ?? [];
+      Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }> | undefined) ??
+    [];
   const existingIndex = items.findIndex(
     it => String(it.product) === productId && ((it.sku ?? '') === (sku ?? '') || (!it.sku && !sku))
   );
@@ -451,8 +449,8 @@ export async function updateCart(
 
   const items =
     (cart.items as
-      | Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }>
-      | undefined) ?? [];
+      Array<{ product: mongoose.Types.ObjectId; quantity: number; sku?: string }> | undefined) ??
+    [];
 
   for (const upd of updates) {
     if (!mongoose.Types.ObjectId.isValid(upd.productId)) {

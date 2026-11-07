@@ -110,7 +110,7 @@ async function fetchMusicResults(
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompleteMusic(doc)) continue;
     const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
     results.push({
@@ -140,7 +140,7 @@ async function fetchAlbumResults(
     SEARCH_PER_TYPE_LIMIT
   );
 
-  return (docs as unknown as Record<string, unknown>[]).map(doc => {
+  return docs.map(doc => {
     const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
 
     return {
@@ -167,7 +167,7 @@ async function fetchNewsResults(q: string, forceTextSearch?: boolean): Promise<S
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompleteNewsArticle(doc)) continue;
     results.push({
       _id: leanIdToString(doc._id),
@@ -198,7 +198,7 @@ async function fetchVideoResults(
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompleteVideo(doc)) continue;
     const artist = toArtistSummary(doc.artist as PopulatedArtistDoc);
     results.push({
@@ -230,7 +230,7 @@ async function fetchDevotionalResults(
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompleteDevotional(doc)) continue;
     results.push({
       _id: leanIdToString(doc._id),
@@ -260,7 +260,7 @@ async function fetchTestimonyResults(
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompleteTestimony(doc)) continue;
     const testimonyPreview = typeof doc.content === 'string' ? doc.content.slice(0, 60) : '';
 
@@ -293,7 +293,7 @@ async function fetchPrayerRequestResults(
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompletePrayerRequest(doc)) continue;
     results.push({
       _id: leanIdToString(doc._id),
@@ -321,7 +321,7 @@ async function fetchQuestionResults(
     SEARCH_PER_TYPE_LIMIT
   );
 
-  return (docs as unknown as Record<string, unknown>[]).map(doc => ({
+  return docs.map(doc => ({
     _id: leanIdToString(doc._id),
     title: searchDisplayStr(doc.question),
     subtitle: searchDisplayStr(doc.author),
@@ -341,7 +341,7 @@ async function fetchPollResults(q: string, forceTextSearch?: boolean): Promise<S
     SEARCH_PER_TYPE_LIMIT
   );
 
-  return (docs as unknown as Record<string, unknown>[]).map(doc => {
+  return docs.map(doc => {
     const totalVotesRaw = Number(doc.totalVotes);
     const totalVotes = Number.isFinite(totalVotesRaw) ? totalVotesRaw : 0;
 
@@ -369,7 +369,7 @@ async function fetchArtistResults(
     SEARCH_PER_TYPE_LIMIT
   );
 
-  return (docs as unknown as Record<string, unknown>[]).map(doc => ({
+  return docs.map(doc => ({
     _id: leanIdToString(doc._id),
     title: searchDisplayStr(doc.name),
     subtitle: searchDisplayStr(doc.genre),
@@ -395,7 +395,7 @@ async function fetchResourceResults(
 
   const results: SearchResultItem[] = [];
 
-  for (const doc of docs as unknown as Record<string, unknown>[]) {
+  for (const doc of docs) {
     if (!isCompleteResource(doc)) continue;
     results.push({
       _id: leanIdToString(doc._id),

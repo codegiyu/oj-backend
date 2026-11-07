@@ -47,7 +47,7 @@ export function successEnvelopeResponseSchema<S extends 200 | 201>(
     },
   };
 
-  return { [statusCode]: body } as Record<S, EnvelopeBodySchema>;
+  return { [statusCode]: body };
 }
 
 const errorEnvelopeBodies = {

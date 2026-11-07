@@ -16,7 +16,6 @@ import {
   toArtistSummary,
   serializeDocIds,
   leanIdToString,
-  type PopulatedArtistDoc,
 } from '../controllers/artist/artist.helpers';
 import { Artist } from '../models/artist';
 import { buildArtistDashboardStats } from './artistDashboardStats.service';
@@ -42,7 +41,7 @@ const MUSIC_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 const VIDEO_SORT_FIELDS = ['createdAt', 'updatedAt', 'title', 'status'];
 
 export function shapeMusicListItem(raw: artistRepo.MusicWithArtistLean): Record<string, unknown> {
-  const artist = toArtistSummary(raw.artist as PopulatedArtistDoc | null | undefined);
+  const artist = toArtistSummary(raw.artist);
 
   return {
     _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
@@ -83,12 +82,12 @@ function shapeMusicDetail(doc: artistRepo.MusicWithArtistLean): Record<string, u
     downloads: doc.downloads ?? 0,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
-    artist: toArtistSummary(doc.artist as PopulatedArtistDoc | null | undefined),
+    artist: toArtistSummary(doc.artist),
   };
 }
 
 export function shapeVideoListItem(raw: artistRepo.VideoWithArtistLean): Record<string, unknown> {
-  const artist = toArtistSummary(raw.artist as PopulatedArtistDoc | null | undefined);
+  const artist = toArtistSummary(raw.artist);
 
   return {
     _id: raw._id != null ? leanIdToString(raw._id) : raw._id,
@@ -143,7 +142,7 @@ function shapeVideoDetail(doc: artistRepo.VideoWithArtistLean): Record<string, u
     downloads: doc.downloads ?? 0,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : doc.updatedAt,
-    artist: toArtistSummary(doc.artist as PopulatedArtistDoc | null | undefined),
+    artist: toArtistSummary(doc.artist),
   };
 }
 
@@ -339,7 +338,7 @@ export async function updateArtistProfile(
   if (body.image !== undefined) artistDoc.image = body.image;
   if (body.coverImage !== undefined) artistDoc.coverImage = body.coverImage;
   if (body.genre !== undefined) artistDoc.genre = body.genre;
-  if (body.socials !== undefined) artistDoc.socials = body.socials as typeof artistDoc.socials;
+  if (body.socials !== undefined) artistDoc.socials = body.socials;
 
   await artistDoc.save();
 
@@ -580,7 +579,7 @@ export async function createArtistMusic(
   const populated = await artistRepo.findMusicPopulatedById(music._id);
 
   if (!populated) {
-    return { music: shapeMusicListItem(music as artistRepo.MusicWithArtistLean) };
+    return { music: shapeMusicListItem(music) };
   }
 
   return { music: shapeMusicDetail(populated) };
@@ -653,7 +652,7 @@ export async function updateArtistMusic(
   const populated = await artistRepo.findMusicPopulatedById(music._id);
 
   if (!populated) {
-    return { music: shapeMusicListItem(music.toObject() as artistRepo.MusicWithArtistLean) };
+    return { music: shapeMusicListItem(music.toObject()) };
   }
 
   return { music: shapeMusicDetail(populated) };
@@ -729,7 +728,7 @@ export async function createArtistVideo(
   const populated = await artistRepo.findVideoPopulatedById(video._id);
 
   if (!populated) {
-    return { video: shapeVideoListItem(video as artistRepo.VideoWithArtistLean) };
+    return { video: shapeVideoListItem(video) };
   }
 
   return { video: shapeVideoDetail(populated) };
@@ -816,7 +815,7 @@ export async function updateArtistVideo(
   const populated = await artistRepo.findVideoPopulatedById(video._id);
 
   if (!populated) {
-    return { video: shapeVideoListItem(video.toObject() as artistRepo.VideoWithArtistLean) };
+    return { video: shapeVideoListItem(video.toObject()) };
   }
 
   return { video: shapeVideoDetail(populated) };

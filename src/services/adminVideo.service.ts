@@ -39,10 +39,7 @@ function ownerApiFields(raw: Record<string, unknown>): {
       ? (
           artistVal as {
             user?:
-              | { _id?: mongoose.Types.ObjectId | null }
-              | mongoose.Types.ObjectId
-              | string
-              | null;
+              { _id?: mongoose.Types.ObjectId | null } | mongoose.Types.ObjectId | string | null;
           }
         ).user
       : undefined;

@@ -62,7 +62,7 @@ export async function getPollByIdOrSlug(
     const submittedBy = doc.submittedBy;
     const ownerId =
       submittedBy != null && typeof submittedBy === 'object' && '_id' in submittedBy
-        ? String((submittedBy as { _id: unknown })._id)
+        ? String(submittedBy._id)
         : typeof submittedBy === 'string'
           ? submittedBy
           : '';
@@ -163,7 +163,7 @@ export async function votePoll(
 
   return {
     statusCode: 200,
-    data: { poll: shapePollDetail(updated as unknown as Record<string, unknown>) },
+    data: { poll: shapePollDetail(updated) },
     message: 'Vote recorded.',
   };
 }
