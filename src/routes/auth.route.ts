@@ -42,6 +42,16 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       { schema: requestPasswordResetBodySchema },
       catchAsync(requestPasswordReset)
     );
+
+    sensitiveAuthApp.post<{ Body: { code: string; email: string; scope: string } }>(
+      '/verify-otp',
+      { schema: verifyOTPBodySchema },
+      catchAsync(verifyOTP)
+    );
+
+    sensitiveAuthApp.post<{
+      Body: { scopeToken: string; email: string; password: string; confirmPassword: string };
+    }>('/reset-password', { schema: resetPasswordBodySchema }, catchAsync(resetPassword));
   });
 
   /** Google OAuth for users only. Admins use POST /auth/login (email/password). */
@@ -50,15 +60,6 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     { schema: googleLoginBodySchema },
     catchAsync(googleAuth)
   );
-  app.post<{ Body: { code: string; email: string; scope: string } }>(
-    '/verify-otp',
-    { schema: verifyOTPBodySchema },
-    catchAsync(verifyOTP)
-  );
-
-  app.post<{
-    Body: { scopeToken: string; email: string; password: string; confirmPassword: string };
-  }>('/reset-password', { schema: resetPasswordBodySchema }, catchAsync(resetPassword));
 
   app.get('/session', { preHandler: optionalAuthenticate }, catchAsync(session));
 

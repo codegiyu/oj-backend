@@ -5,15 +5,20 @@ import { Vendor } from '../models/vendor';
 
 const DEFAULT_RANDOM_ALPHABET = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
 
-/** Cryptographically secure string from a given alphabet (CommonJS-safe; no ESM-only nanoid). */
+/** Cryptographically secure string from a given alphabet using rejection sampling (no modulo bias). */
 export function randomFromAlphabet(alphabet: string, length: number): string {
-  const bytes = crypto.randomBytes(length);
+  const alphabetLen = alphabet.length;
+  // Reject bytes that would bias the distribution; threshold is the largest multiple of alphabetLen <= 256.
+  const maxUnbiased = Math.floor(256 / alphabetLen) * alphabetLen;
   let result = '';
-
-  for (let i = 0; i < length; i++) {
-    result += alphabet[bytes[i] % alphabet.length];
+  while (result.length < length) {
+    const bytes = crypto.randomBytes(Math.ceil((length - result.length) * 1.5));
+    for (let i = 0; i < bytes.length && result.length < length; i++) {
+      if (bytes[i] < maxUnbiased) {
+        result += alphabet[bytes[i] % alphabetLen];
+      }
+    }
   }
-
   return result;
 }
 

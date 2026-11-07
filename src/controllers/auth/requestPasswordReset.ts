@@ -49,5 +49,10 @@ export async function requestPasswordReset(
     accessType: resolvedAccessType,
   });
 
-  sendResponse(reply, 200, { success: true }, 'Password reset link sent successfully.');
+  sendResponse(
+    reply,
+    200,
+    { success: true },
+    'If this email is registered, a password reset link has been sent.'
+  );
 }
