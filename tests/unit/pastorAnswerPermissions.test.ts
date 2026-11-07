@@ -33,11 +33,15 @@ vi.mock('../../src/models/askPastorQuestion', () => ({
 }));
 
 vi.mock('../../src/utils/getAuthUser', () => ({
-  getAuthUser: vi.fn(() => ({ userId: 'user-1', scope: 'client-access', email: 'p@test.com', jti: 'j' })),
+  getAuthUser: vi.fn(() => ({ userId: '507f1f77bcf86cd799439011', scope: 'client-access', email: 'p@test.com', jti: 'j' })),
 }));
 
 vi.mock('../../src/utils/response', () => ({
   sendResponse: vi.fn(),
+}));
+
+vi.mock('../../src/services/roleProfileLink.service', () => ({
+  healPastorIdForUser: vi.fn().mockResolvedValue(null),
 }));
 
 import { answerPastorQuestion, getPastorForUser } from '../../src/controllers/pastor/pastor.controller';
@@ -55,7 +59,7 @@ describe('pastor answer permissions', () => {
       }),
     });
 
-    await expect(getPastorForUser('user-1')).rejects.toMatchObject({
+    await expect(getPastorForUser('507f1f77bcf86cd799439011')).rejects.toMatchObject({
       message: 'You do not have an associated pastor profile',
       statusCode: 403,
     });
@@ -71,7 +75,7 @@ describe('pastor answer permissions', () => {
       lean: vi.fn().mockResolvedValue({ _id: 'pastor-1', name: 'Rev. A' }),
     });
 
-    const pastor = await getPastorForUser('user-1');
+    const pastor = await getPastorForUser('507f1f77bcf86cd799439011');
     expect(pastor.name).toBe('Rev. A');
   });
 

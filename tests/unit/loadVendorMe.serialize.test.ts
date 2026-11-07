@@ -1,9 +1,8 @@
-import mongoose from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { vendorId, approvedBy, mockVendorDoc } = vi.hoisted(() => {
-  const vendorId = new mongoose.Types.ObjectId();
-  const approvedBy = new mongoose.Types.ObjectId();
+  const vendorId = '507f1f77bcf86cd799439011';
+  const approvedBy = '507f1f77bcf86cd799439012';
 
   const mockVendorDoc = {
     _id: vendorId,
@@ -54,7 +53,7 @@ describe('loadVendorMe serialization', () => {
   });
 
   it('stringifies vendor document ids and dates in the returned payload', async () => {
-    const userId = String(new mongoose.Types.ObjectId());
+    const userId = '507f1f77bcf86cd799439013';
     const result = await loadVendorMe(userId);
 
     expect(typeof result._id).toBe('string');
