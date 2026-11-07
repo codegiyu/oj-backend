@@ -43,6 +43,11 @@ jobs:
           JWT_SECRET: ci-jwt-secret-32-characters-minimum
           REFRESH_TOKEN_SECRET: ci-refresh-secret-32-characters
           COOKIE_SECRET: ci-cookie-secret-32-characters-min
+          R2_ACCOUNT_ID: ci-r2-account-id
+          R2_ACCESS_KEY_ID: ci-r2-access-key-id
+          R2_SECRET_ACCESS_KEY: ci-r2-secret-access-key-placeholder
+          R2_BUCKET_NAME: ci-r2-bucket
+          R2_FOLDER_PREFIX: ci
         run: |
           node dist/server.js &
           pid=$!
