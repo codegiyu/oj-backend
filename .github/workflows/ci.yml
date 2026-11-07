@@ -12,7 +12,7 @@ jobs:
 
     env:
       NODE_ENV: development
-      DATABASE_URL: mongodb://localhost:27017/oj-ci-smoke
+      DATABASE_URL: mongodb://localhost:27017/oj-ci-smoke?replicaSet=rs0&directConnection=true
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET: ci-jwt-secret-32-characters-minimum
       REFRESH_TOKEN_SECRET: ci-refresh-secret-32-characters
@@ -28,6 +28,12 @@ jobs:
         image: mongo:7
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --replSet rs0
       redis:
         image: redis:7-alpine
         ports:
@@ -35,6 +41,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Initialize MongoDB replica set
+        run: mongosh --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"
 
       - uses: actions/setup-node@v4
         with:
