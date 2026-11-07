@@ -77,7 +77,7 @@ export async function runAdminGet<TRow>(
 
   return {
     statusCode: 200,
-    data: { [config.itemKey]: config.shapeItem(doc as unknown as Record<string, unknown>) },
+    data: { [config.itemKey]: config.shapeItem(doc) },
     message: config.message,
   };
 }

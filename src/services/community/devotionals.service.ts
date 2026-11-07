@@ -86,7 +86,7 @@ export async function getDevotionalByIdOrSlug(
 
   const docOid = new mongoose.Types.ObjectId(String(doc._id));
   const populated = await devotionalRepo.findDevotionalByIdPopulated(String(docOid));
-  const detailRaw = (populated ?? doc) as unknown as Record<string, unknown>;
+  const detailRaw = populated ?? doc;
 
   const category = doc.category as string | undefined;
   const related = category
@@ -101,9 +101,7 @@ export async function getDevotionalByIdOrSlug(
     statusCode: 200,
     data: {
       devotional: shapeDevotionalDetail(detailRaw),
-      relatedDevotionals: (related as unknown as Record<string, unknown>[]).map(
-        shapeDevotionalListItem
-      ),
+      relatedDevotionals: related.map(shapeDevotionalListItem),
     },
     message: 'Devotional loaded.',
   };

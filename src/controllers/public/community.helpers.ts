@@ -190,7 +190,7 @@ export function shapeQuestionListItem(
   raw: Record<string, unknown>,
   pastor?: Record<string, unknown> | null
 ): Record<string, unknown> {
-  const answersCount = countQuestionAnswers(raw as never);
+  const answersCount = countQuestionAnswers(raw);
   const item: Record<string, unknown> = {
     _id: idStr(raw._id),
     question: raw.question,
@@ -218,7 +218,7 @@ export function shapeQuestionDetail(
   raw: Record<string, unknown>,
   pastor?: Record<string, unknown> | null
 ): Record<string, unknown> {
-  const answers = normalizeQuestionAnswers(raw as never);
+  const answers = normalizeQuestionAnswers(raw);
   const detail: Record<string, unknown> = {
     _id: idStr(raw._id),
     question: raw.question,

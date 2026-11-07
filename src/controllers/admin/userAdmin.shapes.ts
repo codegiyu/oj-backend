@@ -85,8 +85,7 @@ export function shapeUserDetail(raw: Record<string, unknown>): Record<string, un
   const vendor = linkedProfileName(raw.vendorId, 'storeName');
   const pastor = linkedProfileName(raw.pastorId, 'name');
   const approvedBy = raw.deletionApprovedBy as
-    | { _id?: unknown; firstName?: string; lastName?: string; email?: string }
-    | undefined;
+    { _id?: unknown; firstName?: string; lastName?: string; email?: string } | undefined;
 
   const roleSlugs = (auth?.roles ?? [])
     .map(role => role.slug)

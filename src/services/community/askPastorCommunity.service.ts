@@ -99,7 +99,7 @@ export async function getAskAPastorQuestionByIdOrSlug(
 
   const populated = await askPastorRepo.findAskPastorQuestionByIdPopulated(doc._id);
   if (!populated) throw new AppError('Question not found', 404);
-  const raw = populated as unknown as Record<string, unknown>;
+  const raw = populated;
   const pastor = raw.pastor as Record<string, unknown> | null | undefined;
 
   return {
@@ -120,7 +120,7 @@ export async function getAskAPastorPastorByIdOrSlug(
 
   return {
     statusCode: 200,
-    data: { pastor: shapePastorDetail(doc as unknown as Record<string, unknown>) },
+    data: { pastor: shapePastorDetail(doc) },
     message: 'Pastor loaded.',
   };
 }
@@ -270,7 +270,7 @@ export async function likeAskPastorAnswer(
   if (!questionDoc) throw new AppError('Question not found', 404);
   if (questionDoc.isPrivate) throw new AppError('Question not found', 404);
 
-  const answers = normalizeQuestionAnswers(questionDoc as never);
+  const answers = normalizeQuestionAnswers(questionDoc);
   const answerId = request.params.answerId;
   const answerExists = answers.some(entry => String(entry._id) === answerId);
   if (!answerExists) throw new AppError('Answer not found', 404);
@@ -327,15 +327,9 @@ export async function getAskAPastorHub(): Promise<{
     return shapeQuestionListItem(raw, pastor ?? null);
   };
 
-  const activeQuestions = activeResult.items.map(item =>
-    mapQuestion(item as unknown as Record<string, unknown>)
-  );
-  const answeredQuestions = answeredResult.items.map(item =>
-    mapQuestion(item as unknown as Record<string, unknown>)
-  );
-  const pastors = pastorsResult.items.map(item =>
-    shapePastorListItem(item as unknown as Record<string, unknown>)
-  );
+  const activeQuestions = activeResult.items.map(item => mapQuestion(item));
+  const answeredQuestions = answeredResult.items.map(item => mapQuestion(item));
+  const pastors = pastorsResult.items.map(item => shapePastorListItem(item));
 
   const categoryCounts = buildCategoryCounts([...activeQuestions, ...answeredQuestions]);
 

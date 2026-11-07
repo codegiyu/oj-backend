@@ -26,7 +26,7 @@ export async function findChartSnapshot(
   const doc = await MusicChartSnapshot.findOne({ scopeKey, period, periodKey }).lean();
   if (!doc) return null;
 
-  return doc as unknown as ChartSnapshotDoc;
+  return doc;
 }
 
 export async function findHistoricalChartSnapshots(
@@ -44,7 +44,7 @@ export async function findHistoricalChartSnapshots(
     .limit(options?.limit ?? 26)
     .lean();
 
-  return docs as unknown as ChartSnapshotDoc[];
+  return docs;
 }
 
 export async function upsertChartSnapshot(snapshot: ChartSnapshotDoc): Promise<void> {

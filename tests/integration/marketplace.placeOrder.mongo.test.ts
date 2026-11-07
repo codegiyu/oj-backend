@@ -94,7 +94,8 @@ describe('POST /marketplace/orders (Mongo integration)', () => {
     expect(response.statusCode).toBe(201);
     const body = response.json();
     expect(body.success).toBe(true);
-    expect(body.data?.orders?.length).toBeGreaterThanOrEqual(1);
+    // single vendor → response shape is { order } not { orders }
+    expect(body.data?.order).toBeDefined();
 
     const orderCount = await Order.countDocuments({ vendor: vendorId });
     expect(orderCount).toBe(1);

@@ -69,15 +69,9 @@ export async function getCommunity(): Promise<{
         artists: artistsCount,
         promoteYourContent: 0,
       },
-      featuredTestimonies: (featuredTestimonies as unknown as Record<string, unknown>[]).map(
-        shapeTestimonyListItem
-      ),
-      trendingDevotionals: (trendingDevotionals as unknown as Record<string, unknown>[]).map(
-        shapeDevotionalListItem
-      ),
-      recentPrayerRequests: (recentPrayerRequests as unknown as Record<string, unknown>[]).map(
-        shapePrayerRequestListItem
-      ),
+      featuredTestimonies: featuredTestimonies.map(shapeTestimonyListItem),
+      trendingDevotionals: trendingDevotionals.map(shapeDevotionalListItem),
+      recentPrayerRequests: recentPrayerRequests.map(shapePrayerRequestListItem),
     },
     message: 'Community data loaded.',
   };
@@ -102,9 +96,9 @@ export async function getCommunityHighlights(): Promise<{
   ]);
 
   const highlights = mergeCommunityHighlights({
-    testimonies: testimoniesRes.items as unknown as Record<string, unknown>[],
-    devotionals: devotionalsRes as unknown as Record<string, unknown>[],
-    prayerRequests: prayerRes as unknown as Record<string, unknown>[],
+    testimonies: testimoniesRes.items,
+    devotionals: devotionalsRes,
+    prayerRequests: prayerRes,
     limit: 6,
   });
 

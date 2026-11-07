@@ -27,16 +27,16 @@ async function loadProfile(
   if (profileType === 'vendor') {
     const doc = await Vendor.findById(profileId);
     if (!doc) throw new AppError('Vendor not found', 404);
-    return doc as unknown as ProfileDoc;
+    return doc;
   }
   if (profileType === 'artist') {
     const doc = await Artist.findById(profileId);
     if (!doc) throw new AppError('Artist not found', 404);
-    return doc as unknown as ProfileDoc;
+    return doc;
   }
   const doc = await Pastor.findById(profileId);
   if (!doc) throw new AppError('Pastor not found', 404);
-  return doc as unknown as ProfileDoc;
+  return doc;
 }
 
 function getRoleStatus(profileType: RoleProfileType, profile: ProfileDoc): string {
@@ -219,7 +219,7 @@ export async function deactivateRoleProfile(options: {
 }): Promise<void> {
   const profile = await loadProfile(options.profileType, options.profileId);
 
-  if (!isRoleProfileActive(options.profileType, profile as ProfileDoc & { status?: string })) {
+  if (!isRoleProfileActive(options.profileType, profile)) {
     throw new AppError('Profile is not active', 400);
   }
 

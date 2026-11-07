@@ -211,7 +211,7 @@ export async function getPublicMusicByIdOrSlug(
   if (!doc || !isCompleteMusic(doc)) throw new AppError('Music not found', 404);
   const populated = await musicRepo.findPublishedMusicByIdPopulated(doc._id);
   if (!populated || !isCompleteMusic(populated)) throw new AppError('Music not found', 404);
-  const music = shapeMusicDetail(populated as unknown as Record<string, unknown>);
+  const music = shapeMusicDetail(populated);
   return { statusCode: 200, data: { music }, message: 'Music loaded.' };
 }
 
@@ -327,7 +327,7 @@ export async function getPublicVideoByIdOrSlug(
   if (!doc || !isCompleteVideo(doc)) throw new AppError('Video not found', 404);
   const populated = await videoRepo.findPublishedVideoByIdPopulated(doc._id);
   if (!populated || !isCompleteVideo(populated)) throw new AppError('Video not found', 404);
-  const video = shapeVideoDetail(populated as unknown as Record<string, unknown>);
+  const video = shapeVideoDetail(populated);
   return { statusCode: 200, data: { video }, message: 'Video loaded.' };
 }
 
@@ -429,7 +429,7 @@ export async function getPublicNewsByIdOrSlug(
 ): Promise<PublicMediaServiceResult> {
   const doc = await newsRepo.findPublishedNewsByIdOrSlug(request.params.idOrSlug);
   if (!doc || !isCompleteNewsArticle(doc)) throw new AppError('Article not found', 404);
-  const article = shapeArticleDetail(doc as unknown as Record<string, unknown>);
+  const article = shapeArticleDetail(doc);
   return { statusCode: 200, data: { article }, message: 'Article loaded.' };
 }
 

@@ -10,11 +10,20 @@ jobs:
   release-check:
     runs-on: ubuntu-latest
 
+    env:
+      NODE_ENV: development
+      DATABASE_URL: mongodb://localhost:27017/oj-ci-smoke?replicaSet=rs0&directConnection=true
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: ci-jwt-secret-32-characters-minimum
+      REFRESH_TOKEN_SECRET: ci-refresh-secret-32-characters
+      COOKIE_SECRET: ci-cookie-secret-32-characters-min
+      R2_ACCOUNT_ID: ci-r2-account-id
+      R2_ACCESS_KEY_ID: ci-r2-access-key-id
+      R2_SECRET_ACCESS_KEY: ci-r2-secret-access-key-placeholder
+      R2_BUCKET_NAME: ci-r2-bucket
+      R2_FOLDER_PREFIX: ci
+
     services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
       redis:
         image: redis:7-alpine
         ports:
@@ -22,6 +31,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name mongodb -p 27017:27017 mongo:7 --replSet rs0
+          until docker exec mongodb mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do sleep 1; done
+          docker exec mongodb mongosh --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"
+          until docker exec mongodb mongosh --eval "rs.isMaster().ismaster" --quiet 2>/dev/null | grep -q true; do sleep 1; done
 
       - uses: actions/setup-node@v4
         with:
@@ -36,13 +52,6 @@ jobs:
         run: npm run build
 
       - name: Production boot smoke
-        env:
-          NODE_ENV: development
-          DATABASE_URL: mongodb://localhost:27017/oj-ci-smoke
-          REDIS_URL: redis://localhost:6379/0
-          JWT_SECRET: ci-jwt-secret-32-characters-minimum
-          REFRESH_TOKEN_SECRET: ci-refresh-secret-32-characters
-          COOKIE_SECRET: ci-cookie-secret-32-characters-min
         run: |
           node dist/server.js &
           pid=$!

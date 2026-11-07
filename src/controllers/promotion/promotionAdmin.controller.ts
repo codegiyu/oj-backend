@@ -19,7 +19,8 @@ function toObjectId(id: string): mongoose.Types.ObjectId {
 }
 
 async function listWithPagination(
-  model: Model<unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: Model<any>,
   request: FastifyRequest<{ Querystring: ListQuery }>,
   projection: string
 ): Promise<{ items: unknown[]; pagination: Record<string, number> }> {
@@ -52,7 +53,8 @@ async function listWithPagination(
 }
 
 async function updateByIdOrThrow(
-  model: Model<unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: Model<any>,
   id: string,
   update: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
@@ -63,7 +65,9 @@ async function updateByIdOrThrow(
   return updated;
 }
 
-async function softDeleteByIdOrThrow(model: Model<unknown>, id: string): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function softDeleteByIdOrThrow(model: Model<any>, id: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const deleted = await model
     .findByIdAndUpdate(toObjectId(id), { isActive: false }, { new: true, runValidators: true })
     .select('_id')

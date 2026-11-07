@@ -7,13 +7,7 @@ export type PublicListSort = 'newest' | 'popular' | 'featured';
 export const PUBLIC_LIST_SORT_VALUES = ['newest', 'popular', 'featured'] as const;
 
 export type PopularSortField =
-  | 'views'
-  | 'plays'
-  | 'downloads'
-  | 'totalVotes'
-  | 'prayers'
-  | 'upvotes'
-  | 'likes';
+  'views' | 'plays' | 'downloads' | 'totalVotes' | 'prayers' | 'upvotes' | 'likes';
 
 export type ParsedPublicListQuery = {
   q: string | undefined;

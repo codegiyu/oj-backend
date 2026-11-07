@@ -18,7 +18,10 @@ categorySchema.pre('save', async function (this) {
   if (!this.isModified('name')) return;
 
   const CategoryModel = model<ModelCategory>('Category');
-  const slug = await generateCategorySlug(CategoryModel as Model<{ slug: string }>, this.name);
+  const slug = await generateCategorySlug(
+    CategoryModel as unknown as Model<{ slug: string }>,
+    this.name
+  );
   this.slug = slug;
 });
 

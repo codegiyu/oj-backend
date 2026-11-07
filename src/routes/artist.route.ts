@@ -43,7 +43,7 @@ const artistPreHandler: preHandlerAsyncHookHandler = async (
 
 export function registerArtistRoutes(app: FastifyInstance): void {
   /* Generic route overloads type `preHandler` as sync-only; async hooks are valid at runtime. */
-  /* eslint-disable @typescript-eslint/no-misused-promises -- Fastify preHandler + handler */
+
   app.get('/me', { preHandler: artistPreHandler }, catchAsync(getArtistMe));
   app.post('/me/deactivate', { preHandler: artistPreHandler }, catchAsync(deactivateArtistMe));
   app.post('/me/reactivate', { preHandler: artistPreHandler }, catchAsync(reactivateArtistMe));
@@ -198,5 +198,4 @@ export function registerArtistRoutes(app: FastifyInstance): void {
     { preHandler: artistPreHandler, schema: resourceIdParamSchema },
     catchAsync(rejectArtistMediaWrite)
   );
-  /* eslint-enable @typescript-eslint/no-misused-promises */
 }

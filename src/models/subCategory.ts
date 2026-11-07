@@ -24,7 +24,7 @@ subCategorySchema.pre('save', async function (this) {
 
   const slug = await generateSubCategorySlug(
     Category,
-    SubCategoryModel as Model<{ slug: string; category: Types.ObjectId }>,
+    SubCategoryModel as unknown as Model<{ slug: string; category: Types.ObjectId }>,
     this.category,
     this.name
   );

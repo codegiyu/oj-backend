@@ -94,7 +94,7 @@ export function shapePastorQuestionListItem(raw: Record<string, unknown>): Recor
     status: raw.status,
     isPrivate: !!raw.isPrivate,
     isAnswered: isQuestionAnswered(raw as never),
-    answersCount: countQuestionAnswers(raw as never),
+    answersCount: countQuestionAnswers(raw),
     upvotes: raw.upvotes ?? 0,
     downvotes: raw.downvotes ?? 0,
     views: raw.views ?? 0,
@@ -106,7 +106,7 @@ export function shapePastorQuestionListItem(raw: Record<string, unknown>): Recor
 }
 
 export function shapePastorQuestionDetail(raw: Record<string, unknown>): Record<string, unknown> {
-  const answers = normalizeQuestionAnswers(raw as never);
+  const answers = normalizeQuestionAnswers(raw);
   const requestedPastor = raw.requestedPastor as PopulatedPastorRef | null | undefined;
   const legacyPastor = raw.pastor as PopulatedPastorRef | null | undefined;
 
@@ -127,10 +127,8 @@ export function shapePastorQuestionDetail(raw: Record<string, unknown>): Record<
     closedAt: toIso(raw.closedAt as Date | string | undefined),
     createdAt: toIso(raw.createdAt as Date | string | undefined),
     updatedAt: toIso(raw.updatedAt as Date | string | undefined),
-    requestedPastor: requestedPastor
-      ? shapePastorDetail(requestedPastor as Record<string, unknown>)
-      : null,
-    pastor: legacyPastor ? shapePastorDetail(legacyPastor as Record<string, unknown>) : null,
+    requestedPastor: requestedPastor ? shapePastorDetail(requestedPastor) : null,
+    pastor: legacyPastor ? shapePastorDetail(legacyPastor) : null,
     answers: answers.map(answer =>
       shapeAnswerItem(
         answer as never,

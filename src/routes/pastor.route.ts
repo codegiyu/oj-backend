@@ -28,7 +28,6 @@ const pastorPreHandler: preHandlerAsyncHookHandler = async (
 };
 
 export function registerPastorRoutes(app: FastifyInstance): void {
-  /* eslint-disable @typescript-eslint/no-misused-promises -- Fastify preHandler + handler */
   app.get('/me', { preHandler: pastorPreHandler }, catchAsync(getPastorMe));
   app.post('/me/deactivate', { preHandler: pastorPreHandler }, catchAsync(deactivatePastorMe));
   app.post('/me/reactivate', { preHandler: pastorPreHandler }, catchAsync(reactivatePastorMe));
@@ -84,5 +83,4 @@ export function registerPastorRoutes(app: FastifyInstance): void {
     { preHandler: pastorPreHandler },
     catchAsync(answerPastorQuestion)
   );
-  /* eslint-enable @typescript-eslint/no-misused-promises */
 }

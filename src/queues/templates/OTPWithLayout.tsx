@@ -22,7 +22,7 @@ export function OTPCodeWithLayout({ name, to, code, avatar, branding }: Template
       avatar={avatar}
       heading={`${branding.name} Account Verification Code`}
       code={code}
-      branding={branding as EmailBranding}
+      branding={branding}
       contentsArr={[
         {
           type: 'textBlock',

@@ -12,7 +12,7 @@ type LeanDoc = Record<string, unknown>;
  * Ensures _id, createdAt, updatedAt and nested artist._id, vendor._id are strings.
  */
 export function serializePopulatedUser(payload: LeanDoc): LeanDoc {
-  const out = { ...payload } as LeanDoc;
+  const out = { ...payload };
   if (out._id != null) out._id = leanIdToString(out._id);
   ['createdAt', 'updatedAt'].forEach(key => {
     if (out[key] instanceof Date) out[key] = out[key].toISOString();
