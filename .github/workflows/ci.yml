@@ -24,16 +24,6 @@ jobs:
       R2_FOLDER_PREFIX: ci
 
     services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --replSet rs0
       redis:
         image: redis:7-alpine
         ports:
@@ -42,8 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Initialize MongoDB replica set
-        run: mongosh --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name mongodb -p 27017:27017 mongo:7 --replSet rs0
+          until docker exec mongodb mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do sleep 1; done
+          docker exec mongodb mongosh --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"
+          until docker exec mongodb mongosh --eval "rs.isMaster().ismaster" --quiet 2>/dev/null | grep -q true; do sleep 1; done
 
       - uses: actions/setup-node@v4
         with:
