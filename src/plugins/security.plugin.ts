@@ -20,7 +20,12 @@ function tokenHeaderAllowlist(): string[] {
 
 async function securityPlugin(app: FastifyInstance): Promise<void> {
   await app.register(helmet, {
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
   });
 
   const allowlist = tokenHeaderAllowlist();

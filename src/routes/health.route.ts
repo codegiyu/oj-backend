@@ -3,6 +3,7 @@ import { ENVIRONMENT } from '../config/env';
 import { health, ready } from '../controllers/health/health.controller';
 import { metrics } from '../controllers/health/metrics.controller';
 import { catchAsync } from '../utils/catchAsync';
+import { authenticate } from '../middleware/auth.middleware';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export const registerHealthRoutes = async (fastify: FastifyInstance): Promise<void> => {
@@ -10,6 +11,6 @@ export const registerHealthRoutes = async (fastify: FastifyInstance): Promise<vo
   fastify.get('/ready', catchAsync(ready));
 
   if (ENVIRONMENT.observability.enableMetricsRoute) {
-    fastify.get('/metrics', catchAsync(metrics));
+    fastify.get('/metrics', { preHandler: authenticate }, catchAsync(metrics));
   }
 };

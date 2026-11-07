@@ -112,11 +112,14 @@ export async function sendEmail(job: Job<JobData>): Promise<void> {
     });
 
     const updateIdentifier = emailLogId ? { _id: emailLogId } : { jobId: jobId! };
+    // Don't persist HTML for sensitive types (OTP codes, password reset links).
+    const sensitiveTypes: EmailJobType[] = ['verificationCode', 'resetPassword'];
+    const persistHtml = !sensitiveTypes.includes(emailType);
     await updateEmailStatus(updateIdentifier, {
       status: 'sent',
       sentAt: new Date(),
       messageId: result.messageId,
-      htmlContent: html,
+      ...(persistHtml ? { htmlContent: html } : {}),
     });
     logger.info(`Email sent to ${to} (job ${job.id})`);
   } catch (err) {

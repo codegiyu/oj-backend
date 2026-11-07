@@ -1,10 +1,11 @@
 export const loginBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['email', 'password'],
     properties: {
       email: { type: 'string' },
-      password: { type: 'string' },
+      password: { type: 'string', minLength: 8, maxLength: 256 },
     },
   },
 } as const;
@@ -12,6 +13,7 @@ export const loginBodySchema = {
 export const googleLoginBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['googleCode'],
     properties: {
       googleCode: { type: 'string' },
@@ -22,6 +24,7 @@ export const googleLoginBodySchema = {
 export const requestOTPBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['email', 'scope'],
     properties: {
       email: { type: 'string' },
@@ -33,11 +36,12 @@ export const requestOTPBodySchema = {
 export const verifyOTPBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['code', 'email', 'scope'],
     properties: {
       code: { type: 'string' },
       email: { type: 'string' },
-      scope: { type: 'string' },
+      scope: { type: 'string', enum: ['verify-email'] },
     },
   },
 } as const;
@@ -45,6 +49,7 @@ export const verifyOTPBodySchema = {
 export const requestPasswordResetBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['email', 'scope'],
     properties: {
       email: { type: 'string' },
@@ -57,12 +62,13 @@ export const requestPasswordResetBodySchema = {
 export const resetPasswordBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['scopeToken', 'email', 'password', 'confirmPassword'],
     properties: {
       scopeToken: { type: 'string' },
       email: { type: 'string' },
-      password: { type: 'string' },
-      confirmPassword: { type: 'string' },
+      password: { type: 'string', minLength: 8, maxLength: 256 },
+      confirmPassword: { type: 'string', minLength: 8, maxLength: 256 },
     },
   },
 } as const;
@@ -70,11 +76,12 @@ export const resetPasswordBodySchema = {
 export const changePasswordBodySchema = {
   body: {
     type: 'object',
+    additionalProperties: false,
     required: ['currentPassword', 'password', 'confirmPassword'],
     properties: {
-      currentPassword: { type: 'string' },
-      password: { type: 'string' },
-      confirmPassword: { type: 'string' },
+      currentPassword: { type: 'string', minLength: 8, maxLength: 256 },
+      password: { type: 'string', minLength: 8, maxLength: 256 },
+      confirmPassword: { type: 'string', minLength: 8, maxLength: 256 },
     },
   },
 } as const;
