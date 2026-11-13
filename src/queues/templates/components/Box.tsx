@@ -16,7 +16,7 @@ export const Box = ({
   style,
   gap,
   ...props
-}: BoxProps): JSX.Element => {
+}: BoxProps): React.JSX.Element => {
   const childrenArray = React.Children.toArray(children);
   return (
     <div style={{ width: '100%', maxWidth: '600px', ...style }} {...props}>
