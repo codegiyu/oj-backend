@@ -342,6 +342,7 @@ export const ENTITY_TYPES = [
   'devotional',
   'news-article',
   'resource',
+  'video',
   'prayer-request',
   'testimony',
   'poll',
