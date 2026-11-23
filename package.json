@@ -26,6 +26,8 @@
     "test:phase:e2e": "vitest run tests/phase/e2e",
     "audit": "npm audit",
     "audit:ci": "npm audit --audit-level=high",
+    "staging:clone-r2": "tsx scripts/clone-r2-prefix.ts",
+    "staging:clone-db": "bash scripts/clone-mongo-db.sh",
     "release:check": "npm run type-check && npm run lint && npm run format:check && npm run test:unit && npm run test:integration && npm run test:phase:integration && npm run audit:ci"
   },
   "keywords": [
